@@ -5,11 +5,7 @@ const priceEl = document.getElementById('price');
 const agentSort = document.getElementById('agent-sort');
 const agentPagination = document.getElementById('agent-pagination');
 const connectButton = document.getElementById('connect-wallet');
-const connectMetaMaskButton = document.getElementById('connect-metamask');
 const walletStatus = document.getElementById('wallet-status');
-const metamaskStatus = document.getElementById('metamask-status');
-const snapModeToggle = document.getElementById('snap-mode');
-const snapOnboardingLink = document.getElementById('snap-onboarding-link');
 const txHashEl = document.getElementById('tx-hash');
 const requestIdEl = document.getElementById('request-id');
 const createRequestButton = document.getElementById('create-request');
@@ -52,72 +48,8 @@ localStorage.removeItem('disclaimerAcceptedV3');
 let agents = [];
 let selectedAgentId = null;
 let walletPublicKey = null;
-let metaSnapConnected = false;
 let creditsMode = false;
 let creditsMinDeposit = 1;
-const DEFAULT_SNAP_ID = 'npm:mina-portal';
-const LOCAL_SNAP_ID = 'local:http://localhost:8080';
-const ALLOWED_METHODS = new Set([
-  'mina_accountList',
-  'mina_createAccount',
-  'mina_changeNetwork',
-  'mina_sendTransaction'
-]);
-
-function getAllowedOrigins() {
-  const raw = document.body?.dataset.allowedOrigins || '';
-  const list = raw
-    .split(',')
-    .map((entry) => entry.trim())
-    .filter(Boolean);
-  return list.length ? list : [window.location.origin];
-}
-
-function getAllowedSnapIds() {
-  const raw = document.body?.dataset.allowedSnapIds || '';
-  const list = raw
-    .split(',')
-    .map((entry) => entry.trim())
-    .filter(Boolean);
-  return list.length ? list : [DEFAULT_SNAP_ID, LOCAL_SNAP_ID];
-}
-
-function assertAllowedOrigin() {
-  const allowed = getAllowedOrigins();
-  if (!allowed.includes(window.location.origin)) {
-    throw new Error('Snap access blocked: origin not allowed.');
-  }
-}
-
-function assertAllowedSnapId(snapId) {
-  const allowed = getAllowedSnapIds();
-  if (!allowed.includes(snapId)) {
-    throw new Error('Snap access blocked: snap id not allowed.');
-  }
-}
-
-function assertAllowedMethod(method) {
-  if (!ALLOWED_METHODS.has(method)) {
-    throw new Error('Snap access blocked: method not allowed.');
-  }
-}
-
-function getSnapId() {
-  return document.body?.dataset.snapId || DEFAULT_SNAP_ID;
-}
-
-function setSnapMode(isLocal) {
-  const snapId = isLocal ? LOCAL_SNAP_ID : DEFAULT_SNAP_ID;
-  if (document.body) {
-    document.body.dataset.snapId = snapId;
-  }
-  if (snapOnboardingLink) {
-    snapOnboardingLink.classList.toggle('hidden', !isLocal);
-  }
-  if (snapModeToggle) {
-    snapModeToggle.checked = isLocal;
-  }
-}
 let lastPayload = null;
 let lastRequestId = null;
 let lastOutputProof = null;
@@ -125,8 +57,6 @@ let lastAccessToken = null;
 let currentPage = 1;
 const pageSize = 6;
 let modelTestPassed = false;
-
-setSnapMode(false);
 
 
 async function testModelEndpoint() {
@@ -211,11 +141,11 @@ async function refreshCreditsBalance() {
 
 async function depositCredits() {
   const amount = Number(creditsAmountInput?.value || creditsMinDeposit);
-  if (!walletPublicKey && window.mina && !metaSnapConnected) {
+  if (!walletPublicKey && window.mina) {
     await connectWallet();
   }
-  if (metaSnapConnected && !walletPublicKey) {
-    throw new Error('MetaMask Snap connected, but fee payer address is missing.');
+  if (!walletPublicKey) {
+    throw new Error('Auro wallet required to deposit credits.');
   }
   const intentRes = await fetch('/api/credits/deposit-intent', {
     method: 'POST',
@@ -237,17 +167,11 @@ async function depositCredits() {
     throw new Error(err.error || 'Credits transaction build failed');
   }
   const txData = await txRes.json();
-  let hash = 'submitted';
-  if (metaSnapConnected) {
-    const snapResult = await sendTxWithMetaMaskSnap(txData);
-    hash = snapResult?.hash || 'submitted';
-  } else {
-    const sent = await window.mina.sendTransaction({
-      transaction: txData.tx,
-      feePayer: { fee: txData.fee }
-    });
-    hash = sent?.hash || 'submitted';
-  }
+  const sent = await window.mina.sendTransaction({
+    transaction: txData.tx,
+    feePayer: { fee: txData.fee }
+  });
+  const hash = sent?.hash || 'submitted';
   if (creditsHint) {
     creditsHint.textContent = `Credits deposit submitted. Tx: ${hash}`;
   }
@@ -500,107 +424,10 @@ async function connectWallet() {
   walletStatus.textContent = `Connected: ${publicKey.slice(0, 6)}…${publicKey.slice(-6)}`;
 }
 
-async function connectMetaMaskSnap() {
-  if (!window.ethereum?.request) {
-    throw new Error('MetaMask not detected');
-  }
-  assertAllowedOrigin();
-  const snapId = getSnapId();
-  assertAllowedSnapId(snapId);
-  await window.ethereum.request({
-    method: 'wallet_requestSnaps',
-    params: { [snapId]: {} }
-  });
-  const snaps = await window.ethereum.request({ method: 'wallet_getSnaps' });
-  metaSnapConnected = Boolean(snaps && snaps[snapId]);
-  metamaskStatus.textContent = metaSnapConnected ? 'Connected' : 'Not connected';
-
-  if (metaSnapConnected) {
-    try {
-      assertAllowedMethod('mina_changeNetwork');
-      await window.ethereum.request({
-        method: 'wallet_invokeSnap',
-        params: {
-          snapId,
-          request: { method: 'mina_changeNetwork', params: { networkName: 'Zeko Testnet' } }
-        }
-      });
-    } catch {
-      // ignore network change errors (snap may not support Zeko yet)
-    }
-    assertAllowedMethod('mina_accountList');
-    const accountList = await window.ethereum.request({
-      method: 'wallet_invokeSnap',
-      params: {
-        snapId,
-        request: { method: 'mina_accountList' }
-      }
-    });
-    const list = Array.isArray(accountList) ? accountList : accountList?.accounts || [];
-    const first =
-      list?.[0]?.publicKey ||
-      list?.[0]?.address ||
-      accountList?.publicKey ||
-      accountList?.address ||
-      null;
-    if (first) {
-      walletPublicKey = first;
-      walletStatus.textContent = `Connected: ${first.slice(0, 6)}…${first.slice(-6)}`;
-    } else {
-      assertAllowedMethod('mina_createAccount');
-      const created = await window.ethereum.request({
-        method: 'wallet_invokeSnap',
-        params: {
-          snapId,
-          request: { method: 'mina_createAccount', params: { name: 'Zeko Account 1' } }
-        }
-      });
-      const createdKey = created?.publicKey || created?.address;
-      if (createdKey) {
-        walletPublicKey = createdKey;
-        walletStatus.textContent = `Connected: ${createdKey.slice(0, 6)}…${createdKey.slice(-6)}`;
-      }
-    }
-  }
-}
-
-async function sendTxWithMetaMaskSnap(txData) {
-  if (!window.ethereum?.request) {
-    throw new Error('MetaMask not available');
-  }
-  assertAllowedOrigin();
-  const snapId = getSnapId();
-  assertAllowedSnapId(snapId);
-  assertAllowedMethod('mina_sendTransaction');
-  return window.ethereum.request({
-    method: 'wallet_invokeSnap',
-    params: {
-      snapId,
-      request: {
-        method: 'mina_sendTransaction',
-        params: {
-          transaction: txData.tx,
-          feePayer: { fee: txData.fee }
-        }
-      }
-    }
-  });
-}
-
 connectButton.addEventListener('click', () => {
   connectWallet().catch((err) => {
     walletStatus.textContent = err.message || 'Wallet connection failed';
   });
-});
-
-connectMetaMaskButton?.addEventListener('click', () => {
-  connectMetaMaskSnap().catch((err) => {
-    metamaskStatus.textContent = err.message || 'MetaMask connection failed';
-  });
-});
-
-snapModeToggle?.addEventListener('change', () => {
-  setSnapMode(Boolean(snapModeToggle.checked));
 });
 
 async function createRequest() {
@@ -661,15 +488,15 @@ async function createRequest() {
     requestHint.textContent = 'Waiting for wallet signature...';
   }
 
-  if (!window.mina && !metaSnapConnected) {
-    throw new Error('Auro or MetaMask Snap required to pay on-chain.');
+  if (!window.mina) {
+    throw new Error('Auro wallet required to pay on-chain.');
   }
 
-  if (!walletPublicKey && window.mina && !metaSnapConnected) {
+  if (!walletPublicKey && window.mina) {
     await connectWallet();
   }
-  if (metaSnapConnected && !walletPublicKey) {
-    throw new Error('MetaMask Snap connected, but fee payer address is missing. Open MinaPortal to create an account.');
+  if (!walletPublicKey) {
+    throw new Error('Auro wallet required to pay on-chain.');
   }
 
   if (creditsMode) {
@@ -729,21 +556,13 @@ async function createRequest() {
   }
 
   const txData = await txRes.json();
-  let hash = 'submitted';
-  if (metaSnapConnected) {
-    const tSnap = performance.now();
-    const snapResult = await sendTxWithMetaMaskSnap(txData);
-    console.log('Timing: snap sendTx ms', Math.round(performance.now() - tSnap));
-    hash = snapResult?.hash || 'submitted';
-  } else {
-    const tAuro = performance.now();
-    const sent = await window.mina.sendTransaction({
-      transaction: txData.tx,
-      feePayer: { fee: txData.fee }
-    });
-    console.log('Timing: Auro sendTransaction ms', Math.round(performance.now() - tAuro));
-    hash = sent?.hash || 'submitted';
-  }
+  const tAuro = performance.now();
+  const sent = await window.mina.sendTransaction({
+    transaction: txData.tx,
+    feePayer: { fee: txData.fee }
+  });
+  console.log('Timing: Auro sendTransaction ms', Math.round(performance.now() - tAuro));
+  const hash = sent?.hash || 'submitted';
   txHashEl.textContent = hash;
   if (requestHint) {
     requestHint.textContent = `Payment submitted. Tx: ${hash}`;
@@ -866,15 +685,15 @@ attestOutputButton.addEventListener('click', async () => {
     return;
   }
 
-  if (!window.mina && !metaSnapConnected) {
-    alert('Auro or MetaMask Snap required to attest on-chain.');
+  if (!window.mina) {
+    alert('Auro wallet required to attest on-chain.');
     return;
   }
-  if (!walletPublicKey && window.mina && !metaSnapConnected) {
+  if (!walletPublicKey && window.mina) {
     await connectWallet();
   }
-  if (metaSnapConnected && !walletPublicKey) {
-    alert('MetaMask Snap connected, but fee payer address is missing. Open MinaPortal to create an account.');
+  if (!walletPublicKey) {
+    alert('Auro wallet required to attest on-chain.');
     return;
   }
 
@@ -889,17 +708,11 @@ attestOutputButton.addEventListener('click', async () => {
     return;
   }
   const txData = await txRes.json();
-  let hash = 'submitted';
-  if (metaSnapConnected) {
-    const snapResult = await sendTxWithMetaMaskSnap(txData);
-    hash = snapResult?.hash || 'submitted';
-  } else {
-    const sent = await window.mina.sendTransaction({
-      transaction: txData.tx,
-      feePayer: { fee: txData.fee }
-    });
-    hash = sent?.hash || 'submitted';
-  }
+  const sent = await window.mina.sendTransaction({
+    transaction: txData.tx,
+    feePayer: { fee: txData.fee }
+  });
+  const hash = sent?.hash || 'submitted';
   if (attestHint) {
     attestHint.textContent = `Attestation submitted. Tx: ${hash}`;
   }

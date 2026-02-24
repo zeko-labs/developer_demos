@@ -12,11 +12,7 @@
     />
     <link rel="stylesheet" href="/styles.css" />
   </head>
-  <body
-    data-snap-id="npm:mina-portal"
-    data-allowed-origins="http://localhost:5173,https://your-domain.com"
-    data-allowed-snap-ids="npm:mina-portal,local:http://localhost:8080"
-  >
+  <body>
     <div class="ambient"></div>
     <header class="hero">
       <div class="hero-copy">
@@ -28,15 +24,6 @@
         </p>
         <div class="hero-actions">
           <button id="connect-wallet" class="primary">Connect Auro Wallet</button>
-        </div>
-        <div class="snap-toggle">
-          <label class="toggle">
-            <input id="snap-mode" type="checkbox" />
-            <span>Use Local Metamask Snap (Dev Mode)</span>
-          </label>
-        </div>
-        <div id="snap-onboarding-link" class="actions hidden">
-          <a class="ghost" href="/snap/index.html" target="_blank" rel="noreferrer">Zeko Metamask Snap Onboarding</a>
         </div>
         <div class="hero-meta">
           <span id="network-pill" class="hidden">Network: Zeko</span>
@@ -56,10 +43,6 @@
             <div>
               <span class="label">Auro Wallet</span>
               <span id="wallet-status">Not connected</span>
-            </div>
-            <div>
-              <span class="label">MetaMask Snap</span>
-              <span id="metamask-status">Not connected</span>
             </div>
             <div>
               <span class="label">Tx Hash</span>
