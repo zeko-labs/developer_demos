@@ -8,7 +8,6 @@ Agent Coordination Protocol (ACP).
 - `get-started.md`: minimal lifecycle walkthrough (discover -> intent -> pay -> fulfill)
 - `provider-profile.json`: provider metadata template for orchestration config
 - `acp-adapter.ts`: lightweight TypeScript adapter helpers
-- `smoke-test.sh`: one-command ACP compatibility smoke test against a running server
 
 ## 5-minute integration checklist
 
@@ -22,12 +21,6 @@ Agent Coordination Protocol (ACP).
 5. Fulfill and normalize output:
    - `POST /acp/fulfill`
 6. Store `outputHash` and attestation metadata for downstream verification/scoring.
-
-Quick smoke test:
-
-```bash
-bash specs/acp/examples/openclaw/smoke-test.sh http://localhost:5173 alpha-signal B62qYourRequesterKey
-```
 
 ## Notes
 

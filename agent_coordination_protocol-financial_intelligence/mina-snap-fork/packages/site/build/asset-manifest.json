@@ -1,0 +1,36 @@
+{
+  "files": {
+    "main.css": "/static/css/main.e48b9301.css",
+    "main.js": "/static/js/main.93306d52.js",
+    "static/media/Inter-Bold.ttf": "/static/media/Inter-Bold.88fa7ae373b07b41ecce.ttf",
+    "static/media/Inter-Regular.ttf": "/static/media/Inter-Regular.e89cb19905e7db5591b0.ttf",
+    "static/media/logo-mina-circle.png": "/static/media/logo-mina-circle.8ee3cac1d0814ec6ca80.png",
+    "static/media/mina-sm.svg": "/static/media/mina-sm.43b70088709782072382edc0fb4adfd2.svg",
+    "static/media/logo-mina.svg": "/static/media/logo-mina.20b88b3b5e43d41a7e1cfa77fa864903.svg",
+    "static/media/icon-create.svg": "/static/media/icon-create.ccf69fcd95aadd7402242dfc9cab4dd2.svg",
+    "static/media/wainning.svg": "/static/media/wainning.272005747be2d039a5cd719f42915d7a.svg",
+    "static/media/coppy.svg": "/static/media/coppy.23bfa3052b24a1471759f536c9c88788.svg",
+    "static/media/icon-active.svg": "/static/media/icon-active.89c4cbaee22d5a926e196d35e2072ebc.svg",
+    "static/media/icon-coppy.svg": "/static/media/icon-coppy.4130af69ae1de620193cc20ef57a6182.svg",
+    "static/media/show-down.svg": "/static/media/show-down.fd167fc7f23661682dc5dc60e7b7ad0d.svg",
+    "index.html": "/index.html",
+    "static/media/pointMenu.svg": "/static/media/pointMenu.03489b2b5cb1a3a7af4743ff9c923336.svg",
+    "static/media/pointMenu_dark.svg": "/static/media/pointMenu_dark.3b538dcb7bfd8c6306eb1be764ceea97.svg",
+    "static/media/icon-more.svg": "/static/media/icon-more.467e9cabcebc8d5414c485ff22d15b57.svg",
+    "static/media/icon-back.svg": "/static/media/icon-back.fb1a0c940b3c7fe33129ecd99ba84ebd.svg",
+    "static/media/icon-kebab-menu.svg": "/static/media/icon-kebab-menu.52ce4e621e788d7d314ad807bc6f1f70.svg",
+    "static/media/arrow-up.svg": "/static/media/arrow-up.bde78db2be482e18b5ada834324cb782.svg",
+    "static/media/icon-link.svg": "/static/media/icon-link.393bbd9434cb658e6bc0008240660ba2.svg",
+    "static/media/select-arrow.svg": "/static/media/select-arrow.6be63879f6ac71ee1dea5f0a99332e5b.svg",
+    "static/media/icon-import.svg": "/static/media/icon-import.bbaadfd7ba0d7ae7d2fba81a5a5bd1ba.svg",
+    "static/media/icon-account.svg": "/static/media/icon-account.6e07f183e091955f0988befb3e6080b9.svg",
+    "static/media/close.svg": "/static/media/close.1ae11385766be49a6875fc39983f60d8.svg",
+    "static/media/icon-advance.svg": "/static/media/icon-advance.28eeb2269e6fe269873ddb4a106501e2.svg",
+    "main.e48b9301.css.map": "/static/css/main.e48b9301.css.map",
+    "main.93306d52.js.map": "/static/js/main.93306d52.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.e48b9301.css",
+    "static/js/main.93306d52.js"
+  ]
+}

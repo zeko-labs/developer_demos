@@ -1,0 +1,30 @@
+.DS_Store
+node_modules/
+dist/
+
+# local secrets
+.env
+
+# local runtime data
+data/*
+!data/agents.json
+!data/crypto_top500.json
+!data/edgar_sample.json
+!data/macro_sample.json
+!data/sp500_sample.json
+!data/requests_seed.json
+
+# build artifacts / caches
+data/edgar_cache/
+data/flatfiles/
+data/prices/
+data/requests.json
+data/output_encryption.key
+data/credits_ledger.json
+data/credits_merkle.json
+data/nullifier_merkle.json
+data/nullifier_set.json
+data/merkle.json
+data/output_merkle.json
+data/agent_merkle.json
+data/name_index.json

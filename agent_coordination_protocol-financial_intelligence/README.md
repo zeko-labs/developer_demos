@@ -1,4 +1,5 @@
 # Zeko AI Marketplace (Prototype)
+[![CI](https://github.com/Evan-k-global/agent-coordination-protocol_financial-intelligence/actions/workflows/ci.yml/badge.svg)](https://github.com/Evan-k-global/agent-coordination-protocol_financial-intelligence/actions/workflows/ci.yml)
 
 A working prototype for a privacy-first AI stock recommendation marketplace on Zeko. Users pay a
 small on-chain fee (via Auro) to trigger a private model run. The app stores request attestations
@@ -46,7 +47,6 @@ npm run dev
 
 - Auro Wallet: [Get Auro](https://www.aurowallet.com/)
 - Zeko Testnet Faucet: [faucet.zeko.io](https://faucet.zeko.io/)
-- Troubleshooting: `docs/auro-transaction-troubleshooting.md`
 
 ## Registering Your Model (Step‑by‑Step)
 
@@ -444,52 +444,9 @@ controlled by the service instance tier.
 5. (Optional) User attests output on-chain (`/api/output-tx`).
 6. Agent registration updates the on-chain registry via `POST /api/agent-intent` + `POST /api/agent-stake-tx`.
 
-## MetaMask Snap (Experimental, Dev Mode)
+## Wallet Support
 
-This repo supports MetaMask via the Mina Portal snap in **dev mode**. The main UI hides MetaMask
-for regular users; developers can enable **Use Local Metamask Snap (Dev Mode)** to reveal the
-onboarding link.
-
-MetaMask users must install the snap and create a Mina account using the Mina Portal companion flow:
-[Install Snaps and Create Account](https://snaps.metamask.io/snap/npm/mina-portal)
-
-Note: Mina Portal snap support for Zeko testnet is not guaranteed; as of the published docs it
-targets the Mina Berkeley testnet, so Zeko support may require a snap fork or network extension.
-
-### Mina Snap isolation strategy (recommended)
-
-Treat Mina Snap as an external dependency and keep this repository focused on the marketplace
-protocol. Preferred setup:
-
-1. Keep upstream snap in its own repo/worktree (or git submodule/subtree).
-2. Maintain a small local patch set for Zeko-specific changes.
-3. Reference upstream docs/releases, and only carry minimal Zeko overrides here.
-
-Local dev flow:
-
-```bash
-cd /Users/evankereiakes/Documents/Codex/app1/mina-snap-fork
-yarn install
-yarn build
-yarn start
-```
-
-Then update the snap id in the UI by setting `data-snap-id="local:http://localhost:8080"` in:
-
-`/Users/evankereiakes/Documents/Codex/app1/public/index.html`
-
-This uses MetaMask’s local snap flow described in the Snap quickstart.
-
-Dev note: local snaps require **MetaMask Flask** and enabling **Local Snaps** in Settings → Advanced.
-
-### Allowlisting (public release checklist)
-
-1. Rename the snap package (own scope) and publish to npm.
-2. Update permissions to the minimum required.
-3. Provide a security review summary and changelog (highlight Zeko network support).
-4. Submit for MetaMask allowlisting and testing.
-5. Switch production snap id to `npm:@your-scope/zeko-snap` and disable local snap toggle.
-6. After publishing this app to GitHub, publish the snap to npm and submit for MetaMask allowlisting.
+This project now supports Auro wallet only for transaction signing and submission.
 
 ## Autonomous Agent Access (CLI)
 
@@ -609,7 +566,7 @@ If the endpoint fails, the system falls back to the demo simulator.
 ## Payments
 
 This demo uses **wallet‑initiated on‑chain payments only**. Each request is paid by the user via
-Auro (or MetaMask Snap in dev mode). A small **platform fee** is included in each on‑chain request.
+Auro wallet. A small **platform fee** is included in each on‑chain request.
 
 Platform fee settings:
 - `PLATFORM_TREASURY_PUBLIC_KEY`
@@ -685,18 +642,22 @@ This protocol works the same for **humans and autonomous agents**. Agents can sk
 and use the CLI or direct HTTP calls. The on‑chain request + attestation flow is identical, which
 makes this a true agent‑to‑agent coordination layer rather than a UI‑only marketplace.
 
-## Agent Coordination Protocol (ACP) Specification
+## ACP Specification (Generalized Protocol)
 
-This repo includes the **Agent Coordination Protocol (ACP)** spec, which generalizes the current
-financial marketplace into a domain-agnostic coordination protocol for paid agent services.
+This repo now includes the **Agent Coordination Protocol (ACP)**, a generalized protocol spec that
+abstracts the current financial demo into a domain-agnostic coordination protocol for any paid
+agent service.
 
 - Spec entrypoint: `specs/acp/README.md`
 - Full protocol doc: `specs/acp/acp-v0.1.md`
 - JSON Schemas: `specs/acp/schemas/`
-- OpenClaw integration examples: `specs/acp/examples/openclaw/`
+- Example capability manifest: `specs/acp/examples/capabilities.json`
+
+The app and zkApp remain the same. ACP is the compatibility layer that makes the current system
+portable across other verticals (research, compliance, dev tooling, enterprise automation, etc.).
 
 ### OpenClaw compatibility
 
 ACP is designed to be OpenClaw-compatible via capability discovery (`capabilities.json`) and a
-standardized request/payment/result lifecycle. OpenClaw is a primary orchestration target, while
-ACP remains runtime-agnostic for other autonomous-agent stacks.
+standardized request/payment/result lifecycle. OpenClaw is one orchestration runtime target; ACP
+remains runtime-agnostic so other autonomous-agent stacks can integrate the same way.

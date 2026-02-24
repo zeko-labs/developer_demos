@@ -162,6 +162,22 @@ function verifySignedMessage(publicKeyBase58: string, signatureBase58: string, m
 let contractCompiled = false;
 const precompileZkapp = process.env.PRECOMPILE_ZKAPP === 'true';
 const debugTxTiming = process.env.DEBUG_TX_TIMING === 'true';
+let txLock: Promise<void> = Promise.resolve();
+
+async function withTxLock<T>(fn: () => Promise<T>): Promise<T> {
+  let release: () => void;
+  const next = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const prev = txLock;
+  txLock = prev.then(() => next);
+  await prev;
+  try {
+    return await fn();
+  } finally {
+    release!();
+  }
+}
 const stakeRequired = 0;
 const tzekoTokenAddress =
   process.env.TZEKO_TOKEN_ADDRESS ?? 'B62qjUhPDbMskxMduyzkyGnK6LZwHksuuYPRjyF4owJM7UWLGJynN36';
@@ -315,11 +331,14 @@ function normalizeActionLabel(action: string | null | undefined) {
   return 'NEUTRAL';
 }
 
-function normalizeAcpAction(action: string | null | undefined) {
-  const normalized = normalizeActionLabel(action);
-  if (normalized === 'POSITIVE') return 'positive';
-  if (normalized === 'NEGATIVE') return 'negative';
-  return 'neutral';
+function canonicalAgentId(agentId: string | null | undefined) {
+  const value = String(agentId || '').trim().toLowerCase();
+  if (!value) return '';
+  if (value === 'alpha') return 'alpha-signal';
+  if (value === 'edgar') return 'edgar-scout';
+  if (value === 'macro' || value === 'marco') return 'macro-sentiment';
+  if (value === 'crypto') return 'crypto-quant';
+  return value;
 }
 
 function normalizeOutputActions(output: any) {
@@ -330,6 +349,13 @@ function normalizeOutputActions(output: any) {
     action: normalizeActionLabel(entry?.action)
   }));
   return { ...output, outputs: normalized };
+}
+
+function normalizeAcpAction(action: string | null | undefined) {
+  const normalized = normalizeActionLabel(action);
+  if (normalized === 'POSITIVE') return 'positive';
+  if (normalized === 'NEGATIVE') return 'negative';
+  return 'neutral';
 }
 
 function redactKey(value: string | undefined): string {
@@ -1005,6 +1031,7 @@ async function buildUnsignedTx(payload: {
   priceMina?: number;
   treasuryPublicKey?: string | null;
 }, feePayer: string) {
+  return withTxLock(async () => {
   const start = debugTxTiming ? Date.now() : 0;
   const network = getNetwork();
   if (!network.graphql) {
@@ -1043,7 +1070,6 @@ async function buildUnsignedTx(payload: {
   if (zkappAccount.error) {
     throw new Error('ZkApp account not found on-chain');
   }
-  const zkappNonce = zkappAccount.account.nonce;
   if (!payload?.requestHash || !payload.agentIdHash || !payload.oraclePublicKey || !payload.signature || !payload.merkleRoot) {
     throw new Error('Missing payload fields for transaction');
   }
@@ -1100,7 +1126,6 @@ async function buildUnsignedTx(payload: {
     if (platformPk && platformFeeNano > 0n) {
       payment.send({ to: platformPk, amount: platformFee });
     }
-    zkapp.account.nonce.requireEquals(zkappNonce);
     await zkapp.submitSignedRequest(requestHash, agentIdHash, oraclePk, signature, newRoot);
   });
 
@@ -1119,6 +1144,7 @@ async function buildUnsignedTx(payload: {
     console.log(`buildUnsignedTx total ${Date.now() - start}ms`);
   }
   return { tx: txJson, fee, networkId: network.networkId };
+  });
 }
 
 async function buildAndSendRequestTxWithSponsor(payload: {
@@ -1130,6 +1156,7 @@ async function buildAndSendRequestTxWithSponsor(payload: {
   priceMina?: number;
   treasuryPublicKey?: string | null;
 }) {
+  return withTxLock(async () => {
   const sponsorKey = getSecret('SPONSOR_PRIVATE_KEY');
   if (!sponsorKey) {
     throw new Error('SPONSOR_PRIVATE_KEY not configured');
@@ -1165,7 +1192,6 @@ async function buildAndSendRequestTxWithSponsor(payload: {
   if (zkappAccount.error) {
     throw new Error('ZkApp account not found on-chain');
   }
-  const zkappNonce = zkappAccount.account.nonce;
 
   const requestHash = Field.fromJSON(payload.requestHash);
   const agentIdHash = Field.fromJSON(payload.agentIdHash);
@@ -1211,7 +1237,6 @@ async function buildAndSendRequestTxWithSponsor(payload: {
     if (platformPk && platformFeeNano > 0n) {
       payment.send({ to: platformPk, amount: platformFee });
     }
-    zkapp.account.nonce.requireEquals(zkappNonce);
     await zkapp.submitSignedRequest(requestHash, agentIdHash, oraclePk, signature, newRoot);
   });
 
@@ -1232,6 +1257,7 @@ async function buildAndSendRequestTxWithSponsor(payload: {
     (sent as any)?.transactionHash ??
     null;
   return { hash };
+  });
 }
 
 
@@ -1242,6 +1268,7 @@ async function buildUnsignedOutputTx(payload: {
   signature: unknown;
   merkleRoot: string;
 }, feePayer: string) {
+  return withTxLock(async () => {
   const start = debugTxTiming ? Date.now() : 0;
   const network = getNetwork();
   if (!network.graphql) {
@@ -1275,7 +1302,6 @@ async function buildUnsignedOutputTx(payload: {
   if (zkappAccount.error) {
     throw new Error('ZkApp account not found on-chain');
   }
-  const zkappNonce = zkappAccount.account.nonce;
   if (!payload?.requestHash || !payload.outputHash || !payload.oraclePublicKey || !payload.signature || !payload.merkleRoot) {
     throw new Error('Missing payload fields for transaction');
   }
@@ -1306,7 +1332,6 @@ async function buildUnsignedOutputTx(payload: {
     throw new Error(`Invalid feePayer public key: ${redactKey(feePayer)}`);
   }
   const tx = await Mina.transaction({ sender: feePayerPk, fee }, async () => {
-    zkapp.account.nonce.requireEquals(zkappNonce);
     await zkapp.submitSignedOutput(requestHash, outputHash, oraclePk, signature, newRoot);
   });
 
@@ -1325,6 +1350,7 @@ async function buildUnsignedOutputTx(payload: {
     console.log(`buildUnsignedOutputTx total ${Date.now() - start}ms`);
   }
   return { tx: txJson, fee, networkId: network.networkId };
+  });
 }
 
 async function buildAndSendOutputTxWithSponsor(payload: {
@@ -1334,6 +1360,7 @@ async function buildAndSendOutputTxWithSponsor(payload: {
   signature: unknown;
   merkleRoot: string;
 }) {
+  return withTxLock(async () => {
   const sponsorKey = getSecret('SPONSOR_PRIVATE_KEY');
   if (!sponsorKey) {
     throw new Error('SPONSOR_PRIVATE_KEY not configured');
@@ -1369,7 +1396,6 @@ async function buildAndSendOutputTxWithSponsor(payload: {
   if (zkappAccount.error) {
     throw new Error('ZkApp account not found on-chain');
   }
-  const zkappNonce = zkappAccount.account.nonce;
 
   if (!payload?.requestHash || !payload.outputHash || !payload.oraclePublicKey || !payload.signature || !payload.merkleRoot) {
     throw new Error('Missing payload fields for transaction');
@@ -1391,7 +1417,6 @@ async function buildAndSendOutputTxWithSponsor(payload: {
   const newRoot = Field.fromJSON(payload.merkleRoot);
 
   const tx = await Mina.transaction({ sender: sponsorPk, fee }, async () => {
-    zkapp.account.nonce.requireEquals(zkappNonce);
     await zkapp.submitSignedOutput(requestHash, outputHash, oraclePk, signature, newRoot);
   });
 
@@ -1412,6 +1437,7 @@ async function buildAndSendOutputTxWithSponsor(payload: {
     (sent as any)?.transactionHash ??
     null;
   return { hash };
+  });
 }
 
 async function buildUnsignedCreditsTx(payload: {
@@ -1425,6 +1451,7 @@ async function buildUnsignedCreditsTx(payload: {
   platformAmountMina?: number;
   platformPayee?: string;
 }, feePayer: string) {
+  return withTxLock(async () => {
   const network = getNetwork();
   if (!network.graphql) {
     throw new Error('ZEKO_GRAPHQL env var not set');
@@ -1462,7 +1489,6 @@ async function buildUnsignedCreditsTx(payload: {
   if (zkappAccount.error) {
     throw new Error('ZkApp account not found on-chain');
   }
-  const zkappNonce = zkappAccount.account.nonce;
 
   if (!payload?.creditsRoot || !payload.nullifierRoot || !payload.oraclePublicKey || !payload.signature) {
     throw new Error('Missing payload fields for transaction');
@@ -1521,7 +1547,6 @@ async function buildUnsignedCreditsTx(payload: {
       const payment = AccountUpdate.createSigned(feePayerPk);
       payment.send({ to: zkappAddress, amount });
     }
-    zkapp.account.nonce.requireEquals(zkappNonce);
     if (spendTo && spendAmountMina > 0) {
       const spendAmount = UInt64.from(BigInt(Math.round(spendAmountMina * 1e9)));
       const platformAmount = UInt64.from(BigInt(Math.round(platformAmountMina * 1e9)));
@@ -1554,6 +1579,7 @@ async function buildUnsignedCreditsTx(payload: {
   await tx.prove();
   const txJson = tx.toJSON() as any;
   return { tx: txJson, fee, networkId: network.networkId };
+  });
 }
 
 async function buildAndSendCreditsTxWithSponsor(payload: {
@@ -1566,6 +1592,7 @@ async function buildAndSendCreditsTxWithSponsor(payload: {
   platformAmountMina?: number;
   platformPayee?: string;
 }) {
+  return withTxLock(async () => {
   const sponsorKey = getSecret('SPONSOR_PRIVATE_KEY');
   if (!sponsorKey) {
     throw new Error('SPONSOR_PRIVATE_KEY not configured');
@@ -1601,7 +1628,6 @@ async function buildAndSendCreditsTxWithSponsor(payload: {
   if (zkappAccount.error) {
     throw new Error('ZkApp account not found on-chain');
   }
-  const zkappNonce = zkappAccount.account.nonce;
 
   if (!payload?.creditsRoot || !payload.nullifierRoot || !payload.oraclePublicKey || !payload.signature) {
     throw new Error('Missing payload fields for transaction');
@@ -1644,7 +1670,6 @@ async function buildAndSendCreditsTxWithSponsor(payload: {
   }
 
   const tx = await Mina.transaction({ sender: sponsorPk, fee }, async () => {
-    zkapp.account.nonce.requireEquals(zkappNonce);
     if (spendTo && spendAmountMina > 0) {
       const spendAmount = UInt64.from(BigInt(Math.round(spendAmountMina * 1e9)));
       const platformAmount = UInt64.from(BigInt(Math.round(platformAmountMina * 1e9)));
@@ -1680,6 +1705,7 @@ async function buildAndSendCreditsTxWithSponsor(payload: {
     (sent as any)?.transactionHash ??
     null;
   return { hash };
+  });
 }
 
 
@@ -1801,6 +1827,68 @@ async function ensureSeedData() {
   } catch (err) {
     console.warn('Seed data init failed:', err instanceof Error ? err.message : err);
   }
+}
+
+function computeRequestStats(requests: any[]) {
+  const byAgent: Record<string, number> = {};
+  const attestedByAgent: Record<string, number> = {};
+  for (const req of requests) {
+    const agentId = canonicalAgentId(req?.agentId) || String(req?.agentId || '');
+    if (!agentId) continue;
+    byAgent[agentId] = (byAgent[agentId] || 0) + 1;
+    if (req?.outputProof) {
+      attestedByAgent[agentId] = (attestedByAgent[agentId] || 0) + 1;
+    }
+  }
+  const nonAlphaRequests = Object.entries(byAgent)
+    .filter(([agentId]) => agentId !== 'alpha-signal')
+    .reduce((sum, [, count]) => sum + count, 0);
+  return {
+    totalRequests: requests.length,
+    byAgent,
+    attestedByAgent,
+    nonAlphaRequests
+  };
+}
+
+async function mergeSeedRequests(options?: { onlyIfMissingNonAlpha?: boolean; dryRun?: boolean }) {
+  const onlyIfMissingNonAlpha = options?.onlyIfMissingNonAlpha ?? false;
+  const dryRun = options?.dryRun ?? false;
+  const requestsStore = await readJson<{ requests: any[] }>(requestsPath, { requests: [] });
+  const existingRequests = Array.isArray(requestsStore.requests) ? requestsStore.requests : [];
+  const beforeStats = computeRequestStats(existingRequests);
+  if (onlyIfMissingNonAlpha && beforeStats.nonAlphaRequests > 0) {
+    return { merged: false, added: 0, skipped: 'non-alpha requests already present', before: beforeStats, after: beforeStats };
+  }
+  const seedPath = path.join(bundledDataDir, 'requests_seed.json');
+  const seedStore = await readJson<{ requests: any[] }>(seedPath, { requests: [] });
+  const seedRequests = Array.isArray(seedStore.requests) ? seedStore.requests : [];
+  if (!seedRequests.length) {
+    return { merged: false, added: 0, skipped: 'seed file empty', before: beforeStats, after: beforeStats };
+  }
+  const knownIds = new Set(existingRequests.map((entry) => String(entry?.id || '')));
+  const toAdd: any[] = [];
+  for (const raw of seedRequests) {
+    const id = String(raw?.id || '');
+    if (!id || knownIds.has(id)) continue;
+    const normalizedAgentId = canonicalAgentId(raw?.agentId) || String(raw?.agentId || '');
+    toAdd.push({ ...raw, agentId: normalizedAgentId });
+    knownIds.add(id);
+  }
+  if (!dryRun && toAdd.length > 0) {
+    requestsStore.requests = [...existingRequests, ...toAdd];
+    await writeJson(requestsPath, requestsStore);
+  }
+  const afterRequests = dryRun ? [...existingRequests, ...toAdd] : requestsStore.requests;
+  const afterStats = computeRequestStats(afterRequests);
+  return { merged: toAdd.length > 0, added: toAdd.length, before: beforeStats, after: afterStats };
+}
+
+async function logRequestStats(prefix: string) {
+  const requestsStore = await readJson<{ requests: any[] }>(requestsPath, { requests: [] });
+  const requests = Array.isArray(requestsStore.requests) ? requestsStore.requests : [];
+  const stats = computeRequestStats(requests);
+  console.log(`[${prefix}] request stats total=${stats.totalRequests} byAgent=${JSON.stringify(stats.byAgent)} attested=${JSON.stringify(stats.attestedByAgent)}`);
 }
 
 async function getTickerCikMap(): Promise<Map<string, string>> {
@@ -2238,6 +2326,8 @@ async function computeRealizedPnL(
   });
 
   const tradeReturns: number[] = [];
+  const fallbackTradeReturns: number[] = [];
+  let fallbackTotalDays = 0;
   let totalDailyReturn = 1;
   let totalDays = 0;
   let considered = 0;
@@ -2265,6 +2355,26 @@ async function computeRealizedPnL(
         if (idx < lastIndex) idx = lastIndex;
         return idx;
       };
+
+      // Fallback mode for sparse intraday/same-day traffic:
+      // compute per-signal forward returns over a short window.
+      for (const signal of sorted) {
+        if (signal.action !== 'POSITIVE' && signal.action !== 'NEGATIVE') continue;
+        const entryIndex = series.findIndex((row) => row.date >= signal.date);
+        if (entryIndex === -1) continue;
+        const entry = series[entryIndex];
+        const exit = pickExitDate(series, signal.date);
+        if (!entry || !exit || !entry.close || !exit.close) continue;
+        const raw = (exit.close - entry.close) / entry.close;
+        const adjusted = signal.action === 'NEGATIVE' ? -raw : raw;
+        fallbackTradeReturns.push(adjusted);
+        const exitIndex = series.findIndex((row) => row.date === exit.date);
+        if (exitIndex >= entryIndex) {
+          fallbackTotalDays += Math.max(1, exitIndex - entryIndex);
+        } else {
+          fallbackTotalDays += 1;
+        }
+      }
 
       for (let i = 0; i < sorted.length; i += 1) {
         const signal = sorted[i];
@@ -2335,6 +2445,32 @@ async function computeRealizedPnL(
   }
 
   if (!totalDays) {
+    if (fallbackTradeReturns.length > 0) {
+      const fallbackGrowth = fallbackTradeReturns.reduce((acc, value) => acc * (1 + value), 1);
+      const fallbackDays = Math.max(fallbackTotalDays, 20);
+      const fallbackYears = fallbackDays / 252;
+      const fallbackAvg = fallbackTradeReturns.reduce((sum, value) => sum + value, 0) / fallbackTradeReturns.length;
+      const fallbackWins = fallbackTradeReturns.filter((value) => value > 0).length;
+      let fallbackCagr = fallbackYears > 0 ? Math.pow(fallbackGrowth, 1 / fallbackYears) - 1 : 0;
+      if (!Number.isFinite(fallbackCagr) || fallbackCagr < -0.9 || fallbackCagr > 10) {
+        fallbackCagr = Math.max(-0.9, Math.min(10, fallbackCagr));
+      }
+      return includeDebug
+        ? {
+            avgReturn: fallbackAvg,
+            winRate: fallbackTradeReturns.length ? fallbackWins / fallbackTradeReturns.length : 0,
+            cagr: fallbackCagr,
+            coverage: considered ? priced / considered : 0,
+            totalDays: fallbackDays,
+            debug
+          }
+        : {
+            avgReturn: fallbackAvg,
+            winRate: fallbackTradeReturns.length ? fallbackWins / fallbackTradeReturns.length : 0,
+            cagr: fallbackCagr,
+            coverage: considered ? priced / considered : 0
+          };
+    }
     if (process.env.DEBUG_PERF === 'true') {
       console.warn('Perf debug: no totalDays', debug);
     }
@@ -2367,6 +2503,33 @@ async function computeRealizedPnL(
   if (process.env.DEBUG_PERF === 'true') {
     console.warn('Perf debug summary', { totalDays, cagr, winRate, avgReturn, debug });
   }
+  if (Math.abs(cagr) < 1e-12 && fallbackTradeReturns.length > 0) {
+    const fallbackGrowth = fallbackTradeReturns.reduce((acc, value) => acc * (1 + value), 1);
+    const fallbackDays = Math.max(fallbackTotalDays, 20);
+    const fallbackYears = fallbackDays / 252;
+    let fallbackCagr = fallbackYears > 0 ? Math.pow(fallbackGrowth, 1 / fallbackYears) - 1 : 0;
+    if (!Number.isFinite(fallbackCagr) || fallbackCagr < -0.9 || fallbackCagr > 10) {
+      fallbackCagr = Math.max(-0.9, Math.min(10, fallbackCagr));
+    }
+    const fallbackAvg =
+      fallbackTradeReturns.reduce((sum, value) => sum + value, 0) / fallbackTradeReturns.length;
+    const fallbackWins = fallbackTradeReturns.filter((value) => value > 0).length;
+    return includeDebug
+      ? {
+          avgReturn: fallbackAvg,
+          winRate: fallbackTradeReturns.length ? fallbackWins / fallbackTradeReturns.length : 0,
+          cagr: fallbackCagr,
+          coverage: considered ? priced / considered : 0,
+          totalDays: fallbackDays,
+          debug
+        }
+      : {
+          avgReturn: fallbackAvg,
+          winRate: fallbackTradeReturns.length ? fallbackWins / fallbackTradeReturns.length : 0,
+          cagr: fallbackCagr,
+          coverage: considered ? priced / considered : 0
+        };
+  }
   return includeDebug
     ? { avgReturn, winRate, cagr, coverage: considered ? priced / considered : 0, totalDays, debug }
     : { avgReturn, winRate, cagr, coverage: considered ? priced / considered : 0 };
@@ -2374,11 +2537,12 @@ async function computeRealizedPnL(
 
 app.get('/api/perf-debug', async (req, res) => {
   try {
-    const agentId = typeof req.query.agentId === 'string' ? req.query.agentId : null;
+    const rawAgentId = typeof req.query.agentId === 'string' ? req.query.agentId : null;
+    const agentId = rawAgentId && rawAgentId.toLowerCase() !== 'all' ? canonicalAgentId(rawAgentId) : null;
     const requestsStore = await readJson<{ requests: any[] }>(requestsPath, { requests: [] });
     const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
     const filtered = requestsStore.requests.filter((req) => {
-      if (agentId && req.agentId !== agentId) return false;
+      if (agentId && canonicalAgentId(req.agentId) !== agentId) return false;
       if (!req.outputProof) return false;
       const ts = Date.parse(req.fulfilledAt || req.createdAt || '');
       return Number.isFinite(ts) && ts >= cutoff;
@@ -2574,7 +2738,7 @@ app.get('/api/price-coverage', async (_req, res) => {
   const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
   const coverage = await Promise.all(
     data.agents.map(async (agent) => {
-      const agentRequests = requestsStore.requests.filter((req) => req.agentId === agent.id);
+      const agentRequests = requestsStore.requests.filter((req) => canonicalAgentId(req.agentId) === agent.id);
       const attested = agentRequests.filter((req) => req.outputProof);
       const recentOutputs = attested
         .filter((req) => {
@@ -3231,6 +3395,8 @@ async function createIntentCore(input: {
 }) {
   const { agentId, prompt, requester, useCredits } = input;
   if (!agentId || typeof agentId !== 'string') throw new Error('Missing agentId');
+  const normalizedAgentId = canonicalAgentId(agentId);
+  if (!normalizedAgentId) throw new Error('Missing agentId');
   if (!prompt || typeof prompt !== 'string') throw new Error('Missing prompt');
   if (containsProhibitedPersonalContext(prompt)) {
     throw new Error('Prompt includes personal financial context. Please remove personal details.');
@@ -3238,7 +3404,7 @@ async function createIntentCore(input: {
   const sanitizedPrompt = sanitizePrompt(prompt);
 
   const data = await readJson<{ agents: any[] }>(agentsPath, { agents: [] });
-  const agent = data.agents.find((entry) => entry.id === agentId);
+  const agent = data.agents.find((entry) => entry.id === normalizedAgentId);
   if (!agent) throw new Error('Unknown agent');
   if (agent.disabled) {
     throw new Error('Agent is disabled by the platform');
@@ -3276,8 +3442,8 @@ async function createIntentCore(input: {
   const accessToken = crypto.randomBytes(24).toString('base64url');
   const createdAt = new Date().toISOString();
   const requesterValue = useCredits ? 'CREDITS' : requester ?? '';
-  const requestHash = hashToField(`${agentId}:${sanitizedPrompt}:${createdAt}:${requesterValue}`);
-  const agentIdHash = hashToField(agentId);
+  const requestHash = hashToField(`${normalizedAgentId}:${sanitizedPrompt}:${createdAt}:${requesterValue}`);
+  const agentIdHash = hashToField(normalizedAgentId);
 
   const leaf = computeLeaf(requestHash, agentIdHash);
   const { index, newRoot, witness } = await commitLeaf(leaf);
@@ -3290,7 +3456,7 @@ async function createIntentCore(input: {
   const priceMina = quotedPrice ?? agent.priceMina;
   requestsStore.requests.unshift({
     id: requestId,
-    agentId,
+    agentId: normalizedAgentId,
     prompt: sanitizedPrompt,
     requester: requesterValue || null,
     useCredits: Boolean(useCredits),
@@ -3373,18 +3539,19 @@ async function fulfillCore(input: {
 
   let output;
   try {
+    const requestAgentId = canonicalAgentId(request.agentId);
     const agentsStore = await readJson<{ agents: any[] }>(agentsPath, { agents: [] });
-    const agentEntry = agentsStore.agents.find((agent) => agent.id === request.agentId);
+    const agentEntry = agentsStore.agents.find((agent) => agent.id === requestAgentId);
     output =
       (await callExternalModel(agentEntry, {
         requestId: request.id,
-        agentId: request.agentId,
+        agentId: requestAgentId,
         prompt: request.prompt,
         requester: request.useCredits ? 'credits:anonymous' : request.requester,
         requestHash: request.requestHash
       })) ||
       (await simulateModel({
-        agentId: request.agentId,
+        agentId: requestAgentId,
         prompt: request.prompt,
         requestId: request.id
       }));
@@ -3597,7 +3764,7 @@ app.get('/api/agents', async (_req, res) => {
         'macro-sentiment': 'Sector ETFs + gold/oil macro + price series',
         'crypto-quant': 'Top 500 crypto universe + price series'
       };
-      const agentRequests = requestsStore.requests.filter((req) => req.agentId === agent.id);
+      const agentRequests = requestsStore.requests.filter((req) => canonicalAgentId(req.agentId) === agent.id);
       const attested = agentRequests.filter((req) => req.outputProof);
       const recent = agentRequests.filter((req) => {
         const ts = Date.parse(req.createdAt || '');
@@ -3610,17 +3777,12 @@ app.get('/api/agents', async (_req, res) => {
         })
         .flatMap((req) => {
           const source = req.outputSummary ?? req.output;
-      const list = Array.isArray(source?.outputs) ? source.outputs : [source];
-      return list.map((entry: any) => ({
-        symbol: entry?.symbol ?? 'AAPL',
-        action:
-          entry?.action === 'POSITIVE'
-            ? 'POSITIVE'
-            : entry?.action === 'NEGATIVE'
-              ? 'NEGATIVE'
-              : 'NEUTRAL',
-        fulfilledAt: req.fulfilledAt ?? req.createdAt
-      }));
+          const list = Array.isArray(source?.outputs) ? source.outputs : [source];
+          return list.map((entry: any) => ({
+            symbol: entry?.symbol ?? 'AAPL',
+            action: normalizeActionLabel(entry?.action),
+            fulfilledAt: req.fulfilledAt ?? req.createdAt
+          }));
         })
         .filter((entry) => entry.fulfilledAt);
       const perf30d = await computeRealizedPnL(recentOutputs);
@@ -3697,6 +3859,26 @@ app.post('/api/admin/seed-requests', async (req, res) => {
   }
 });
 
+app.post('/api/admin/migrate-requests-seed', async (req, res) => {
+  try {
+    const token = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+    if (!adminToken || token !== adminToken) {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+    const force = Boolean(req.body?.force);
+    const dryRun = Boolean(req.body?.dryRun);
+    const result = await mergeSeedRequests({
+      onlyIfMissingNonAlpha: !force,
+      dryRun
+    });
+    await logRequestStats('admin-migrate');
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Seed migration failed';
+    res.status(400).json({ error: message });
+  }
+});
+
 
 app.get('/api/leaderboard', async (_req, res) => {
   const data = await readJson<{ agents: any[] }>(agentsPath, { agents: [] });
@@ -3704,7 +3886,7 @@ app.get('/api/leaderboard', async (_req, res) => {
   const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
   const stats = await Promise.all(
     data.agents.map(async (agent) => {
-      const agentRequests = requestsStore.requests.filter((req) => req.agentId === agent.id);
+      const agentRequests = requestsStore.requests.filter((req) => canonicalAgentId(req.agentId) === agent.id);
       const fulfilled = agentRequests.filter((req) => req.status === 'FULFILLED');
       const attested = fulfilled.filter((req) => req.outputProof);
       const recent = agentRequests.filter((req) => {
@@ -4221,7 +4403,6 @@ app.post('/api/agent-stake-tx', async (req, res) => {
     if (zkappAccount.error) {
       throw new Error('ZkApp account not found on-chain');
     }
-    const zkappNonce = zkappAccount.account.nonce;
 
     const agentIdHash = Field.fromJSON(payload.agentIdHash);
     const ownerHash = Field.fromJSON(payload.ownerHash);
@@ -4249,7 +4430,6 @@ app.post('/api/agent-stake-tx', async (req, res) => {
     }
 
     const tx = await Mina.transaction({ sender: feePayerPk, fee }, async () => {
-      zkapp.account.nonce.requireEquals(zkappNonce);
       await zkapp.registerAgent(agentIdHash, ownerHash, treasuryHash, stakeAmountField, oraclePk, signature, newRoot);
     });
 
@@ -4405,7 +4585,6 @@ app.listen(port, () => {
   console.log(`PRECOMPILE_ZKAPP=${String(precompileZkapp)} DEBUG_TX_TIMING=${String(debugTxTiming)}`);
 });
 
-ensureSeedData();
 ensureMassiveFlatfilesFresh();
 ensureSymbolIndexFresh();
 if (precompileZkapp) {
@@ -4413,3 +4592,16 @@ if (precompileZkapp) {
     console.warn('Precompile failed:', err instanceof Error ? err.message : err);
   });
 }
+
+(async () => {
+  try {
+    await ensureSeedData();
+    const migration = await mergeSeedRequests({ onlyIfMissingNonAlpha: true });
+    if (migration.added > 0) {
+      console.log(`[startup] merged ${migration.added} seeded requests for missing non-alpha history`);
+    }
+    await logRequestStats('startup');
+  } catch (err) {
+    console.warn('Startup data init failed:', err instanceof Error ? err.message : err);
+  }
+})();
