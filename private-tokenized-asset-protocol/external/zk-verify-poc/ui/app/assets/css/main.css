@@ -1,0 +1,50 @@
+:root {
+  --bg-base: #070a0f;
+  --bg-panel: #121d2e;
+  --bg-hover: rgba(24, 39, 61, 0.85);
+  --bg-line: rgba(36, 55, 82, 0.42);
+  --text-main: #dbe5f4;
+  --text-muted: #8ea2bf;
+  --accent: #00f7c8;
+  --accent-glow: rgba(0, 247, 200, 0.12);
+  --fail: #ff5757;
+  --fail-glow: rgba(255, 87, 87, 0.14);
+  --warn: #ffca56;
+  --warn-glow: rgba(255, 202, 86, 0.14);
+  --border: #274363;
+  --font-ui: "IBM Plex Sans", "Inter", "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", "JetBrains Mono", "SFMono-Regular", Menlo, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#__nuxt {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  color: var(--text-main);
+  font-family: var(--font-ui);
+  line-height: 1.45;
+  background-color: var(--bg-base);
+  background-image:
+    linear-gradient(var(--bg-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--bg-line) 1px, transparent 1px);
+  background-size: 60px 60px;
+  background-position: center top;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+code,
+.mono {
+  font-family: var(--font-mono);
+}

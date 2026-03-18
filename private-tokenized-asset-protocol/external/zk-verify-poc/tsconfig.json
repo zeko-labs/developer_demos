@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "useDefineForClassFields": false,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "types": ["node", "vitest/globals"],
+    "outDir": "dist"
+  },
+  "include": [
+    "mock-server/**/*.ts",
+    "poc/**/*.ts",
+    "mock-server/tests/**/*.ts",
+    "poc/tests/**/*.ts",
+    "mock-server/vitest.config.ts",
+    "poc/vitest.config.ts",
+    "vitest.config.ts"
+  ]
+}

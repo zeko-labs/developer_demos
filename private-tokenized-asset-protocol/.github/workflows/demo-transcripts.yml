@@ -1,0 +1,42 @@
+name: Generate Demo Transcripts
+
+on:
+  workflow_dispatch:
+    inputs:
+      api_base_url:
+        description: 'API base URL (example: https://staging.example.com)'
+        required: true
+        default: 'http://localhost:7001'
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Ensure scripts executable
+        run: chmod +x scripts/*.sh
+
+      - name: Generate transcript pack
+        env:
+          API_BASE_URL: ${{ inputs.api_base_url }}
+          ADMIN_API_KEY: ${{ secrets.TAP_ADMIN_API_KEY }}
+          MAKER_API_KEY: ${{ secrets.TAP_MAKER_API_KEY }}
+          CHECKER_API_KEY: ${{ secrets.TAP_CHECKER_API_KEY }}
+          RESET_DEMO_STATE: '1'
+          RESET_LOCAL_STATE: '1'
+          REDACT_PUBLIC_COPY: '1'
+        run: ./scripts/run_demo_pack.sh
+
+      - name: Upload transcript artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: tap-demo-transcripts
+          path: output/demo-transcripts/*.md
+          if-no-files-found: error

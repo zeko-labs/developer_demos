@@ -1,0 +1,22 @@
+{
+  "name": "@tap/source-adapters",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "dist/source-adapters/src/index.js",
+  "types": "dist/source-adapters/src/index.d.ts",
+  "scripts": {
+    "dev": "tsc -w -p tsconfig.json",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "echo 'lint:source-adapters'",
+    "test": "echo 'test:source-adapters'"
+  },
+  "dependencies": {
+    "@tap/attestor-service": "workspace:*",
+    "@tap/shared-types": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.3"
+  }
+}

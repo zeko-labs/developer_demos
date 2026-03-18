@@ -1,0 +1,442 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Full Proof Record - zkVerify</title>
+        <style>
+            :root {
+                --bg-base: #070a0f;
+                --bg-panel: #111722;
+                --bg-hover: #1a2332;
+                --bg-line: rgba(35, 48, 67, 0.4);
+                --text-main: #e2e8f0;
+                --text-muted: #8b9bb4;
+                --accent: #00ffaa;
+                --border: #233043;
+                --font-ui:
+                    system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+                    Roboto, sans-serif;
+                --font-mono:
+                    ui-monospace, "Cascadia Code", "Source Code Pro", Menlo,
+                    Consolas, monospace;
+            }
+
+            * {
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0;
+            }
+
+            body {
+                font-family: var(--font-ui);
+                background-color: var(--bg-base);
+                color: var(--text-main);
+                line-height: 1.5;
+                background-image:
+                    linear-gradient(var(--bg-line) 1px, transparent 1px),
+                    linear-gradient(90deg, var(--bg-line) 1px, transparent 1px);
+                background-size: 60px 60px;
+                background-position: center top;
+                padding: 2rem;
+            }
+
+            .container {
+                max-width: 900px;
+                margin: 0 auto;
+            }
+
+            nav.breadcrumbs {
+                font-family: var(--font-mono);
+                font-size: 0.85rem;
+                margin-bottom: 2rem;
+                color: var(--text-muted);
+            }
+            nav.breadcrumbs a {
+                color: var(--accent);
+                text-decoration: none;
+            }
+            nav.breadcrumbs a:hover {
+                text-decoration: underline;
+            }
+
+            .header-title {
+                font-size: 1.8rem;
+                margin-bottom: 2rem;
+                font-weight: 300;
+                border-bottom: 1px solid var(--border);
+                padding-bottom: 1rem;
+            }
+
+            details {
+                background: var(--bg-panel);
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                margin-bottom: 1rem;
+                overflow: hidden;
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            }
+
+            summary {
+                padding: 1.25rem 1.5rem;
+                font-weight: 600;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                user-select: none;
+                background: rgba(255, 255, 255, 0.02);
+                transition: background 0.2s;
+            }
+
+            summary:hover {
+                background: rgba(255, 255, 255, 0.05);
+            }
+            summary::-webkit-details-marker {
+                display: none;
+            }
+
+            summary::after {
+                content: "+";
+                margin-left: auto;
+                font-family: var(--font-mono);
+                color: var(--accent);
+                font-size: 1.2rem;
+            }
+
+            details summary::after {
+                content: "-";
+            }
+            details summary {
+                border-bottom: 1px solid var(--border);
+            }
+
+            .content {
+                padding: 1.5rem;
+            }
+
+            .grid-data {
+                display: grid;
+                grid-template-columns: 200px 1fr;
+                gap: 1rem;
+                font-family: var(--font-mono);
+                font-size: 0.85rem;
+            }
+
+            @media (max-width: 600px) {
+                .grid-data {
+                    grid-template-columns: 1fr;
+                    gap: 0.25rem;
+                    margin-bottom: 1rem;
+                }
+            }
+
+            .label {
+                color: var(--text-muted);
+            }
+            .value {
+                color: var(--text-main);
+                word-break: break-all;
+            }
+            .highlight {
+                color: var(--accent);
+            }
+
+            .privacy-box {
+                background: rgba(0, 255, 170, 0.05);
+                border-left: 3px solid var(--accent);
+                padding: 1rem;
+                margin-bottom: 1rem;
+            }
+            .privacy-box h4 {
+                margin-bottom: 0.5rem;
+                color: var(--accent);
+            }
+
+            .disclosed-list {
+                list-style: none;
+            }
+            .disclosed-list li {
+                display: flex;
+                justify-content: space-between;
+                padding: 1rem;
+                background: rgba(0, 0, 0, 0.2);
+                border: 1px solid var(--border);
+                margin-bottom: 0.5rem;
+                border-radius: 4px;
+            }
+            .disclosed-list .check {
+                color: var(--accent);
+                font-weight: bold;
+            }
+
+            /* Timeline */
+            .timeline {
+                border-left: 2px solid var(--border);
+                margin-left: 1rem;
+                padding-left: 1.5rem;
+            }
+            .timeline-item {
+                position: relative;
+                margin-bottom: 1.5rem;
+            }
+            .timeline-item::before {
+                content: "";
+                position: absolute;
+                left: -1.85rem;
+                top: 0.3rem;
+                width: 10px;
+                height: 10px;
+                border-radius: 50%;
+                background: var(--bg-base);
+                border: 2px solid var(--accent);
+            }
+            .timeline-item:last-child {
+                margin-bottom: 0;
+            }
+            .timeline-time {
+                font-family: var(--font-mono);
+                font-size: 0.8rem;
+                color: var(--text-muted);
+                margin-bottom: 0.2rem;
+            }
+            .timeline-title {
+                font-weight: 600;
+                color: var(--text-main);
+            }
+            .timeline-desc {
+                font-size: 0.9rem;
+                color: var(--text-muted);
+            }
+
+            /* Artifacts */
+            .file-list a {
+                display: flex;
+                align-items: center;
+                gap: 1rem;
+                padding: 1rem;
+                background: rgba(0, 0, 0, 0.2);
+                border: 1px solid var(--border);
+                text-decoration: none;
+                color: var(--text-main);
+                border-radius: 4px;
+                margin-bottom: 0.5rem;
+                font-family: var(--font-mono);
+                font-size: 0.9rem;
+            }
+            .file-list a:hover {
+                background: var(--bg-hover);
+                border-color: var(--accent);
+            }
+        </style>
+    </head>
+    <body>
+        <main class="container">
+            <nav class="breadcrumbs">
+                <a href="index.html">Directory</a> &nbsp;/&nbsp;
+                <a href="proof-overview.html">Certificate</a> &nbsp;/&nbsp; Full
+                Record
+            </nav>
+
+            <h1 class="header-title">Cryptographic Verification Record</h1>
+
+            <details open>
+                <summary>1. Certificate Status</summary>
+                <div class="content grid-data">
+                    <div class="label">Result</div>
+                    <div class="value highlight">true (Verified)</div>
+                    <div class="label">Evaluation Date</div>
+                    <div class="value">2026-02-18</div>
+                </div>
+            </details>
+
+            <details>
+                <summary>2. Data Attestation</summary>
+                <div class="content grid-data">
+                    <div class="label">Attestation Timestamp</div>
+                    <div class="value">2026-02-19T04:24:17Z</div>
+                    <div class="label">Attested Server</div>
+                    <div class="value">localhost:4443</div>
+                    <div class="label">Session Header Hash</div>
+                    <div class="value">58f36583f790effc09...</div>
+                    <div class="label">Signature Algorithm</div>
+                    <div class="value">secp256k1 ECDSA</div>
+                    <div class="label">Notary Public Key X</div>
+                    <div class="value">
+                        fac7d8ab2d097d429f572a77ce324add36ccad426425b68cd54777b6f261ca14
+                    </div>
+                    <div class="label">Notary Public Key Y</div>
+                    <div class="value">
+                        0f0e1b6a6998bc97e853edd33c919ff3028b9cc1da02bd7236079e74847ba0b2
+                    </div>
+                    <div class="label">Signature R</div>
+                    <div class="value">
+                        6f3c04ea572853bbaef3cee4af2abfade21062bc
+                    </div>
+                    <div class="label">Signature S</div>
+                    <div class="value">
+                        6e32c3f92a83cf6082e44619c29caed38ee72c7bcc
+                    </div>
+                </div>
+            </details>
+
+            <details>
+                <summary>3. Disclosed Fields (Privacy Layer)</summary>
+                <div class="content">
+                    <div class="privacy-box">
+                        <h4>&#x1F512; Zero-Knowledge Privacy Guarantee</h4>
+                        <p>
+                            Specific data points (exact salary, hire date) were
+                            verified mathematically in local memory and
+                            instantly destroyed. Only the binary outcome of the
+                            policy threshold is disclosed.
+                        </p>
+                    </div>
+                    <ul class="disclosed-list">
+                        <li>
+                            <span
+                                ><strong>Minimum Salary Check</strong> (Policy:
+                                $50,000)</span
+                            >
+                            <span class="check">&ge; $50,000 &#x2713;</span>
+                        </li>
+                        <li>
+                            <span
+                                ><strong>Minimum Tenure Check</strong> (Policy:
+                                12 months)</span
+                            >
+                            <span class="check">&ge; 12 months &#x2713;</span>
+                        </li>
+                        <li>
+                            <span
+                                ><strong>Employment Status</strong> (Policy:
+                                active)</span
+                            >
+                            <span class="check">Active &#x2713;</span>
+                        </li>
+                    </ul>
+                </div>
+            </details>
+
+            <details>
+                <summary>4. ZK Computation</summary>
+                <div class="content grid-data">
+                    <div class="label">Circuit Name</div>
+                    <div class="value">employment-eligibility</div>
+                    <div class="label">Data Commitment</div>
+                    <div class="value">1234357605213887681...</div>
+                    <div class="label">Proof Hash</div>
+                    <div class="value highlight">
+                        1234357605213887681571516522283666890866308643784466339214911188889297492356
+                    </div>
+                    <div class="label">Verification Key Hash</div>
+                    <div class="value">
+                        19799624995673262779815068765230060142035202290799234618982691134662891875997
+                    </div>
+                    <div class="label">Proof Size</div>
+                    <div class="value">~32 KB</div>
+                </div>
+            </details>
+
+            <details>
+                <summary>5. On-Chain Settlement</summary>
+                <div class="content grid-data">
+                    <div class="label">Network</div>
+                    <div class="value highlight">Zeko Testnet</div>
+                    <div class="label">zkApp Address</div>
+                    <div class="value">
+                        B62qqS3PJStdtX1sELtKTpji7fPk1XencfmnMw5VSiUQhPkKiotCgpr
+                    </div>
+                    <div class="label">Settlement Tx Hash</div>
+                    <div class="value">
+                        5JuRS6XRuDgAaVptnxJ47FwiXKaLFatqhDvMdzbftUs4rZ6irk8Z
+                    </div>
+                    <div class="label">Fee Payer Nonce</div>
+                    <div class="value">1 &rarr; 2</div>
+                    <div class="label">Matching Events</div>
+                    <div class="value">1</div>
+                </div>
+            </details>
+
+            <details>
+                <summary>6. Pipeline Timeline</summary>
+                <div class="content">
+                    <div class="timeline">
+                        <div class="timeline-item">
+                            <div class="timeline-time">04:24:00</div>
+                            <div class="timeline-title">
+                                Mock Server Started
+                            </div>
+                            <div class="timeline-desc">
+                                HTTPS fixture server with employment data
+                                initialized.
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-time">04:24:05</div>
+                            <div class="timeline-title">
+                                TLSNotary Attestation
+                            </div>
+                            <div class="timeline-desc">
+                                Notary witnessed TLS session with employer API.
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-time">04:24:10</div>
+                            <div class="timeline-title">Field Extraction</div>
+                            <div class="timeline-desc">
+                                Disclosed fields extracted securely from
+                                attestation payload.
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-time">04:24:12</div>
+                            <div class="timeline-title">Data Commitment</div>
+                            <div class="timeline-desc">
+                                Poseidon hash computed over extracted field
+                                elements.
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-time">04:24:15</div>
+                            <div class="timeline-title">
+                                ZK Proof Generation
+                            </div>
+                            <div class="timeline-desc">
+                                Employment eligibility circuit compiled and
+                                proved locally.
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-time">04:24:16</div>
+                            <div class="timeline-title">Proof Verification</div>
+                            <div class="timeline-desc">
+                                Proof locally verified against the verification
+                                key.
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-time">04:24:17</div>
+                            <div class="timeline-title">
+                                On-Chain Settlement
+                            </div>
+                            <div class="timeline-desc">
+                                Proof and result permanently settled to Zeko
+                                testnet.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </details>
+
+            <details>
+                <summary>7. Raw Artifacts</summary>
+                <div class="content file-list">
+                    <a href="#"><span>&#x1F4C4;</span> attestation.json</a>
+                    <a href="#"><span>&#x1F4C4;</span> disclosed-fields.json</a>
+                    <a href="#"><span>&#x1F4C4;</span> proof.json</a>
+                    <a href="#"><span>&#x1F4C4;</span> verification-key.json</a>
+                </div>
+            </details>
+        </main>
+    </body>
+</html>

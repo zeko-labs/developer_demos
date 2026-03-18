@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Certificate Overview - zkVerify</title>
+        <style>
+            :root {
+                --bg-base: #070a0f;
+                --bg-panel: #111722;
+                --bg-hover: #1a2332;
+                --bg-line: rgba(35, 48, 67, 0.4);
+                --text-main: #e2e8f0;
+                --text-muted: #8b9bb4;
+                --accent: #00ffaa;
+                --accent-glow: rgba(0, 255, 170, 0.15);
+                --border: #233043;
+                --font-ui:
+                    system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+                    Roboto, sans-serif;
+                --font-mono:
+                    ui-monospace, "Cascadia Code", "Source Code Pro", Menlo,
+                    Consolas, monospace;
+            }
+
+            * {
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0;
+            }
+
+            body {
+                font-family: var(--font-ui);
+                background-color: var(--bg-base);
+                color: var(--text-main);
+                line-height: 1.6;
+                background-image:
+                    linear-gradient(var(--bg-line) 1px, transparent 1px),
+                    linear-gradient(90deg, var(--bg-line) 1px, transparent 1px);
+                background-size: 60px 60px;
+                background-position: center top;
+                padding: 2rem;
+            }
+
+            .container {
+                max-width: 900px;
+                margin: 0 auto;
+            }
+
+            nav.breadcrumbs {
+                font-family: var(--font-mono);
+                font-size: 0.85rem;
+                margin-bottom: 2rem;
+                color: var(--text-muted);
+            }
+            nav.breadcrumbs a {
+                color: var(--accent);
+                text-decoration: none;
+            }
+            nav.breadcrumbs a:hover {
+                text-decoration: underline;
+            }
+
+            .certificate {
+                background: var(--bg-panel);
+                border: 1px solid var(--border);
+                border-radius: 12px;
+                padding: 4rem 3rem;
+                text-align: center;
+                box-shadow:
+                    0 20px 50px rgba(0, 0, 0, 0.6),
+                    inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+                position: relative;
+                overflow: hidden;
+            }
+
+            .certificate::before {
+                content: "";
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 4px;
+                background: linear-gradient(
+                    90deg,
+                    transparent,
+                    var(--accent),
+                    transparent
+                );
+            }
+
+            .status-hero {
+                display: inline-block;
+                border: 2px solid var(--accent);
+                color: var(--accent);
+                padding: 0.5rem 2rem;
+                font-size: 1.5rem;
+                font-weight: 700;
+                letter-spacing: 0.2em;
+                text-transform: uppercase;
+                border-radius: 4px;
+                margin-bottom: 1.5rem;
+                background: var(--accent-glow);
+                box-shadow: 0 0 20px var(--accent-glow);
+            }
+
+            h1 {
+                font-size: 2.2rem;
+                margin-bottom: 0.5rem;
+                font-weight: 400;
+            }
+            .subtitle {
+                color: var(--text-muted);
+                margin-bottom: 3rem;
+                font-size: 1.1rem;
+            }
+
+            .trust-layers {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 1.5rem;
+                margin-bottom: 3rem;
+                text-align: left;
+            }
+
+            .layer-card {
+                background: rgba(0, 0, 0, 0.3);
+                border: 1px solid var(--border);
+                padding: 1.5rem;
+                border-radius: 8px;
+            }
+
+            .layer-icon {
+                font-size: 1.5rem;
+                margin-bottom: 1rem;
+                color: var(--accent);
+            }
+            .layer-card h3 {
+                font-size: 1rem;
+                margin-bottom: 0.5rem;
+                color: #fff;
+            }
+            .layer-card p {
+                font-size: 0.85rem;
+                color: var(--text-muted);
+            }
+
+            .cert-meta {
+                display: grid;
+                grid-template-columns: auto 1fr;
+                gap: 1rem 2rem;
+                text-align: left;
+                background: var(--bg-base);
+                padding: 1.5rem;
+                border-radius: 8px;
+                border: 1px solid var(--border);
+                font-family: var(--font-mono);
+                font-size: 0.85rem;
+                margin-bottom: 3rem;
+            }
+
+            .meta-label {
+                color: var(--text-muted);
+            }
+            .meta-val {
+                color: var(--text-main);
+                word-break: break-all;
+            }
+            .highlight {
+                color: var(--accent);
+            }
+
+            .btn {
+                display: inline-block;
+                background: var(--text-main);
+                color: var(--bg-base);
+                padding: 1rem 2rem;
+                text-decoration: none;
+                font-weight: 600;
+                border-radius: 4px;
+                font-family: var(--font-mono);
+                font-size: 0.9rem;
+                transition: all 0.2s;
+            }
+
+            .btn:hover {
+                background: #fff;
+                transform: translateY(-2px);
+                box-shadow: 0 10px 20px rgba(255, 255, 255, 0.1);
+            }
+        </style>
+    </head>
+    <body>
+        <main class="container">
+            <nav class="breadcrumbs">
+                <a href="index.html">Directory</a> &nbsp;/&nbsp; Certificate
+                Overview
+            </nav>
+
+            <article class="certificate">
+                <div class="status-hero">&#x2713; Verified</div>
+                <h1>Employment Eligibility Record</h1>
+                <p class="subtitle">
+                    Cryptographically proven policy adherence without data
+                    disclosure.
+                </p>
+
+                <div class="trust-layers">
+                    <div class="layer-card">
+                        <div class="layer-icon">&#x1F510;</div>
+                        <h3>1. Data Attestation</h3>
+                        <p>
+                            Origin data was directly witnessed from the employer
+                            API via TLSNotary. Manipulation is cryptographically
+                            impossible.
+                        </p>
+                    </div>
+                    <div class="layer-card">
+                        <div class="layer-icon">&#x1F6E1;</div>
+                        <h3>2. Zero-Knowledge Proof</h3>
+                        <p>
+                            Eligibility math was computed locally. Result is
+                            guaranteed correct while keeping exact salary and
+                            dates entirely hidden.
+                        </p>
+                    </div>
+                    <div class="layer-card">
+                        <div class="layer-icon">&#x26D3;</div>
+                        <h3>3. On-Chain Settlement</h3>
+                        <p>
+                            The verification proof is permanently anchored to
+                            the Zeko Testnet for immutable public auditing.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="cert-meta">
+                    <div class="meta-label">Evaluation Date</div>
+                    <div class="meta-val">2026-02-18</div>
+
+                    <div class="meta-label">Circuit Name</div>
+                    <div class="meta-val highlight">employment-eligibility</div>
+
+                    <div class="meta-label">Proof Hash</div>
+                    <div class="meta-val">
+                        1234357605213887681571516522283666890866308643784466339214911188889297492356
+                    </div>
+                </div>
+
+                <a href="proof-detail.html" class="btn"
+                    >View Full Cryptographic Record &rarr;</a
+                >
+            </article>
+        </main>
+    </body>
+</html>

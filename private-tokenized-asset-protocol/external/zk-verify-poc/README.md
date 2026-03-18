@@ -1,0 +1,227 @@
+# zkverify-poc
+
+End-to-end proof of concept: TLS-attested employer data verified on-chain via zkTLS + ZK proofs on Zeko testnet.
+
+## What it does
+
+1. A TLSNotary prover connects to a mock employer HTTPS server and produces a cryptographic attestation of the TLS session.
+2. Attested fields (employer name, salary, employment status) are extracted from the attestation.
+3. An o1js ZK circuit proves eligibility predicates over those fields without revealing raw values.
+4. The proof hash and result are settled on-chain to a `VerificationRegistry` zkApp on Zeko testnet.
+5. On-chain state is verified via GraphQL queries against the Zeko node.
+
+## Security model and boundaries
+
+Implemented hardening in this repository:
+- Settlement now requires a typed ZK proof object in `VerificationRegistry.recordVerification`; the contract verifies it in-circuit before mutating state.
+- The eligibility circuit pins a trusted notary secp256k1 public key and does not accept prover-chosen key/policy witness values.
+- Eligibility policy values are fixed for the PoC circuit (`salary >= 50_000`, `tenure >= 12 months`, `status == active`, evaluation date `2026-02-18`).
+- The circuit binds business data to a Poseidon hash of the TLS response body (`responseBodyHash`), which is exposed as a public output. Off-chain verification confirms this hash matches the attestation's response body. This prevents data substitution attacks where fabricated values are paired with a valid ECDSA signature.
+- TLS prover request inputs are sanitized to reject CRLF/header-injection payloads.
+- Pipeline startup waits for active service readiness (mock server + notary) instead of fixed sleeps.
+
+Known PoC limitation that remains out-of-scope in this cycle:
+- The circuit does not yet verify that the response body is included in the session header's transcript commitments (full transcript byte-range inclusion proofs). The binding from ECDSA-signed session header to specific response body bytes remains an off-chain trust assumption. This is a known hardening area.
+
+## Path to full on-chain trust
+
+The current hybrid binding (response body hash as public output + off-chain verification) closes the primary data substitution attack but still relies on an off-chain step to link the response body to the TLS session. Full on-chain trust requires eliminating this off-chain dependency:
+
+1. **BLAKE3 circuit gadget**: TLSNotary's transcript commitments use BLAKE3 hashes. Implementing BLAKE3 verification inside o1js would allow the circuit to verify `PlaintextHash` commitments directly. This is a significant R&D effort (~50k+ constraints per invocation).
+2. **Session header parsing**: The 54-byte BCS-encoded session header contains a Merkle root (bytes 22-53) over all attestation body fields, including transcript commitments. The circuit must extract this root via fixed-offset byte slicing.
+3. **Merkle inclusion proof**: Provide sibling hashes proving the response body's `PlaintextHash` leaf is included under the session header's Merkle root. Verify the path in-circuit.
+4. **JSON field extraction proofs**: Prove in-circuit that specific byte ranges of the response body decode to the claimed salary/hire_date/status values. This may require a structured response format (e.g., fixed-offset binary encoding) instead of free-form JSON.
+
+Until these are implemented, the off-chain binding step is the trust boundary. Verifiers must independently re-hash the attestation response body and confirm it matches the proof's `responseBodyHash` public output.
+
+## Prerequisites
+
+- [proto](https://moonrepo.dev/proto) (toolchain manager -- installs Node, pnpm, moon)
+- [Rust](https://rustup.rs/) stable toolchain
+- OpenSSL development headers (`brew install openssl` / `apt install libssl-dev`)
+
+## Quick start (existing deployment)
+
+If `.env` is already configured and the contract is deployed:
+
+```bash
+moon run workspace:run
+```
+
+Run the ineligible-user negative flow (expected prove-stage rejection):
+
+```bash
+moon run workspace:run-ineligible
+```
+
+## Setup from scratch
+
+1. **Install toolchain:**
+   ```bash
+   proto install node latest --pin local -y
+   proto install pnpm latest --pin local -y
+   ```
+
+2. **Initialize submodules** (pulls the pinned TLSNotary fork at `vendor/tlsn`):
+   ```bash
+   git submodule update --init --recursive
+   ```
+
+3. **Generate wallet and `.env`:**
+   ```bash
+   moon run poc:gen-wallet
+   ```
+
+4. **Fund the fee payer** from the [Zeko faucet](https://zeko.io/faucet) using the `FEE_PAYER_PUBLIC_KEY` printed by the previous step.
+
+5. **Deploy the contract** (one-time):
+   ```bash
+   moon run poc:deploy
+   ```
+   This deploys the contract using the `ZKAPP_PRIVATE_KEY` generated in step 3. The deployed address is written to `output/deployed-address.json`.
+
+6. **Run the pipeline:**
+   ```bash
+   moon run workspace:run
+   ```
+
+## Environment variables
+
+All values live in `.env` (generated by `poc:gen-wallet`, git-ignored).
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `ZEKO_GRAPHQL_URL` | yes | Zeko testnet GraphQL endpoint |
+| `FEE_PAYER_PRIVATE_KEY` | yes | Fee payer private key (Base58) |
+| `FEE_PAYER_PUBLIC_KEY` | yes | Fee payer public key (Base58) |
+| `ZKAPP_PUBLIC_KEY` | pipeline | zkApp address -- required by `settle` and `verify-chain` |
+| `ZKAPP_PRIVATE_KEY` | deploy | zkApp private key -- required by `deploy`; if omitted, an ephemeral key is generated |
+| `TLSNOTARY_SIGNING_KEY_HEX` | yes | TLSNotary signing key (hex) |
+
+Optional runner controls:
+- `RUN_POC_SERVICE_READY_TIMEOUT_SEC` (default `30`)
+- `RUN_POC_SERVICE_READY_POLL_INTERVAL_SEC` (default `1`)
+- `RUN_POC_SKIP_READY_CHECK=1` (testing only)
+
+## Pipeline stages
+
+Each `workspace:run` invocation creates a timestamped output directory (e.g. `output/2026-02-19T14-30-00/`).
+
+| # | Stage | Artifact |
+|---|-------|----------|
+| 1 | Start mock employer HTTPS server | -- |
+| 2 | TLSNotary attestation | `attestation.json` |
+| 3 | Extract attested fields | `disclosed-fields.json` |
+| 4 | Generate ZK proof (o1js) | `proof.json`, `verification-key.json` |
+| 5 | Verify proof locally | -- |
+| 6 | Settle proof on-chain | -- |
+| 7 | Verify on-chain state via GraphQL | -- |
+
+Negative-flow runner:
+- `moon run workspace:run-ineligible` runs the same orchestration with `TLSN_ENDPOINT=/api/v1/employee/EMP-002` and expects proof generation to fail at `poc:prove` due eligibility policy mismatch.
+
+Bank-balance runner:
+- `POC_SOURCE_PROFILE=bank ./run-poc.sh` runs the same orchestration against the bank fixture when paired with `TLSN_ENDPOINT=/api/v1/accounts/balance?account_id=BANK-001`.
+- `./run-poc-bank.sh` is the convenience wrapper for that eligible bank path.
+
+## Running individual stages
+
+```bash
+moon run mock-server:serve    # start mock HTTPS server
+moon run tlsnotary:notary     # start notary server
+moon run tlsnotary:prover     # run TLS prover
+moon run poc:extract          # extract attested fields
+moon run poc:prove            # generate ZK proof
+moon run poc:verify           # verify proof locally
+moon run poc:deploy           # deploy contract (one-time)
+moon run poc:settle           # settle proof on-chain
+moon run poc:verify-chain     # verify on-chain state
+```
+
+## Output artifacts
+
+Per-run (in `output/<timestamp>/`):
+- `attestation.json` -- TLSNotary attestation
+- `disclosed-fields.json` -- extracted employer fields
+- `proof.json` -- ZK proof
+- `verification-key.json` -- circuit verification key
+
+Standalone stage default (when `OUTPUT_DIR` is unset):
+- `output/latest/attestation.json`
+- `output/latest/disclosed-fields.json`
+- `output/latest/proof.json`
+- `output/latest/verification-key.json`
+
+Fixed:
+- `output/deployed-address.json` -- deployed zkApp metadata
+
+## UI (Nuxt SPA)
+
+The `ui/` project is a strict client-side Nuxt SPA (`ssr: false`) for browsing proof runs.
+
+Hosted deployment:
+- https://zkverify-poc-ui.zeko-labs.workers.dev/
+
+Data ingestion contract:
+- A custom Nuxt module copies timestamped run folders from `output/<timestamp>/` into `ui/public/proof-data/runs/<timestamp>/`.
+- The module also copies `output/deployed-address.json` into `ui/public/proof-data/deployed-address.json` when present.
+- `ui/public/proof-data/manifest.json` is generated at Nuxt startup/build.
+- No server rendering is used; refresh copied data by restarting `moon run ui:dev`.
+
+Run locally (pipeline first):
+
+```bash
+moon run workspace:run
+moon run ui:dev
+```
+
+The UI reads copied artifacts from `output/`, so you must run the pipeline before starting `ui:dev` to see proof data in the local UI.
+
+Build static assets:
+
+```bash
+moon run ui:build
+```
+
+UI routes:
+- `/` directory of timestamped proof runs
+- `/proof/:runId` certificate overview
+- `/proof/:runId/detail` full cryptographic record
+
+Cloudflare Worker static deploy config is at `ui/wrangler.jsonc` (SPA fallback enabled).
+Deploy command:
+
+```bash
+moon run ui:deploy
+```
+
+## On-chain verification
+
+```bash
+moon run poc:verify-chain
+```
+
+Queries the Zeko GraphQL node for the zkApp account state and events. Verifies that the on-chain `proofHash` and `result` match the local proof, and that a matching settlement event exists.
+
+## Development
+
+```bash
+moon run workspace:validate   # typecheck + lint + format + tests
+```
+
+**Test locations:**
+- `poc/tests/*.spec.ts`
+- `mock-server/tests/*.spec.ts`
+- Rust unit tests in `tlsnotary/src/*`
+
+**Moon project layout:**
+- `workspace` -- repo orchestration (install, validate, run)
+- `poc` -- TypeScript proving/settlement
+- `mock-server` -- HTTPS fixture server
+- `tlsnotary` -- Rust notary and prover
+- `ui` -- Nuxt SPA proof explorer + Cloudflare worker static deployment
+
+## Security
+
+- Private keys are local-only and git-ignored.
+- Never commit `.env` or private key files.

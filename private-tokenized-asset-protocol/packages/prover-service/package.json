@@ -1,0 +1,22 @@
+{
+  "name": "@tap/prover-service",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "dev": "tsc -w -p tsconfig.json",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "echo 'lint:prover-service'",
+    "test": "pnpm --filter @tap/circuits build && pnpm --filter @tap/o1js-verifier build && pnpm run build && node --test test/*.test.mjs"
+  },
+  "dependencies": {
+    "@tap/circuits": "workspace:*",
+    "@tap/shared-types": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.3"
+  }
+}

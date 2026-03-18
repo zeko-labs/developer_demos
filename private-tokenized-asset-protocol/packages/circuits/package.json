@@ -1,0 +1,25 @@
+{
+  "name": "@tap/circuits",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "tap-circuits-prove": "dist/prove-cli.js"
+  },
+  "scripts": {
+    "dev": "tsc -w -p tsconfig.json",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "echo 'lint:circuits'",
+    "test": "echo 'test:circuits'"
+  },
+  "dependencies": {
+    "@tap/shared-types": "workspace:*",
+    "o1js": "^2.13.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.3"
+  }
+}

@@ -1,0 +1,29 @@
+# moon
+.moon/cache
+.moon/docker
+
+# node
+node_modules/
+coverage/
+dist/
+
+# environment and secrets
+.env
+.env.*
+!.env.example
+mock-server/key.pem
+tlsnotary/notary.key
+tlsnotary/notary.pub
+
+# generated artifacts
+output/*
+!output/.gitkeep
+
+# rust
+tlsnotary/target/
+
+# misc
+.DS_Store
+
+# local transient rust outputs
+tlsnotary/output/

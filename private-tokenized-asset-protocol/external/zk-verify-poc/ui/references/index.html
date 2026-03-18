@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>zkVerify Proof Explorer</title>
+        <style>
+            :root {
+                --bg-base: #070a0f;
+                --bg-panel: #111722;
+                --bg-hover: #1a2332;
+                --bg-line: rgba(35, 48, 67, 0.4);
+                --text-main: #e2e8f0;
+                --text-muted: #8b9bb4;
+                --accent: #00ffaa;
+                --accent-glow: rgba(0, 255, 170, 0.15);
+                --fail: #ff4b4b;
+                --fail-glow: rgba(255, 75, 75, 0.15);
+                --border: #233043;
+                --font-ui:
+                    system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+                    Roboto, sans-serif;
+                --font-mono:
+                    ui-monospace, "Cascadia Code", "Source Code Pro", Menlo,
+                    Consolas, monospace;
+            }
+
+            * {
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0;
+            }
+
+            body {
+                font-family: var(--font-ui);
+                background-color: var(--bg-base);
+                color: var(--text-main);
+                line-height: 1.5;
+                background-image:
+                    linear-gradient(var(--bg-line) 1px, transparent 1px),
+                    linear-gradient(90deg, var(--bg-line) 1px, transparent 1px);
+                background-size: 60px 60px;
+                background-position: center top;
+                padding: 2rem;
+            }
+
+            .container {
+                max-width: 1200px;
+                margin: 0 auto;
+            }
+
+            header {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-end;
+                margin-bottom: 2rem;
+                padding-bottom: 1rem;
+                border-bottom: 1px solid var(--border);
+            }
+
+            .logo-area h1 {
+                font-weight: 600;
+                font-size: 1.5rem;
+                letter-spacing: -0.02em;
+            }
+
+            .logo-area span {
+                color: var(--accent);
+                font-family: var(--font-mono);
+                font-size: 0.9rem;
+            }
+
+            .stats {
+                display: flex;
+                gap: 1.5rem;
+                font-family: var(--font-mono);
+                font-size: 0.85rem;
+            }
+
+            .stat-item {
+                background: var(--bg-panel);
+                padding: 0.5rem 1rem;
+                border-radius: 4px;
+                border: 1px solid var(--border);
+            }
+
+            .stat-item .val {
+                color: var(--text-main);
+                font-weight: bold;
+                margin-left: 0.5rem;
+            }
+            .stat-item .val.success {
+                color: var(--accent);
+            }
+            .stat-item .val.error {
+                color: var(--fail);
+            }
+
+            .directory-list {
+                background: var(--bg-panel);
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                overflow: hidden;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            }
+
+            .row-header {
+                display: grid;
+                grid-template-columns: 100px 1.5fr 1fr 1fr 2fr;
+                padding: 1rem 1.5rem;
+                background: rgba(0, 0, 0, 0.2);
+                border-bottom: 1px solid var(--border);
+                font-size: 0.75rem;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+                color: var(--text-muted);
+                font-weight: 600;
+            }
+
+            .proof-row {
+                display: grid;
+                grid-template-columns: 100px 1.5fr 1fr 1fr 2fr;
+                padding: 1.25rem 1.5rem;
+                border-bottom: 1px solid var(--border);
+                text-decoration: none;
+                color: var(--text-main);
+                align-items: center;
+                transition: all 0.2s;
+            }
+
+            .proof-row:last-child {
+                border-bottom: none;
+            }
+            .proof-row:hover {
+                background: var(--bg-hover);
+                cursor: pointer;
+            }
+
+            .mono {
+                font-family: var(--font-mono);
+                font-size: 0.85rem;
+                color: var(--text-muted);
+            }
+
+            .status-badge {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.4rem;
+                font-size: 0.75rem;
+                font-weight: 600;
+                padding: 0.25rem 0.6rem;
+                border-radius: 20px;
+                text-transform: uppercase;
+            }
+
+            .status-badge.verified {
+                background: var(--accent-glow);
+                color: var(--accent);
+                border: 1px solid rgba(0, 255, 170, 0.3);
+            }
+
+            .status-badge.failed {
+                background: var(--fail-glow);
+                color: var(--fail);
+                border: 1px solid rgba(255, 75, 75, 0.3);
+            }
+
+            .status-dot {
+                font-size: 0.6rem;
+            }
+            .circuit-tag {
+                background: #1f2937;
+                padding: 0.2rem 0.5rem;
+                border-radius: 4px;
+                font-family: var(--font-mono);
+                font-size: 0.8rem;
+                border: 1px solid #374151;
+            }
+        </style>
+    </head>
+    <body>
+        <main class="container">
+            <header>
+                <div class="logo-area">
+                    <h1>zkVerify <span>// PROOF_EXPLORER</span></h1>
+                </div>
+                <div class="stats">
+                    <div class="stat-item">
+                        Total <span class="val">1,402</span>
+                    </div>
+                    <div class="stat-item">
+                        Verified <span class="val success">1,401</span>
+                    </div>
+                    <div class="stat-item">
+                        Failed <span class="val error">1</span>
+                    </div>
+                </div>
+            </header>
+
+            <section class="directory-list">
+                <div class="row-header">
+                    <div>Status</div>
+                    <div>Circuit Name</div>
+                    <div>Date</div>
+                    <div>Network</div>
+                    <div>Proof Hash</div>
+                </div>
+
+                <!-- Active Link to Overview -->
+                <a href="proof-overview.html" class="proof-row">
+                    <div>
+                        <span class="status-badge verified"
+                            ><span class="status-dot">&#x25CF;</span>
+                            Verified</span
+                        >
+                    </div>
+                    <div>
+                        <span class="circuit-tag">employment-eligibility</span>
+                    </div>
+                    <div><time>2026-02-19</time></div>
+                    <div>Zeko Testnet</div>
+                    <div class="mono">12343576052138...7492356</div>
+                </a>
+
+                <!-- Inactive Rows -->
+                <div class="proof-row">
+                    <div>
+                        <span class="status-badge verified"
+                            ><span class="status-dot">&#x25CF;</span>
+                            Verified</span
+                        >
+                    </div>
+                    <div>
+                        <span class="circuit-tag">employment-eligibility</span>
+                    </div>
+                    <div><time>2026-02-17</time></div>
+                    <div>Zeko Testnet</div>
+                    <div class="mono">98271034856123...1038472</div>
+                </div>
+
+                <div class="proof-row">
+                    <div>
+                        <span class="status-badge failed"
+                            ><span class="status-dot">&#x25CF;</span>
+                            Failed</span
+                        >
+                    </div>
+                    <div>
+                        <span class="circuit-tag">employment-eligibility</span>
+                    </div>
+                    <div><time>2026-02-15</time></div>
+                    <div>Zeko Testnet</div>
+                    <div class="mono">55019283746501...6639281</div>
+                </div>
+            </section>
+        </main>
+    </body>
+</html>

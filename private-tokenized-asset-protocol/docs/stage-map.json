@@ -1,0 +1,41 @@
+{
+  "lastUpdated": "2026-03-12",
+  "stages": [
+    {
+      "id": "stage-0",
+      "name": "Protocol Framing",
+      "status": "completed"
+    },
+    {
+      "id": "stage-1",
+      "name": "Core TAP Platform",
+      "status": "completed"
+    },
+    {
+      "id": "stage-2",
+      "name": "Real Proof Runtime",
+      "status": "completed"
+    },
+    {
+      "id": "stage-3",
+      "name": "Partner Adapter Demo Surface",
+      "status": "completed"
+    },
+    {
+      "id": "stage-4",
+      "name": "zkTLS Source Integration",
+      "status": "completed"
+    },
+    {
+      "id": "stage-5",
+      "name": "Bank-Facing v1 Demo",
+      "status": "in_progress"
+    },
+    {
+      "id": "stage-6",
+      "name": "Production Handoff Package",
+      "status": "next"
+    }
+  ],
+  "currentBestNextMilestone": "Move from mock-bank zkTLS fixture mode to one real server-to-server sandbox target, then refresh the enterprise pack and operator runbook around that target."
+}

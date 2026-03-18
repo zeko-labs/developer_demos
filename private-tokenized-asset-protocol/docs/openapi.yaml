@@ -1,0 +1,798 @@
+openapi: 3.0.3
+info:
+  title: Tokenized Asset Protocol API
+  version: 0.3.0
+servers:
+  - url: http://localhost:7001/api/v1
+paths:
+  /health:
+    get:
+      responses:
+        '200':
+          description: Service health
+  /config/public:
+    get:
+      responses:
+        '200':
+          description: Public runtime config
+  /admin/demo/reset:
+    post:
+      responses:
+        '200':
+          description: Admin demo reset (settlements + workflow state + audit files)
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden (requires CONSORTIUM_ADMIN)
+  /diag/credentials:
+    get:
+      parameters:
+        - in: query
+          name: tenantId
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: provider
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: rotateSoonDays
+          required: false
+          schema:
+            type: integer
+        - in: query
+          name: expireSoonDays
+          required: false
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Credential lifecycle and env-presence diagnostics (admin-only)
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden (requires CONSORTIUM_ADMIN)
+  /diag/providers:
+    get:
+      parameters:
+        - in: query
+          name: tenantId
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: provider
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Provider circuit-breaker and health telemetry (admin-only)
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden (requires CONSORTIUM_ADMIN)
+  /diag/providers/ranked:
+    get:
+      parameters:
+        - in: query
+          name: tenantId
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: providers
+          required: true
+          schema:
+            type: string
+            description: Comma-separated provider names
+        - in: query
+          name: strategy
+          required: false
+          schema:
+            type: string
+            enum: [ordered, health-weighted]
+      responses:
+        '200':
+          description: Ranked providers by health score (admin-only)
+        '400':
+          description: Missing providers query
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden (requires CONSORTIUM_ADMIN)
+  /reliability/source-retry-queue:
+    get:
+      responses:
+        '200':
+          description: Retry queue snapshot (admin-only)
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden (requires CONSORTIUM_ADMIN)
+  /reliability/source-dlq:
+    get:
+      parameters:
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Source dead-letter entries (admin-only)
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden (requires CONSORTIUM_ADMIN)
+  /reliability/source-retry/run-once:
+    post:
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                maxItems:
+                  type: integer
+      responses:
+        '200':
+          description: Run one retry worker tick (admin-only)
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden (requires CONSORTIUM_ADMIN)
+  /reliability/source-dlq/replay:
+    post:
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                dlqId:
+                  type: string
+                searchLimit:
+                  type: integer
+                requestData:
+                  type: object
+      responses:
+        '200':
+          description: Replay succeeded (admin-only)
+        '400':
+          description: Missing or invalid replay body
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden (requires CONSORTIUM_ADMIN)
+        '404':
+          description: DLQ entry not found
+  /reliability/settlement-reconcile/run-once:
+    post:
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                limit:
+                  type: integer
+                staleMinutes:
+                  type: integer
+                dryRun:
+                  type: boolean
+                force:
+                  type: boolean
+                forceSupervisor:
+                  type: boolean
+                policy:
+                  type: object
+                  properties:
+                    allowFinalizeMissingTimestamp:
+                      type: boolean
+                    allowRetryPendingSubmit:
+                      type: boolean
+                    allowPromoteSubmittedRecorded:
+                      type: boolean
+                    allowMarkSubmittedFailed:
+                      type: boolean
+      responses:
+        '200':
+          description: Run one settlement reconciliation pass (admin-only)
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden (requires CONSORTIUM_ADMIN)
+        '429':
+          description: Reconcile supervisor paused due to failure budget
+  /reliability/settlement-reconcile/audit:
+    get:
+      parameters:
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Settlement reconciliation audit records (admin-only)
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden (requires CONSORTIUM_ADMIN)
+  /reliability/settlement-reconcile/supervisor:
+    get:
+      responses:
+        '200':
+          description: Settlement reconcile supervisor config + runtime budget state (admin-only)
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden (requires CONSORTIUM_ADMIN)
+  /reliability/settlement-reconcile/supervisor/upsert:
+    post:
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                staleMinutes:
+                  type: integer
+                maxActionsPerRun:
+                  type: integer
+                failureBudgetPerHour:
+                  type: integer
+                pauseMinutesOnBudgetExceeded:
+                  type: integer
+                alertWebhookUrl:
+                  type: string
+                slackWebhookUrl:
+                  type: string
+                resetFailureBudget:
+                  type: boolean
+                policy:
+                  type: object
+                  properties:
+                    allowFinalizeMissingTimestamp:
+                      type: boolean
+                    allowRetryPendingSubmit:
+                      type: boolean
+                    allowPromoteSubmittedRecorded:
+                      type: boolean
+                    allowMarkSubmittedFailed:
+                      type: boolean
+      responses:
+        '200':
+          description: Upsert settlement reconcile supervisor config (admin-only)
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden (requires CONSORTIUM_ADMIN)
+  /reliability/settlement/manual-status:
+    post:
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                settlementId:
+                  type: string
+                proofHash:
+                  type: string
+                status:
+                  type: string
+                  enum: [pending_submit, submitted, confirmed, recorded, rejected, failed]
+                anchored:
+                  type: boolean
+                txHash:
+                  type: string
+                eventId:
+                  type: string
+                confirmationSource:
+                  type: string
+      responses:
+        '200':
+          description: Manual settlement status update applied (admin-only)
+        '400':
+          description: Missing ids or invalid status
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden (requires CONSORTIUM_ADMIN)
+        '404':
+          description: Settlement not found
+  /routing/config/upsert:
+    post:
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [tenantId, provider]
+              properties:
+                tenantId:
+                  type: string
+                provider:
+                  type: string
+                failoverProviders:
+                  type: array
+                  items:
+                    type: string
+                routingStrategy:
+                  type: string
+                  enum: [ordered, health-weighted]
+                routingWeight:
+                  type: integer
+      responses:
+        '200':
+          description: Upsert routing config (admin-only)
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden (requires CONSORTIUM_ADMIN)
+  /routing/configs:
+    get:
+      parameters:
+        - in: query
+          name: tenantId
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Routing config list
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden tenant scope
+  /issuer/controls/upsert:
+    post:
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [tenantId]
+              properties:
+                tenantId:
+                  type: string
+                approvalExpiryMinutes:
+                  type: integer
+                dualApprovalThresholdCents:
+                  type: string
+                requireReasonCode:
+                  type: boolean
+                allowedReasonCodes:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: Upsert issuer controls (admin-only)
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden (requires CONSORTIUM_ADMIN)
+  /issuer/controls:
+    get:
+      parameters:
+        - in: query
+          name: tenantId
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Issuer control config for tenant
+        '400':
+          description: Missing tenant id for non-admin
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden tenant scope
+  /proof/eligibility:
+    post:
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [subjectCommitment, policyId]
+              properties:
+                subjectCommitment:
+                  type: string
+                policyId:
+                  type: integer
+      responses:
+        '200':
+          description: Proof envelope
+  /attest/zktls/status:
+    get:
+      responses:
+        '200':
+          description: zkTLS external repo readiness status
+  /attest/zktls/latest:
+    get:
+      responses:
+        '200':
+          description: Latest zkTLS artifact bundle from external pipeline
+  /attest/zktls/run:
+    post:
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                mode:
+                  type: string
+                  enum: [eligible, ineligible]
+      responses:
+        '200':
+          description: zkTLS pipeline execution output and artifacts
+  /attest/source/providers:
+    get:
+      responses:
+        '200':
+          description: Available partner source adapters
+  /attest/source/collect:
+    post:
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [provider, subjectCommitment]
+              properties:
+                provider:
+                  type: string
+                  enum: [mock-bank, generic-rest, plaid, persona, custody-holdings]
+                tenantId:
+                  type: string
+                subjectCommitment:
+                  type: string
+                policyId:
+                  type: integer
+                settle:
+                  type: boolean
+                idempotencyKey:
+                  type: string
+                failover:
+                  type: object
+                  properties:
+                    strategy:
+                      type: string
+                      enum: [ordered, health-weighted]
+                    providers:
+                      type: array
+                      items:
+                        type: string
+                    sources:
+                      type: object
+                source:
+                  type: object
+      responses:
+        '200':
+          description: Partner attestation, generated proof, verification, optional settlement
+        '422':
+          description: Settlement rejected due to policy linkage mismatch (`policy_linkage_missing`, `active_policy_not_found`, `policy_version_mismatch`, `policy_hash_mismatch`)
+        '4XX':
+          description: Structured adapter error with code/message/retryable
+  /attest/identity/persona/webhook:
+    post:
+      responses:
+        '200':
+          description: Persona webhook verified and normalized
+        '401':
+          description: Signature missing/invalid
+        '500':
+          description: Webhook secret not configured
+  /attest/holdings/custody/webhook:
+    post:
+      responses:
+        '200':
+          description: Custody webhook verified and normalized
+        '401':
+          description: Signature missing/invalid
+        '500':
+          description: Webhook secret not configured
+  /tenant/{tenantId}/provider-config:
+    post:
+      parameters:
+        - in: path
+          name: tenantId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Upsert tenant provider config
+  /tenant/{tenantId}/provider-configs:
+    get:
+      parameters:
+        - in: path
+          name: tenantId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Tenant provider config list
+  /tenant/{tenantId}/provider-config/{provider}:
+    get:
+      parameters:
+        - in: path
+          name: tenantId
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: provider
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Tenant provider config
+  /policy/upsert:
+    post:
+      responses:
+        '200':
+          description: Upsert policy version with deterministic policy hash
+  /policy/{tenantId}/{policyId}/versions:
+    get:
+      parameters:
+        - in: path
+          name: tenantId
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: policyId
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Policy version history
+  /policy/{tenantId}/{policyId}/active:
+    get:
+      parameters:
+        - in: path
+          name: tenantId
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: policyId
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Active policy resolution
+  /risk/config/upsert:
+    post:
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [tenantId, operation]
+              properties:
+                tenantId:
+                  type: string
+                operation:
+                  type: string
+                  enum: [eligibility, mint, burn]
+                enabled:
+                  type: boolean
+                minScore:
+                  type: number
+                maxPerTxnAmountCents:
+                  type: string
+                maxDailyAmountCents:
+                  type: string
+                maxSubjectDailyAmountCents:
+                  type: string
+                maxRequestsPerHour:
+                  type: integer
+      responses:
+        '200':
+          description: Upsert risk control config (admin-only)
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden (requires CONSORTIUM_ADMIN)
+  /risk/configs:
+    get:
+      parameters:
+        - in: query
+          name: tenantId
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: operation
+          required: false
+          schema:
+            type: string
+            enum: [eligibility, mint, burn]
+      responses:
+        '200':
+          description: Risk control config list
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden tenant scope
+  /attest/zktls/ingest:
+    post:
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                mode:
+                  type: string
+                  enum: [eligible, ineligible]
+                runPipelineFirst:
+                  type: boolean
+                subjectCommitment:
+                  type: string
+                settle:
+                  type: boolean
+                tenantId:
+                  type: string
+                policyId:
+                  type: integer
+      responses:
+        '200':
+          description: Mapped TAP proof envelope and optional settlement record
+        '422':
+          description: Settlement rejected due to policy linkage guard (`policy_linkage_missing`, `active_policy_not_found`, `policy_version_mismatch`, `policy_hash_mismatch`)
+  /proof/verify:
+    post:
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Verification result
+  /settlement/record:
+    post:
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [proof, operation, subjectCommitment]
+              properties:
+                operation:
+                  type: string
+                  enum: [eligibility, mint, burn, transfer, bridge-entry, bridge-exit]
+                subjectCommitment:
+                  type: string
+                proof:
+                  type: object
+                  description: Must include policy linkage in `publicInput` (`tenantId`, `policyId`, `policyVersion`, `policyHash`) for settlement acceptance.
+                metadata:
+                  type: object
+                  description: Optional metadata; settlement will persist `policySnapshotHash` and `policyEffectiveAt`.
+      responses:
+        '200':
+          description: Settlement recorded with enforced policy snapshot (`policySnapshotHash`, `policyEffectiveAt`)
+        '422':
+          description: Settlement rejected (`policy_linkage_missing`, `active_policy_not_found`, `policy_version_mismatch`, `policy_hash_mismatch`, or invalid proof)
+  /settlement/zktls/submit-latest:
+    post:
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                subjectCommitment:
+                  type: string
+                tenantId:
+                  type: string
+                policyId:
+                  type: integer
+      responses:
+        '200':
+          description: External zkTLS settle submitted and mirrored into TAP settlement store
+        '422':
+          description: Settlement rejected due to policy linkage guard (`policy_linkage_missing`, `active_policy_not_found`, `policy_version_mismatch`, `policy_hash_mismatch`)
+  /settlement/recent:
+    get:
+      responses:
+        '200':
+          description: Recent settlement records
+  /finality/sync/zktls-latest:
+    post:
+      responses:
+        '200':
+          description: Finality sync result from external verify-chain execution
+  /issuer/mint/request:
+    post:
+      responses:
+        '200':
+          description: Creates mint issuer request in `requested` state
+  /issuer/burn/request:
+    post:
+      responses:
+        '200':
+          description: Creates burn issuer request in `requested` state
+  /issuer/requests:
+    get:
+      responses:
+        '200':
+          description: Lists issuer workflow requests
+  /issuer/mint/{requestId}/approve:
+    post:
+      parameters:
+        - in: path
+          name: requestId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Approves mint request (maker-checker)
+        '422':
+          description: Rejected (including `maker_checker_separation_required`)
+  /issuer/mint/{requestId}/reject:
+    post:
+      parameters:
+        - in: path
+          name: requestId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Rejects mint request (maker-checker)
+  /issuer/burn/{requestId}/approve:
+    post:
+      parameters:
+        - in: path
+          name: requestId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Approves burn request (maker-checker)
+  /issuer/burn/{requestId}/reject:
+    post:
+      parameters:
+        - in: path
+          name: requestId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Rejects burn request (maker-checker)

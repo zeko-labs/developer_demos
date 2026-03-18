@@ -1,0 +1,64 @@
+$schema: "https://moonrepo.dev/schemas/project.json"
+
+language: "javascript"
+
+tasks:
+  test:
+    command: "pnpm exec vitest run --config poc/vitest.config.ts"
+    options:
+      runFromWorkspaceRoot: true
+  typecheck:
+    command: "pnpm exec tsgo --noEmit -p tsconfig.json"
+    options:
+      runFromWorkspaceRoot: true
+  lint:
+    command: "pnpm exec oxlint --deny-warnings --vitest-plugin mock-server poc"
+    options:
+      runFromWorkspaceRoot: true
+  format:
+    command: "pnpm exec oxfmt --check mock-server poc"
+    options:
+      runFromWorkspaceRoot: true
+  format-write:
+    command: "pnpm exec oxfmt mock-server poc"
+    options:
+      runFromWorkspaceRoot: true
+  validate-ts:
+    deps:
+      - "poc:typecheck"
+      - "poc:lint"
+      - "poc:format"
+  extract:
+    command: "node --import @swc-node/register/esm-register poc/extract-fields.ts"
+    options:
+      runFromWorkspaceRoot: true
+      cache: false
+  prove:
+    command: "node --import @swc-node/register/esm-register poc/prove.ts"
+    options:
+      runFromWorkspaceRoot: true
+      cache: false
+  verify:
+    command: "node --import @swc-node/register/esm-register poc/verify.ts"
+    options:
+      runFromWorkspaceRoot: true
+      cache: false
+  verify-chain:
+    command: "node --import @swc-node/register/esm-register poc/verify-chain.ts"
+    options:
+      runFromWorkspaceRoot: true
+      cache: false
+  deploy:
+    command: "node --import @swc-node/register/esm-register poc/deploy.ts"
+    options:
+      runFromWorkspaceRoot: true
+      cache: false
+  settle:
+    command: "node --import @swc-node/register/esm-register poc/settle.ts"
+    options:
+      runFromWorkspaceRoot: true
+      cache: false
+  gen-wallet:
+    command: "node --import @swc-node/register/esm-register poc/gen-wallet.ts"
+    options:
+      runFromWorkspaceRoot: true

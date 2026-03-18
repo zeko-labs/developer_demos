@@ -1,0 +1,41 @@
+version: '3.9'
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: tap
+      POSTGRES_PASSWORD: tap
+      POSTGRES_DB: tap
+    ports:
+      - '5433:5432'
+    volumes:
+      - tap_pg_data:/var/lib/postgresql/data
+
+  api-gateway:
+    image: node:20
+    working_dir: /workspace
+    volumes:
+      - ./:/workspace
+    command: sh -lc "corepack enable && pnpm install && pnpm --filter @tap/api-gateway dev"
+    env_file:
+      - .env
+    ports:
+      - '7001:7001'
+    depends_on:
+      - postgres
+
+  indexer:
+    image: node:20
+    working_dir: /workspace
+    volumes:
+      - ./:/workspace
+    command: sh -lc "corepack enable && pnpm install && pnpm --filter @tap/indexer dev"
+    env_file:
+      - .env
+    ports:
+      - '7002:7002'
+    depends_on:
+      - postgres
+
+volumes:
+  tap_pg_data:

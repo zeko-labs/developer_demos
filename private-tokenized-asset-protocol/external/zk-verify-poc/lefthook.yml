@@ -1,0 +1,11 @@
+pre-commit:
+  parallel: false
+  commands:
+    01-oxlint-fix:
+      glob: "*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}"
+      run: pnpm exec oxlint --fix {staged_files}
+      stage_fixed: true
+    02-oxfmt-fix:
+      glob: "*.{js,jsx,mjs,cjs,ts,tsx,mts,cts,json,jsonc}"
+      run: pnpm exec oxfmt {staged_files}
+      stage_fixed: true

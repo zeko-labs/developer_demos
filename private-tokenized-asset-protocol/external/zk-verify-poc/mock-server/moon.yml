@@ -1,0 +1,15 @@
+$schema: "https://moonrepo.dev/schemas/project.json"
+
+language: "javascript"
+
+tasks:
+  serve:
+    command: "node --import @swc-node/register/esm-register mock-server/server.ts"
+    preset: "server"
+    options:
+      runFromWorkspaceRoot: true
+      cache: false
+  test:
+    command: "pnpm exec vitest run --config mock-server/vitest.config.ts"
+    options:
+      runFromWorkspaceRoot: true
