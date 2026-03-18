@@ -1,6 +1,6 @@
 # Tokenized Asset Protocol (Pilot Scaffold)
 
-TAP is a self-hostable control plane for private, permissioned tokenized assets.
+Tokenized Asset Protocol (TAP) is a self-hosted control plane for private, permissioned tokenized assets.
 
 It is built for the model we expect institutions to actually want: private consortium stablecoins, private tokenized stocks and funds, proof-linked compliance, verifiable off-chain source inputs, and optional bridge rails to public Ethereum when interoperability matters.
 
