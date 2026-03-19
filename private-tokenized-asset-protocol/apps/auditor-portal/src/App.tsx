@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { SectionCard } from '@tap/ui-kit';
 import { TapClient } from '@tap/sdk';
 
@@ -21,52 +21,84 @@ export function App() {
       .catch((e) => setError(String(e)));
   }, []);
 
+  const anchoredCount = useMemo(
+    () => records.filter((record) => Boolean(record.anchored)).length,
+    [records]
+  );
+
   return (
-    <main>
-      <h1>Auditor Portal</h1>
-      <p>Inspect proof mode, verify recent settlements, and review audit trail.</p>
+    <main className="app-shell auditor-shell">
+      <section className="hero-panel">
+        <div>
+          <span className="eyebrow">Audit and verification surface</span>
+          <h1>Inspect runtime posture, recent settlements, and policy-linked records from one public-facing portal.</h1>
+          <p className="hero-copy">
+            This portal is the transparency layer for operators, counterparties, and reviewers who need to see what mode
+            the system is in and how recent settlement artifacts were recorded.
+          </p>
+        </div>
+        <div className="hero-stats">
+          <div className="stat-card">
+            <span>Recent records</span>
+            <strong>{records.length}</strong>
+          </div>
+          <div className="stat-card">
+            <span>Anchored</span>
+            <strong>{anchoredCount}</strong>
+          </div>
+          <div className="stat-card">
+            <span>Proof mode</span>
+            <strong>{String(config?.proofMode || 'loading')}</strong>
+          </div>
+        </div>
+      </section>
 
       {error ? (
         <SectionCard title="Error">
-          <pre>{error}</pre>
+          <pre className="result-block">{error}</pre>
         </SectionCard>
       ) : null}
 
-      <SectionCard title="Runtime Config">
-        <pre>{JSON.stringify(config, null, 2)}</pre>
-      </SectionCard>
+      <div className="content-grid two-up">
+        <SectionCard title="Runtime Config">
+          <pre className="result-block">{JSON.stringify(config, null, 2)}</pre>
+        </SectionCard>
 
-      <SectionCard title="Recent Settlements">
-        <pre>{JSON.stringify(recent, null, 2)}</pre>
-      </SectionCard>
+        <SectionCard title="Settlement Feed">
+          <pre className="result-block">{JSON.stringify(recent, null, 2)}</pre>
+        </SectionCard>
+      </div>
 
       <SectionCard title="Policy Snapshot View">
-        {records.length === 0 ? <p>No settlements yet.</p> : null}
-        {records.map((record) => {
-          const metadata = (record.metadata || {}) as Record<string, unknown>;
-          return (
-            <div key={String(record.settlementId || record.eventId)}>
-              <p>
-                <strong>{String(record.settlementId || 'settlement')}</strong> status={String(record.status || '')}
-              </p>
-              <p>
-                policySnapshotHash: <code>{String(metadata.policySnapshotHash || 'n/a')}</code>
-              </p>
-              <p>
-                policyEffectiveAt: <code>{String(metadata.policyEffectiveAt || 'n/a')}</code>
-              </p>
-            </div>
-          );
-        })}
+        {records.length === 0 ? <p className="muted">No settlements yet.</p> : null}
+        <div className="stack-list">
+          {records.map((record) => {
+            const metadata = (record.metadata || {}) as Record<string, unknown>;
+            return (
+              <article className="list-row" key={String(record.settlementId || record.eventId)}>
+                <div>
+                  <strong>{String(record.settlementId || 'settlement')}</strong>
+                  <p>Status {String(record.status || '')}</p>
+                </div>
+                <div className="mini-stack">
+                  <code>{String(metadata.policySnapshotHash || 'n/a')}</code>
+                  <code>{String(metadata.policyEffectiveAt || 'n/a')}</code>
+                </div>
+              </article>
+            );
+          })}
+        </div>
       </SectionCard>
 
       <SectionCard title="Semantics">
-        <p>
-          <code>verified</code> means proof artifact validates under current verifier.
-        </p>
-        <p>
-          <code>anchored</code> means recorded into settlement registry (and later chain mode).
-        </p>
+        <div className="bullet-stack">
+          <p>
+            <code>verified</code> means the proof artifact validates under the active verifier path.
+          </p>
+          <p>
+            <code>anchored</code> means the record has been written into the settlement registry surface.
+          </p>
+        </div>
       </SectionCard>
     </main>
   );

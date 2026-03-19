@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { TapClient } from '@tap/sdk';
 import { SectionCard } from '@tap/ui-kit';
 
@@ -63,55 +63,109 @@ export function App() {
     await refreshIssuerRequests();
   }
 
+  const pendingCount = useMemo(
+    () => issuerRequests.filter((record) => String(record.status || '') === 'requested').length,
+    [issuerRequests]
+  );
+  const approvedCount = useMemo(
+    () => issuerRequests.filter((record) => String(record.status || '') === 'approved').length,
+    [issuerRequests]
+  );
+
   return (
-    <main>
-      <h1>Issuer Console</h1>
-      <p>Consortium policy, mint/burn workflow, and reserve controls.</p>
+    <main className="app-shell issuer-shell">
+      <section className="hero-panel">
+        <div>
+          <span className="eyebrow">Consortium issuer surface</span>
+          <h1>Run policy-controlled mint and approval workflows with a public-facing control room.</h1>
+          <p className="hero-copy">
+            This pilot UI shows the issuer side of TAP: reserve-aware mint requests, maker-checker approvals, and
+            policy-linked settlement snapshots for private stablecoin operations.
+          </p>
+        </div>
+        <div className="hero-stats">
+          <div className="stat-card">
+            <span>API runtime</span>
+            <strong>{health}</strong>
+          </div>
+          <div className="stat-card">
+            <span>Pending approvals</span>
+            <strong>{pendingCount}</strong>
+          </div>
+          <div className="stat-card">
+            <span>Approved requests</span>
+            <strong>{approvedCount}</strong>
+          </div>
+        </div>
+      </section>
 
-      <SectionCard title="System Health">
-        <p>
-          API status: <code>{health}</code>
-        </p>
-      </SectionCard>
+      <div className="content-grid two-up">
+        <SectionCard title="Create Mint Request">
+          <p className="section-intro">
+            Start a new issuer-controlled stablecoin mint request under the active consortium policy profile.
+          </p>
+          <button className="primary-button" onClick={createMintRequest}>
+            Create Demo Mint Request
+          </button>
+          {mintResult ? <pre className="result-block">{mintResult}</pre> : null}
+        </SectionCard>
 
-      <SectionCard title="Mint Request Demo">
-        <button onClick={createMintRequest}>Create Mint Request</button>
-        {mintResult ? <pre>{mintResult}</pre> : null}
-      </SectionCard>
+        <SectionCard title="Policy Snapshot Feed">
+          <p className="section-intro">Recent settlement records show which policy snapshot governed the action.</p>
+          {recentSettlements.length === 0 ? <p className="muted">No settlements yet.</p> : null}
+          <div className="stack-list">
+            {recentSettlements.map((record) => {
+              const metadata = (record.metadata || {}) as Record<string, unknown>;
+              return (
+                <article className="list-row" key={String(record.settlementId || record.eventId)}>
+                  <div>
+                    <strong>{String(record.settlementId || 'settlement')}</strong>
+                    <p>Effective {String(metadata.policyEffectiveAt || 'n/a')}</p>
+                  </div>
+                  <code>{String(metadata.policySnapshotHash || 'n/a')}</code>
+                </article>
+              );
+            })}
+          </div>
+        </SectionCard>
+      </div>
 
       <SectionCard title="Maker-Checker Queue">
-        {issuerRequests.length === 0 ? <p>No issuer requests.</p> : null}
-        {issuerRequests.map((record) => {
-          const requestId = String(record.requestId || '');
-          const kind = String(record.kind || 'mint') as 'mint' | 'burn';
-          const status = String(record.status || '');
-          return (
-            <p key={requestId}>
-              <code>{requestId}</code> kind=<code>{kind}</code> status=<code>{status}</code>{' '}
-              {status === 'requested' ? (
-                <>
-                  <button onClick={() => approveRequest(kind, requestId)}>Approve</button>{' '}
-                  <button onClick={() => rejectRequest(kind, requestId)}>Reject</button>
-                </>
-              ) : null}
-            </p>
-          );
-        })}
-        {queueResult ? <pre>{queueResult}</pre> : null}
-      </SectionCard>
-
-      <SectionCard title="Recent Policy Snapshots">
-        {recentSettlements.length === 0 ? <p>No settlements yet.</p> : null}
-        {recentSettlements.map((record) => {
-          const metadata = (record.metadata || {}) as Record<string, unknown>;
-          return (
-            <p key={String(record.settlementId || record.eventId)}>
-              <code>{String(record.settlementId || 'settlement')}</code> policy=
-              <code>{String(metadata.policySnapshotHash || 'n/a')}</code> effective=
-              <code>{String(metadata.policyEffectiveAt || 'n/a')}</code>
-            </p>
-          );
-        })}
+        <p className="section-intro">
+          Review live issuer requests and action them through the same approval controls a consortium team would use.
+        </p>
+        {issuerRequests.length === 0 ? <p className="muted">No issuer requests yet.</p> : null}
+        <div className="stack-list">
+          {issuerRequests.map((record) => {
+            const requestId = String(record.requestId || '');
+            const kind = String(record.kind || 'mint') as 'mint' | 'burn';
+            const status = String(record.status || '');
+            return (
+              <article className="request-row" key={requestId}>
+                <div>
+                  <div className="request-meta">
+                    <strong>{requestId}</strong>
+                    <span className={`status-pill status-${status}`}>{status}</span>
+                  </div>
+                  <p>
+                    kind <code>{kind}</code>
+                  </p>
+                </div>
+                {status === 'requested' ? (
+                  <div className="button-row">
+                    <button className="primary-button" onClick={() => approveRequest(kind, requestId)}>
+                      Approve
+                    </button>
+                    <button className="secondary-button" onClick={() => rejectRequest(kind, requestId)}>
+                      Reject
+                    </button>
+                  </div>
+                ) : null}
+              </article>
+            );
+          })}
+        </div>
+        {queueResult ? <pre className="result-block">{queueResult}</pre> : null}
       </SectionCard>
     </main>
   );

@@ -44,54 +44,74 @@ export function App() {
   }
 
   return (
-    <main>
-      <h1>User Wallet</h1>
-      <p>Run one real proof flow end-to-end: generate, verify, settle.</p>
+    <main className="app-shell wallet-shell">
+      <section className="hero-panel">
+        <div>
+          <span className="eyebrow">End-user proof surface</span>
+          <h1>Generate, verify, and settle one real TAP proof flow from a wallet-facing experience.</h1>
+          <p className="hero-copy">
+            This view makes the protocol tangible for customers and partners: a private subject commitment, one active
+            policy, one proof artifact, one settlement result.
+          </p>
+        </div>
+        <div className="hero-callout">
+          <span>Flow</span>
+          <strong>Create proof</strong>
+          <strong>Verify locally</strong>
+          <strong>Record settlement</strong>
+        </div>
+      </section>
 
-      <SectionCard title="Golden Flow Inputs">
-        <label>
-          Subject commitment
-          <input
-            value={subjectCommitment}
-            onChange={(e) => setSubjectCommitment(e.target.value)}
-            style={{ display: 'block', width: '100%', marginTop: 6, marginBottom: 12 }}
-          />
-        </label>
-        <label>
-          Policy ID
-          <input
-            type="number"
-            value={policyId}
-            onChange={(e) => setPolicyId(Number(e.target.value))}
-            style={{ display: 'block', width: 180, marginTop: 6, marginBottom: 12 }}
-          />
-        </label>
-        <button onClick={runGoldenFlow}>Generate + Verify + Settle</button>
-      </SectionCard>
+      <div className="content-grid two-up">
+        <SectionCard title="Golden Flow Inputs">
+          <p className="section-intro">Use the default demo subject or plug in a different commitment to simulate another user.</p>
+          <label className="field-label">
+            Subject commitment
+            <input value={subjectCommitment} onChange={(e) => setSubjectCommitment(e.target.value)} />
+          </label>
+          <label className="field-label">
+            Policy ID
+            <input type="number" value={policyId} onChange={(e) => setPolicyId(Number(e.target.value))} />
+          </label>
+          <button className="primary-button" onClick={runGoldenFlow}>
+            Generate + Verify + Settle
+          </button>
+        </SectionCard>
+
+        <SectionCard title="What This Proves">
+          <div className="bullet-stack">
+            <p>Proof creation is policy-scoped, not generic.</p>
+            <p>Verification happens before settlement, not after the fact.</p>
+            <p>Settlement records the proof artifact and the governing metadata.</p>
+          </div>
+        </SectionCard>
+      </div>
 
       {error ? (
         <SectionCard title="Error">
-          <pre>{error}</pre>
+          <pre className="result-block">{error}</pre>
         </SectionCard>
       ) : null}
 
       {proof ? (
         <SectionCard title="Proof Artifact">
-          <pre>{JSON.stringify(proof, null, 2)}</pre>
+          <pre className="result-block">{JSON.stringify(proof, null, 2)}</pre>
         </SectionCard>
       ) : null}
 
-      {verifyResult ? (
-        <SectionCard title="Local Verification">
-          <pre>{verifyResult}</pre>
-        </SectionCard>
-      ) : null}
+      <div className="content-grid two-up">
+        {verifyResult ? (
+          <SectionCard title="Local Verification">
+            <pre className="result-block">{verifyResult}</pre>
+          </SectionCard>
+        ) : null}
 
-      {settlement ? (
-        <SectionCard title="Settlement Result">
-          <pre>{settlement}</pre>
-        </SectionCard>
-      ) : null}
+        {settlement ? (
+          <SectionCard title="Settlement Result">
+            <pre className="result-block">{settlement}</pre>
+          </SectionCard>
+        ) : null}
+      </div>
     </main>
   );
 }
