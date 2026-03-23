@@ -6,6 +6,7 @@ export interface TlsnWeatherAttestation {
   request_path: string;
   timestamp: number;
   response_body: string;
+  synthetic_observation?: boolean;
   session_header_bytes_hex?: string;
   signature?: {
     r_hex: string;
@@ -31,6 +32,8 @@ export interface WeatherObservationSelection {
   observedAtSlot: bigint;
   nonce: Field;
   marketDateIso?: string;
+  statementSourceHashOverride?: Field;
+  statementRequestPathHashOverride?: Field;
 }
 
 const WEATHER_MARKET_TIME_ZONE = 'America/Los_Angeles';
@@ -93,6 +96,10 @@ function assertTlsnEnvelope(attestation: TlsnWeatherAttestation): void {
   }
 }
 
+function isSyntheticObservation(attestation: TlsnWeatherAttestation): boolean {
+  return attestation.synthetic_observation === true;
+}
+
 function readPath(root: Record<string, unknown>, path: string[]): unknown {
   let cursor: unknown = root;
   for (const segment of path) {
@@ -124,7 +131,7 @@ export function assertAttestationPolicy(
   if (ageMs > policy.maxAgeMs) {
     throw new Error(`attestation is stale: ageMs=${ageMs}`);
   }
-  if (policy.requireTlsnEnvelope ?? true) {
+  if ((policy.requireTlsnEnvelope ?? true) && !isSyntheticObservation(attestation)) {
     assertTlsnEnvelope(attestation);
   }
 }
@@ -219,8 +226,9 @@ export function buildWeatherOracleStatementFromAttestation(
   const thresholdValueTenthC = UInt64.from(selection.thresholdTenthC);
   const outcome = observedValueTenthC.greaterThan(thresholdValueTenthC);
 
-  const sourceHash = hashUtf8StringPoseidon(attestation.server_name);
-  const requestPathHash = hashUtf8StringPoseidon(attestation.request_path);
+  const sourceHash = selection.statementSourceHashOverride || hashUtf8StringPoseidon(attestation.server_name);
+  const requestPathHash =
+    selection.statementRequestPathHashOverride || hashUtf8StringPoseidon(attestation.request_path);
   const observedAtSlot = UInt64.from(selection.observedAtSlot);
 
   const statementDigest = Poseidon.hash([
