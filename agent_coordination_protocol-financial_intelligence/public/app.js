@@ -57,6 +57,8 @@ let lastAccessToken = null;
 let currentPage = 1;
 const pageSize = 6;
 let modelTestPassed = false;
+let requestInFlight = false;
+let attestInFlight = false;
 
 
 async function testModelEndpoint() {
@@ -431,6 +433,7 @@ connectButton.addEventListener('click', () => {
 });
 
 async function createRequest() {
+  if (requestInFlight) return;
   const prompt = promptInput.value.trim();
   if (!selectedAgentId) {
     alert('Select an agent first.');
@@ -441,134 +444,146 @@ async function createRequest() {
     return;
   }
 
-  outputStatus.textContent = 'Creating request...';
-  outputStatus.className = '';
-  if (requestHint) {
-    requestHint.textContent = 'Building request intent...';
+  requestInFlight = true;
+  if (createRequestButton) {
+    createRequestButton.disabled = true;
   }
-  if (attestHint) {
-    attestHint.textContent = '';
-  }
-  proofPreview.textContent = '—';
-  txHashEl.textContent = '—';
-  requestIdEl.textContent = '—';
-  const t0 = performance.now();
 
-  const intentRes = await fetch('/api/intent', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      agentId: selectedAgentId,
-      prompt,
-      requester: walletPublicKey,
-      useCredits: creditsMode
-    })
-  });
-  console.log('Timing: /api/intent ms', Math.round(performance.now() - t0));
-
-  let intent;
-  const rawIntent = await intentRes.text();
   try {
-    intent = JSON.parse(rawIntent);
-  } catch (parseErr) {
-    throw new Error(`Intent response not JSON: ${rawIntent.slice(0, 120)}`);
-  }
-  if (!intentRes.ok) {
-    throw new Error(intent.error || 'Intent creation failed');
-  }
-  lastPayload = intent.payload;
-  lastRequestId = intent.requestId;
-  lastAccessToken = intent.accessToken || null;
-  if (lastAccessToken && lastRequestId) {
-    localStorage.setItem(`accessToken:${lastRequestId}`, lastAccessToken);
-  }
-  requestIdEl.textContent = intent.requestId;
-  proofPreview.textContent = JSON.stringify(intent.payload, null, 2);
-  if (requestHint) {
-    requestHint.textContent = 'Waiting for wallet signature...';
-  }
+    outputStatus.textContent = 'Creating request...';
+    outputStatus.className = '';
+    if (requestHint) {
+      requestHint.textContent = 'Building request intent...';
+    }
+    if (attestHint) {
+      attestHint.textContent = '';
+    }
+    proofPreview.textContent = '—';
+    txHashEl.textContent = '—';
+    requestIdEl.textContent = '—';
+    const t0 = performance.now();
 
-  if (!window.mina) {
-    throw new Error('Auro wallet required to pay on-chain.');
-  }
-
-  if (!walletPublicKey && window.mina) {
-    await connectWallet();
-  }
-  if (!walletPublicKey) {
-    throw new Error('Auro wallet required to pay on-chain.');
-  }
-
-  if (creditsMode) {
-    const tCredits = performance.now();
-    const spendAmount = Number(intent.priceMina || 0);
-    const spendRes = await fetch('/api/credits/spend-intent', {
+    const intentRes = await fetch('/api/intent', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        ownerPublicKey: walletPublicKey,
-        requestId: intent.requestId,
-        amountMina: spendAmount
+        agentId: selectedAgentId,
+        prompt,
+        requester: walletPublicKey,
+        useCredits: creditsMode
       })
     });
-    console.log('Timing: /api/credits/spend-intent ms', Math.round(performance.now() - tCredits));
-    if (!spendRes.ok) {
-      const err = await spendRes.json();
-      throw new Error(err.error || 'Credits spend intent failed');
+    console.log('Timing: /api/intent ms', Math.round(performance.now() - t0));
+
+    let intent;
+    const rawIntent = await intentRes.text();
+    try {
+      intent = JSON.parse(rawIntent);
+    } catch (parseErr) {
+      throw new Error(`Intent response not JSON: ${rawIntent.slice(0, 120)}`);
     }
-    const spendIntent = await spendRes.json();
-    const tRelayer = performance.now();
-    const creditsTxRes = await fetch('/api/credits-spend-submit', {
+    if (!intentRes.ok) {
+      throw new Error(intent.error || 'Intent creation failed');
+    }
+    lastPayload = intent.payload;
+    lastRequestId = intent.requestId;
+    lastAccessToken = intent.accessToken || null;
+    if (lastAccessToken && lastRequestId) {
+      localStorage.setItem(`accessToken:${lastRequestId}`, lastAccessToken);
+    }
+    requestIdEl.textContent = intent.requestId;
+    proofPreview.textContent = JSON.stringify(intent.payload, null, 2);
+    if (requestHint) {
+      requestHint.textContent = 'Waiting for wallet signature...';
+    }
+
+    if (!window.mina) {
+      throw new Error('Auro wallet required to pay on-chain.');
+    }
+
+    if (!walletPublicKey && window.mina) {
+      await connectWallet();
+    }
+    if (!walletPublicKey) {
+      throw new Error('Auro wallet required to pay on-chain.');
+    }
+
+    if (creditsMode) {
+      const tCredits = performance.now();
+      const spendAmount = Number(intent.priceMina || 0);
+      const spendRes = await fetch('/api/credits/spend-intent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ownerPublicKey: walletPublicKey,
+          requestId: intent.requestId,
+          amountMina: spendAmount
+        })
+      });
+      console.log('Timing: /api/credits/spend-intent ms', Math.round(performance.now() - tCredits));
+      if (!spendRes.ok) {
+        const err = await spendRes.json();
+        throw new Error(err.error || 'Credits spend intent failed');
+      }
+      const spendIntent = await spendRes.json();
+      const tRelayer = performance.now();
+      const creditsTxRes = await fetch('/api/credits-spend-submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ payload: spendIntent.payload })
+      });
+      console.log('Timing: /api/credits-spend-submit ms', Math.round(performance.now() - tRelayer));
+      if (!creditsTxRes.ok) {
+        const err = await creditsTxRes.json();
+        throw new Error(err.error || 'Credits spend submit failed');
+      }
+      const creditsTx = await creditsTxRes.json();
+      let hash = 'submitted';
+      hash = creditsTx?.hash || 'submitted';
+      txHashEl.textContent = hash;
+      if (requestHint) {
+        requestHint.textContent = `Credits update submitted. Tx: ${hash}`;
+      }
+      if (creditsBalanceEl && spendIntent.balanceMina !== undefined) {
+        creditsBalanceEl.textContent = Number(spendIntent.balanceMina || 0).toFixed(2);
+      }
+      await fulfillRequest(null, hash);
+      return;
+    }
+
+    const tTxBuild = performance.now();
+    const txRes = await fetch('/api/tx', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ payload: spendIntent.payload })
+      body: JSON.stringify({ payload: lastPayload, feePayer: walletPublicKey })
     });
-    console.log('Timing: /api/credits-spend-submit ms', Math.round(performance.now() - tRelayer));
-    if (!creditsTxRes.ok) {
-      const err = await creditsTxRes.json();
-      throw new Error(err.error || 'Credits spend submit failed');
+    console.log('Timing: /api/tx ms', Math.round(performance.now() - tTxBuild));
+
+    if (!txRes.ok) {
+      const err = await txRes.json();
+      throw new Error(err.error || 'Transaction build failed');
     }
-    const creditsTx = await creditsTxRes.json();
-    let hash = 'submitted';
-    hash = creditsTx?.hash || 'submitted';
+
+    const txData = await txRes.json();
+    const tAuro = performance.now();
+    const sent = await window.mina.sendTransaction({
+      transaction: txData.tx,
+      feePayer: { fee: txData.fee }
+    });
+    console.log('Timing: Auro sendTransaction ms', Math.round(performance.now() - tAuro));
+    const hash = sent?.hash || 'submitted';
     txHashEl.textContent = hash;
     if (requestHint) {
-      requestHint.textContent = `Credits update submitted. Tx: ${hash}`;
+      requestHint.textContent = `Payment submitted. Tx: ${hash}`;
     }
-    if (creditsBalanceEl && spendIntent.balanceMina !== undefined) {
-      creditsBalanceEl.textContent = Number(spendIntent.balanceMina || 0).toFixed(2);
+
+    await fulfillRequest(hash);
+  } finally {
+    requestInFlight = false;
+    if (createRequestButton) {
+      createRequestButton.disabled = false;
     }
-    await fulfillRequest(null, hash);
-    return;
   }
-
-  const tTxBuild = performance.now();
-  const txRes = await fetch('/api/tx', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ payload: lastPayload, feePayer: walletPublicKey })
-  });
-  console.log('Timing: /api/tx ms', Math.round(performance.now() - tTxBuild));
-
-  if (!txRes.ok) {
-    const err = await txRes.json();
-    throw new Error(err.error || 'Transaction build failed');
-  }
-
-  const txData = await txRes.json();
-  const tAuro = performance.now();
-  const sent = await window.mina.sendTransaction({
-    transaction: txData.tx,
-    feePayer: { fee: txData.fee }
-  });
-  console.log('Timing: Auro sendTransaction ms', Math.round(performance.now() - tAuro));
-  const hash = sent?.hash || 'submitted';
-  txHashEl.textContent = hash;
-  if (requestHint) {
-    requestHint.textContent = `Payment submitted. Tx: ${hash}`;
-  }
-
-  await fulfillRequest(hash);
 }
 
 async function fulfillRequest(txHash, creditTxHash) {
@@ -664,6 +679,14 @@ attestOutputButton.addEventListener('click', async () => {
     alert('No output proof available yet.');
     return;
   }
+  if (attestInFlight) {
+    return;
+  }
+  attestInFlight = true;
+  if (attestOutputButton) {
+    attestOutputButton.disabled = true;
+  }
+  try {
   if (attestHint) {
     attestHint.textContent = 'Generating attestation transaction...';
   }
@@ -715,6 +738,12 @@ attestOutputButton.addEventListener('click', async () => {
   const hash = sent?.hash || 'submitted';
   if (attestHint) {
     attestHint.textContent = `Attestation submitted. Tx: ${hash}`;
+  }
+  } finally {
+    attestInFlight = false;
+    if (attestOutputButton) {
+      attestOutputButton.disabled = !lastOutputProof;
+    }
   }
 });
 
