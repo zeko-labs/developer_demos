@@ -1,6 +1,8 @@
 import 'reflect-metadata';
 import './env.js';
-import { Bool, Field, Mina, Poseidon, PrivateKey, fetchAccount } from 'o1js';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+import { Bool, Field, Mina, Poseidon, PrivateKey, PublicKey, fetchAccount } from 'o1js';
 import { readFile } from 'node:fs/promises';
 import { FastPredictionMarketPlatform } from './fast-contract.js';
 import { MarketLeaf } from './market-types.js';
@@ -21,6 +23,8 @@ import {
 import { assertLocalMarketsRootMatchesChain } from './fast-chain-state.js';
 import { withTxRetry } from './tx-retry.js';
 import { getFastNodeCompileCache } from './fast-compile-cache.js';
+
+const execFileAsync = promisify(execFile);
 
 function readEnv(name: string): string {
   const value = process.env[name];
@@ -58,6 +62,36 @@ function marketDateFromTitle(title: string | undefined): string | undefined {
   return match ? match[1] : undefined;
 }
 
+function isFreshStateMismatchError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return /marketsRoot mismatch|receiptsRoot mismatch|Field\.assertEquals\(\)/i.test(message);
+}
+
+async function syncAuthoritativeState(stateFile: string): Promise<void> {
+  await execFileAsync('pnpm', ['sync-state:zeko', '--', '--state-file', stateFile], {
+    cwd: process.cwd(),
+    env: process.env
+  });
+}
+
+async function getConfiguredOracleHashes(zkappAddress: PublicKey): Promise<{
+  sourceHash: Field;
+  requestPathHash: Field;
+}> {
+  const account = await fetchAccount({ publicKey: zkappAddress });
+  if (account.error) {
+    throw new Error(`zkApp account fetch failed: ${account.error.statusText || 'unknown error'}`);
+  }
+  const appState = (account.account as unknown as { zkapp?: { appState?: unknown[] } })?.zkapp?.appState;
+  if (!appState || appState.length < 6) {
+    throw new Error('zkApp appState missing oracle policy');
+  }
+  return {
+    sourceHash: Field((appState[4] as { toString(): string }).toString()),
+    requestPathHash: Field((appState[5] as { toString(): string }).toString())
+  };
+}
+
 function recoverMarketDateIso(state: Awaited<ReturnType<typeof loadOperatorState>>, marketKey: string): string | undefined {
   const fromMeta = marketDateFromTitle(state.marketMeta?.[marketKey]?.title);
   if (fromMeta) return fromMeta;
@@ -89,6 +123,7 @@ async function readAttestation(pathname: string): Promise<TlsnWeatherAttestation
     request_path: candidate.request_path,
     timestamp: candidate.timestamp,
     response_body: candidate.response_body,
+    synthetic_observation: candidate.synthetic_observation === true,
     session_header_bytes_hex:
       typeof candidate.session_header_bytes_hex === 'string' ? candidate.session_header_bytes_hex : undefined,
     signature:
@@ -153,99 +188,126 @@ async function main(): Promise<void> {
 
   const zkappAccount = await fetchAccount({ publicKey: zkappAddress });
   if (zkappAccount.error) throw new Error('zkApp account not found. Deploy first.');
-
-  const state = await loadOperatorState(stateFile);
-  await assertLocalMarketsRootMatchesChain(zkappAddress, state);
-  const existing = state.markets[marketKey.toString()];
-  if (!existing) throw new Error(`market ${marketKey.toString()} missing in ${stateFile}`);
-  const oldLeaf = deserializeMarketLeaf(existing);
-  if (oldLeaf.resolved.toBoolean()) throw new Error('market already resolved');
-  const observedAtSlot = observedAtSlotArg
-    ? BigInt(observedAtSlotArg)
-    : BigInt(oldLeaf.expirySlot.toString());
-  const closeSlot = BigInt(oldLeaf.closeSlot.toString());
-  const expirySlot = BigInt(oldLeaf.expirySlot.toString());
-  if (observedAtSlot < closeSlot || observedAtSlot > expirySlot) {
-    throw new Error(
-      `observed-at-slot must be within market window [${closeSlot}, ${expirySlot}], got ${observedAtSlot}`
-    );
-  }
-  const meta = state.marketMeta?.[marketKey.toString()];
-  const marketDateIso = recoverMarketDateIso(state, marketKey.toString());
-  if (meta) {
-    if (!meta.settlementSource.includes(allowedServerName)) {
-      throw new Error('allowed server does not match market settlement source');
-    }
-    if (!meta.settlementSource.includes(attestation.server_name)) {
-      throw new Error('attestation server does not match market settlement source');
-    }
-  }
-
-  const marketsMap = buildMarketsMerkleMap(state);
-  const nonceMap = buildNonceMerkleMap(state);
-  if (state.usedNonces[nonce.toString()] === '1') throw new Error('oracle nonce already used');
-
-  const { statement } = buildWeatherOracleStatementFromAttestation(
-    marketKey,
-    attestation,
-    {
-      allowedServerName,
-      allowedRequestPath,
-      maxAgeMs
-    },
-    {
-      jsonPath: ['properties', 'periods'],
-      thresholdTenthC: BigInt(oldLeaf.thresholdValueTenthC.toString()),
-      observedAtSlot,
-      nonce,
-      marketDateIso
-    },
-    Date.now()
-  );
-
-  const resolvedLeaf = new MarketLeaf({
-    configHash: oldLeaf.configHash,
-    closeSlot: oldLeaf.closeSlot,
-    expirySlot: oldLeaf.expirySlot,
-    thresholdValueTenthC: oldLeaf.thresholdValueTenthC,
-    totalPositionBet: oldLeaf.totalPositionBet,
-    totalYesPositionBet: oldLeaf.totalYesPositionBet,
-    resolved: Bool(true),
-    outcome: statement.outcome,
-    oracleStatementHash: statement.statementDigest
-  });
+  const configuredOracleHashes = await getConfiguredOracleHashes(zkappAddress);
 
   await FastPredictionMarketPlatform.compile({
     cache: getFastNodeCompileCache()
   });
   const zkapp = new FastPredictionMarketPlatform(zkappAddress);
 
-  await withTxRetry(
-    async () => {
-      const tx = await Mina.transaction({ sender: resolver.toPublicKey(), fee: txFee }, async () => {
-        zkapp.resolveWeatherMarket(
-          marketKey,
-          oldLeaf,
-          resolvedLeaf,
-          marketsMap.getWitness(marketKey),
-          statement,
-          nonceMap.getWitness(nonce)
-        );
-      });
-      await tx.prove();
-      await tx.sign([resolver]).send();
-    },
-    { label: 'resolve-weather:zeko' }
-  );
+  let finalState = await loadOperatorState(stateFile);
+  let finalStatementDigest = '';
+  let finalOutcome = '';
 
-  state.markets[marketKey.toString()] = serializeMarketLeaf(resolvedLeaf);
-  state.usedNonces[nonce.toString()] = '1';
-  await saveOperatorState(stateFile, state);
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
+    if (attempt > 1) {
+      await syncAuthoritativeState(stateFile);
+      finalState = await loadOperatorState(stateFile);
+    }
+    try {
+      await assertLocalMarketsRootMatchesChain(zkappAddress, finalState);
+      const existing = finalState.markets[marketKey.toString()];
+      if (!existing) throw new Error(`market ${marketKey.toString()} missing in ${stateFile}`);
+      const oldLeaf = deserializeMarketLeaf(existing);
+      if (oldLeaf.resolved.toBoolean()) throw new Error('market already resolved');
+      const observedAtSlot = observedAtSlotArg
+        ? BigInt(observedAtSlotArg)
+        : BigInt(oldLeaf.expirySlot.toString());
+      const closeSlot = BigInt(oldLeaf.closeSlot.toString());
+      const expirySlot = BigInt(oldLeaf.expirySlot.toString());
+      if (observedAtSlot < closeSlot || observedAtSlot > expirySlot) {
+        throw new Error(
+          `observed-at-slot must be within market window [${closeSlot}, ${expirySlot}], got ${observedAtSlot}`
+        );
+      }
+      const meta = finalState.marketMeta?.[marketKey.toString()];
+      const marketDateIso = recoverMarketDateIso(finalState, marketKey.toString());
+      if (meta) {
+        if (!meta.settlementSource.includes(allowedServerName)) {
+          throw new Error('allowed server does not match market settlement source');
+        }
+        if (!meta.settlementSource.includes(attestation.server_name)) {
+          throw new Error('attestation server does not match market settlement source');
+        }
+      }
+
+      const marketsMap = buildMarketsMerkleMap(finalState);
+      const nonceMap = buildNonceMerkleMap(finalState);
+      if (finalState.usedNonces[nonce.toString()] === '1') throw new Error('oracle nonce already used');
+
+      const { statement } = buildWeatherOracleStatementFromAttestation(
+        marketKey,
+        attestation,
+        {
+          allowedServerName,
+          allowedRequestPath,
+          maxAgeMs,
+          requireTlsnEnvelope: !attestation.synthetic_observation
+        },
+        {
+          jsonPath: ['properties', 'periods'],
+          thresholdTenthC: BigInt(oldLeaf.thresholdValueTenthC.toString()),
+          observedAtSlot,
+          nonce,
+          marketDateIso,
+          statementSourceHashOverride: attestation.synthetic_observation
+            ? configuredOracleHashes.sourceHash
+            : undefined,
+          statementRequestPathHashOverride: attestation.synthetic_observation
+            ? configuredOracleHashes.requestPathHash
+            : undefined
+        },
+        Date.now()
+      );
+
+      const resolvedLeaf = new MarketLeaf({
+        configHash: oldLeaf.configHash,
+        closeSlot: oldLeaf.closeSlot,
+        expirySlot: oldLeaf.expirySlot,
+        thresholdValueTenthC: oldLeaf.thresholdValueTenthC,
+        totalPositionBet: oldLeaf.totalPositionBet,
+        totalYesPositionBet: oldLeaf.totalYesPositionBet,
+        resolved: Bool(true),
+        outcome: statement.outcome,
+        oracleStatementHash: statement.statementDigest
+      });
+
+      await withTxRetry(
+        async () => {
+          const tx = await Mina.transaction({ sender: resolver.toPublicKey(), fee: txFee }, async () => {
+            zkapp.resolveWeatherMarket(
+              marketKey,
+              oldLeaf,
+              resolvedLeaf,
+              marketsMap.getWitness(marketKey),
+              statement,
+              nonceMap.getWitness(nonce)
+            );
+          });
+          await tx.prove();
+          await tx.sign([resolver]).send();
+        },
+        { label: 'resolve-weather:zeko' }
+      );
+
+      finalState.markets[marketKey.toString()] = serializeMarketLeaf(resolvedLeaf);
+      finalState.usedNonces[nonce.toString()] = '1';
+      await saveOperatorState(stateFile, finalState);
+      finalStatementDigest = statement.statementDigest.toString();
+      finalOutcome = statement.outcome.toField().toString();
+      break;
+    } catch (error) {
+      if (attempt === 2 || !isFreshStateMismatchError(error)) {
+        throw error;
+      }
+      console.warn('[resolve-weather:zeko] refreshing stale local state and retrying resolution');
+    }
+  }
 
   console.log('Market resolved.');
   console.log('Market key:', marketKey.toString());
-  console.log('Outcome (yes=1):', statement.outcome.toField().toString());
-  console.log('Statement digest:', statement.statementDigest.toString());
+  console.log('Outcome (yes=1):', finalOutcome);
+  console.log('Statement digest:', finalStatementDigest);
   console.log('TLSN verified:', report.verified ? 'yes' : 'no');
   console.log('TLSN mode:', report.mode);
   console.log('State file:', stateFile);

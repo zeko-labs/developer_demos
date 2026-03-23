@@ -1,4 +1,4 @@
-# Private Prediction Market Weather
+# Perfect Weather Prediction Market
 
 A Zeko testnet prediction market demo that combines:
 
@@ -66,7 +66,6 @@ That means developers can use the same protocol for:
 ## Fork And Run
 
 ```bash
-cp .env.example .env
 pnpm install
 pnpm build
 pnpm marketplace:serve
@@ -76,7 +75,7 @@ Open:
 
 - `http://127.0.0.1:8790/marketplace`
 
-If you want the background oracle loop running too, start it in a second terminal:
+If you want the weather oracle loop running too:
 
 ```bash
 pnpm oracle:worker
