@@ -16,6 +16,12 @@ A collection of practical demos for building zero-knowledge apps and agent syste
   - Credits + relayer path for better UX/privacy
   - Verifiable performance metrics and proofs feed
 
+- `perfect-weather_prediction_market`
+  - Private weather prediction market on Zeko
+  - Hosted market, oracle worker, and tx-prover split
+  - Wallet-signed bets and claims with zk-backed transactions
+  - zkTLS-backed weather resolution and agent integration hooks
+
 - `proof_over_hype_ai_image_provenance`
   - Provenance-oriented AI image workflow
   - Verifiable metadata/claims pattern for generated media
@@ -49,4 +55,3 @@ npm install
 cp .env.example .env
 npm run build
 npm run dev
-
