@@ -2,7 +2,9 @@
 
 Tokenized Asset Protocol (TAP) is a self-hosted control plane for private, permissioned tokenized assets.
 
-It is built for the model we expect institutions to actually want: private consortium stablecoins, private tokenized stocks and funds, proof-linked compliance, verifiable off-chain source inputs, and optional bridge rails to public Ethereum when interoperability matters.
+It is designed for institutions that want to issue and manage stablecoins, tokenized stocks, and other assets inside a private consortium environment, verify off-chain source data with proofs, and selectively bridge assets or settlement activity to Ethereum when public interoperability is useful.
+
+TAP is the private operating layer. Ethereum is the optional public rail.
 
 ## Why TAP
 
