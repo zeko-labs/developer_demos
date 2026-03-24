@@ -12,12 +12,16 @@ description: Use when changing privacy claims, batching behavior, relayer flow, 
 - resolved-markets / claim UX wording
 - README/docs language about privacy guarantees
 
+Use this skill to extract reusable privacy language that another builder or agent could apply to a different market, not just to describe this repo’s UI.
+
 ## Privacy Model In This Repo
 
 Live default:
 - wallet activity is public on-chain
 - aggregate market state is public on-chain
-- live per-user market intent is batched and not exposed as a simple direct market-side update
+- wallet signing stays local
+- market, oracle, and tx-prover are split so no single hosted service owns the entire user flow
+- a sophisticated observer can still correlate wallet tx timing and market state changes
 
 Not provided by default:
 - fully shielded balances
@@ -49,6 +53,7 @@ Not provided by default:
    - claim proving and wallet signing can succeed while hosted finalize still fails
    - until finalize persists status, the UI should not imply that payout metadata is settled
    - local wallet signing remains a key privacy boundary even when proving/finalize are hosted
+   - hosted wallet activity can be optimistic before chain inclusion; do not imply that a wallet hash means the bet already changed public market state
 
 ## Next Privacy Step
 
@@ -73,3 +78,12 @@ If extending this market for stronger privacy with the smallest rewrite:
    - winning-side eligibility
    - not-already-claimed status
 5. Keep UX metadata (`receiptMeta`, claim status, market date mapping) off-chain and wallet-scoped.
+
+## Generalized Guidance
+
+When documenting privacy for another market or agent workflow:
+
+- separate “private from casual users” from “private from sophisticated observers”
+- separate “private from the public” from “private from the application operator”
+- describe local signing, remote proving, and hosted metadata as distinct trust boundaries
+- treat receipt commitments as a legibility reduction, not as full concealment
