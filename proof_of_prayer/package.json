@@ -1,0 +1,38 @@
+{
+  "name": "proof-of-prayer",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsc -p tsconfig.json && node dist/server.js",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/server.js",
+    "deploy:local": "tsc -p tsconfig.json && node dist/zk/deployLocal.js",
+    "deploy:zeko": "tsc -p tsconfig.json && node dist/zk/deployZeko.js",
+    "deploy:prayer": "tsc -p tsconfig.json && node dist/zk/deployPrayerBatch.js",
+    "keygen:prayer": "tsc -p tsconfig.json && node dist/zk/keygenPrayer.js",
+    "keygen": "tsc -p tsconfig.json && node dist/zk/keygen.js",
+    "set-keys": "node scripts/set-keys.js",
+    "set-keychain": "bash scripts/set-keychain.sh",
+    "clear-env-key": "node scripts/clear-env-key.js",
+    "clear-keychain": "bash scripts/clear-keychain.sh",
+    "clear-env-all": "bash scripts/clear-env-all.sh"
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0-rc.12",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.19.2",
+    "multer": "^1.4.5-lts.1",
+    "o1js": "^1.7.0",
+    "reflect-metadata": "^0.2.2",
+    "undici": "^6.19.2"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/multer": "^1.4.11",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  }
+}

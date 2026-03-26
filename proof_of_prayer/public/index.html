@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Proof of Prayer</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="bg-orb orb-1"></div>
+    <div class="bg-orb orb-2"></div>
+    <div class="bg-orb orb-3"></div>
+
+    <header class="hero">
+      <nav class="nav">
+        <div class="logo">
+          <span class="logo-mark">✧</span>
+          <span>Proof of Prayer</span>
+        </div>
+        <div class="nav-actions">
+          <button id="connectWallet" class="btn ghost" type="button">Connect Auro</button>
+          <div id="walletStatus" class="wallet-status">Not connected</div>
+        </div>
+      </nav>
+      <div class="hero-body">
+        <div>
+          <p class="eyebrow">A private place for sacred intentions</p>
+          <h1>Anchor your prayers on-chain — keep your identity off-chain.</h1>
+          <p class="subhead">
+            Submit a private prayer, encrypt it in your browser, and choose whether to share an anonymized version
+            so others can pray with you. Your participation stays private.
+          </p>
+          <div class="stat-row">
+            <div class="stat">
+              <div class="stat-number" id="statTotal">0</div>
+              <div class="stat-label">Total prayers</div>
+            </div>
+            <div class="stat">
+              <div class="stat-number" id="statShared">0</div>
+              <div class="stat-label">Shared with community</div>
+            </div>
+            <div class="stat">
+              <div class="stat-number" id="statProofs">0</div>
+              <div class="stat-label">Proofs of prayer</div>
+            </div>
+          </div>
+          <div id="heroLegend" class="steps">
+            <div class="step">
+              <div class="step-title">Share Your Prayer</div>
+              <div class="muted">Without a wallet, your prayer is safely queued for community sponsorship.</div>
+            </div>
+            <div class="step">
+              <div class="step-title">Anchor Instantly</div>
+              <div class="muted">With Auro connected, the same prayer flow can go on-chain immediately.</div>
+            </div>
+            <div class="step">
+              <div class="step-title">Sponsor the Community Queue</div>
+              <div class="muted">Anyone with a wallet can anchor the pending prayer batch for others.</div>
+            </div>
+          </div>
+          <div id="walletPrompt" class="action-legend hidden">
+            <div class="legend-item">
+              <div class="legend-title">Unlock on-chain actions</div>
+              <div class="muted inline-prompt">
+                Install Auro Wallet to anchor prayers instantly and sponsor the community queue.
+                <a class="pill" href="https://www.aurowallet.com/" target="_blank" rel="noreferrer">Download Auro Wallet</a>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <h2>New Prayer</h2>
+          <p class="muted">Default is private. You decide if it becomes public.</p>
+          <form id="prayerForm">
+            <label>
+              Private prayer (encrypted)
+              <textarea id="prayerText" required placeholder="Write your prayer..." maxlength="1200"></textarea>
+            </label>
+            <label>
+              Recipient alias (optional)
+              <input id="recipientAlias" type="text" placeholder="e.g. My friend" maxlength="80" />
+            </label>
+            <div class="resource-box">
+              <div class="resource-block">
+                <span class="resource-title">Inspiration</span>
+                <div class="inspiration">
+                  <a class="pill" href="https://www.bible.com/bible" target="_blank" rel="noreferrer">Christianity</a>
+                  <a class="pill" href="https://quran.com" target="_blank" rel="noreferrer">Islam</a>
+                  <a class="pill" href="https://www.dhammapada.com" target="_blank" rel="noreferrer">Buddhism</a>
+                  <a class="pill" href="https://www.bhagavad-gita.org" target="_blank" rel="noreferrer">Hinduism</a>
+                  <a class="pill" href="https://www.sefaria.org/texts/Tanakh" target="_blank" rel="noreferrer">Judaism</a>
+                  <input id="inspirationOther" class="pill pill-input" type="text" placeholder="Other" maxlength="60" />
+                </div>
+              </div>
+            </div>
+            <label class="toggle">
+              <input id="shareToggle" type="checkbox" />
+              Share anonymized prayer publicly
+            </label>
+            <label id="publicTextWrap" class="hidden">
+              Public version (shown to community)
+              <textarea id="publicText" placeholder="Short public summary for others to pray with you" maxlength="280"></textarea>
+            </label>
+            <label>
+              Encryption passphrase (optional)
+              <input id="passphrase" type="text" placeholder="Leave blank for auto-generated key" maxlength="120" />
+            </label>
+            <div class="form-actions">
+              <div class="action-group">
+                <button class="btn primary" type="submit" data-action="submit" id="primaryPrayerAction">Submit Prayer</button>
+              </div>
+              <div id="formStatus" class="form-status"></div>
+            </div>
+          </form>
+          <div id="generatedKey" class="key-box hidden"></div>
+        </div>
+      </div>
+    </header>
+
+    <main class="main">
+      <section class="feed">
+        <div class="section-header">
+          <div>
+            <h2 id="feedTitle">Community Prayers</h2>
+            <p id="feedSubhead" class="muted">Public prayers are anonymized. Private prayers stay private.</p>
+          </div>
+        </div>
+        <div class="community-controls">
+          <div class="segmented view-toggle">
+            <button class="segmented-btn" data-view="mine">My Prayers</button>
+            <button class="segmented-btn is-active" data-view="community">Community</button>
+          </div>
+          <div class="segmented sort-toggle">
+            <button class="segmented-btn is-active" data-sort="prayed">Most Prayed</button>
+            <button class="segmented-btn" data-sort="recent">Most Recent</button>
+          </div>
+          <input id="feedSearch" type="search" placeholder="Search prayers" />
+          <select id="feedReligion">
+            <option value="all">All traditions</option>
+            <option value="christianity">Christianity</option>
+            <option value="islam">Islam</option>
+            <option value="buddhism">Buddhism</option>
+            <option value="hinduism">Hinduism</option>
+            <option value="judaism">Judaism</option>
+            <option value="other">Other</option>
+            <option value="unspecified">Unspecified</option>
+          </select>
+        </div>
+
+        <div id="communityPanel" class="hidden">
+          <div id="feedList" class="feed-list"></div>
+        </div>
+
+        <div id="minePanel">
+          <div id="myList" class="feed-list"></div>
+        </div>
+      </section>
+      <section id="sponsorPanel" class="aside">
+        <div class="card soft">
+          <h3>Prayer Queue</h3>
+          <div class="inline-sponsor">
+            <p class="muted">
+              Support prayers that were submitted without a wallet by sponsoring the next batch on-chain.
+            </p>
+            <button id="sponsorBatch" class="btn primary" type="button">Sponsor Prayers</button>
+          </div>
+          <div class="queue-summary">
+            <div class="summary-chip">
+              <span class="muted">Queued</span>
+              <strong id="queueCount">0</strong>
+            </div>
+            <div class="summary-chip">
+              <span class="muted">Estimated fee</span>
+              <strong id="queueFee">0.1 MINA</strong>
+            </div>
+          </div>
+          <div class="summary-root">
+            <span class="muted">Next batch root</span>
+            <code id="queueRoot">—</code>
+          </div>
+          <div id="sponsorStatus" class="form-status"></div>
+          <div id="pendingList" class="feed-list"></div>
+          <div class="callout">
+            <div class="callout-title">Queue status</div>
+            <p class="muted">Queued prayers appear here immediately. Sponsors can anchor the next batch and receive public credit in the receipts view.</p>
+          </div>
+        </div>
+        <div class="card soft admin-card">
+          <h3>Moderation</h3>
+          <p class="muted">Public users can report shared prayers. Offensive prayers are also auto-flagged on submit. Reviewed prayers leave the report flow and stay either approved or hidden in the UI.</p>
+          <label class="tight">
+            Admin key
+            <input id="adminKey" type="password" placeholder="Enter admin key to review queue" />
+          </label>
+          <p class="muted">Set `ADMIN_KEY` in `.env`, then enter the same value here to review flagged prayers.</p>
+          <div class="mine-actions admin-actions">
+            <button id="loadModeration" class="btn ghost" type="button">Load flagged prayers</button>
+            <div id="moderationStatus" class="form-status"></div>
+          </div>
+          <div id="moderationList" class="feed-list compact-list"></div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div>Built with o1js + Zeko + Auro Wallet.</div>
+    </footer>
+
+    <script src="/app.js"></script>
+  </body>
+</html>

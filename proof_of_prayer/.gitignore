@@ -1,0 +1,11 @@
+node_modules/
+dist/
+installer/
+developer_demos/
+.env
+.env.*
+data/merkle.json
+data/proofs.json
+data/*.json
+*.log
+.DS_Store
