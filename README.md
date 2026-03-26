@@ -26,6 +26,11 @@ A collection of practical demos for building zero-knowledge apps and agent syste
   - Provenance-oriented AI image workflow
   - Verifiable metadata/claims pattern for generated media
 
+- `proof_of_prayer`
+  - Private prayer journal and community prayer wall on Zeko
+  - Client-side encrypted prayer text with wallet and non-wallet submission paths
+  - Sponsored batch anchoring, Auro signing, moderation queue, and proof-of-prayer participation
+
 ## Core docs and links
 
 ### Zeko + Mina

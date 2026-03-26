@@ -1,0 +1,4 @@
+interface:
+  display_name: "Zeko Auro zkApp Debug"
+  short_description: "Debug Auro zkApp signing on Zeko."
+  default_prompt: "Use $zeko-auro-zkapp-debug to diagnose Auro wallet connection, signing, nonce, and zkApp transaction issues on Zeko."
