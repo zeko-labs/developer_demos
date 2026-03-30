@@ -1,0 +1,8 @@
+.DS_Store
+.env
+node_modules/
+data/
+dist-zkapp/
+.pnpm-store/
+*.log
+public/assets/*.mp4

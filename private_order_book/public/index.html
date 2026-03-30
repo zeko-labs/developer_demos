@@ -1,0 +1,399 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ShadowBook | Early Access</title>
+    <style>
+      :root {
+        --bg: #06090f;
+        --surface: rgba(9, 18, 33, 0.9);
+        --surface-alt: rgba(13, 24, 42, 0.92);
+        --line: #223554;
+        --ink: #e7f1fb;
+        --muted: #8ca3bb;
+        --cyan: #6bd6ff;
+        --violet: #d074ff;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        color: var(--ink);
+        font-family: "Söhne", "Inter", "IBM Plex Sans", sans-serif;
+        background: radial-gradient(circle at top, rgba(18, 32, 57, 0.65), rgba(6, 9, 15, 0.98) 58%), var(--bg);
+        position: relative;
+        overflow-x: hidden;
+      }
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background:
+          linear-gradient(180deg, rgba(4, 7, 13, 0.32), rgba(4, 7, 13, 0.76)),
+          url('/assets/replace_the_people_with_crypto_Nano_Banana_2_75683.jpg') center bottom / cover no-repeat;
+        opacity: 0.5;
+        pointer-events: none;
+      }
+      main {
+        position: relative;
+        z-index: 1;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 32px 20px;
+      }
+      .shell {
+        width: min(885px, 100%);
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 16px 48px rgba(0, 0, 0, 0.28);
+        overflow: hidden;
+      }
+      .hero {
+        padding: 22px;
+        display: grid;
+        gap: 16px;
+        align-content: start;
+      }
+      .hero > * {
+        min-width: 0;
+      }
+      .hero-logo {
+        width: 100%;
+        max-width: 100%;
+        height: auto;
+        display: block;
+        filter: drop-shadow(0 0 24px rgba(108, 214, 255, 0.15));
+      }
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        border: 1px solid #315072;
+        background: rgba(10, 22, 40, 0.8);
+        color: #c4ddf6;
+        font-size: 11px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        width: fit-content;
+      }
+      .eyebrow::before {
+        content: "";
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: linear-gradient(135deg, var(--cyan), var(--violet));
+      }
+      h1 {
+        margin: 0;
+        font-size: clamp(24px, 2.8vw, 38px);
+        line-height: 1.04;
+        letter-spacing: -0.03em;
+        background: linear-gradient(90deg, #00b7ff 0%, #39d8ff 26%, #f7fbff 42%, #c66bff 56%, #7a33ff 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+      p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 15px;
+        line-height: 1.6;
+      }
+      .gate {
+        padding: 22px 0 0;
+        border-top: 1px solid #223654;
+        display: grid;
+        gap: 16px;
+        align-content: start;
+      }
+      .gate h2 {
+        margin: 0;
+        font-size: 15px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #c8def4;
+      }
+      .code-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 10px;
+      }
+      label {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #88a1ba;
+      }
+      input,
+      button,
+      a.cta-link {
+        width: 100%;
+        border-radius: 12px;
+        border: 1px solid #29405e;
+        min-height: 44px;
+        padding: 0 14px;
+        font: inherit;
+      }
+      input {
+        background: #0a1628;
+        color: var(--ink);
+      }
+      button,
+      a.cta-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+        cursor: pointer;
+        background: linear-gradient(120deg, #2a8cff, #25d0b5);
+        color: #03111e;
+        font-weight: 700;
+      }
+      button.secondary,
+      a.cta-link.secondary {
+        background: #0a1628;
+        color: #b9d4ef;
+      }
+      .status {
+        min-height: 22px;
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .status.ok { color: #7ce7b9; }
+      .status.err { color: #ff8ca1; }
+      .mini {
+        font-size: 12px;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+      .hero-summary {
+        max-width: 100%;
+        width: 100%;
+        white-space: nowrap;
+        font-size: 13px;
+        letter-spacing: -0.01em;
+        overflow: hidden;
+      }
+      .gate-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.1fr) minmax(280px, 0.9fr);
+        gap: 18px;
+        align-items: start;
+        min-width: 0;
+      }
+      .access-meta,
+      .community-card {
+        display: grid;
+        gap: 12px;
+        padding: 12px 14px;
+        border-radius: 14px;
+        border: 1px solid #223654;
+        background: var(--surface-alt);
+      }
+      .actions {
+        display: grid;
+        gap: 12px;
+      }
+      .community-head {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 12px;
+      }
+      .community-head h3 {
+        margin: 0;
+        font-size: 13px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: #c8def4;
+      }
+      .community-icons {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+        min-width: 0;
+      }
+      .icon-link {
+        min-height: 52px;
+        min-width: 0;
+        padding: 0;
+        border-radius: 14px;
+        border: 1px solid #29405e;
+        background: #0a1628;
+        color: #b9d4ef;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+      }
+      .icon-link svg {
+        width: 20px;
+        height: 20px;
+        fill: currentColor;
+      }
+      .icon-link.placeholder {
+        border-style: dashed;
+      }
+      .footer-note {
+        font-size: 11px;
+        color: #7f94ab;
+      }
+      @media (max-width: 920px) {
+        .hero-summary {
+          white-space: normal;
+        }
+        .gate-grid {
+          grid-template-columns: 1fr;
+        }
+        .community-icons {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="shell">
+        <section class="hero">
+          <span class="eyebrow">Early Access</span>
+          <img
+            class="hero-logo"
+            src="/assets/make_a_logo_with_the_text_Shad_Nano_Banana_2_09825.jpg"
+            alt="ShadowBook"
+          />
+          <h1>ShadowBook - Private Order Book on Zeko</h1>
+          <p class="hero-summary">
+            ShadowBook combines fast off-chain matching with note-backed trading and lean on-chain settlement.
+          </p>
+          <section class="gate">
+            <div class="gate-grid">
+              <div>
+                <h2>Early Access</h2>
+                <p class="mini">
+                  Enter your code to unlock the market.
+                </p>
+                <div>
+                  <label for="accessCode">Early Access Code</label>
+                  <div class="code-row">
+                    <input id="accessCode" autocomplete="one-time-code" placeholder="SB-ALPHA-..." />
+                    <button id="redeemBtn" type="button">Unlock</button>
+                  </div>
+                </div>
+                <div id="status" class="status"></div>
+                <div class="access-meta">
+                  <div class="mini" id="accessMeta">Checking access…</div>
+                </div>
+              </div>
+              <div class="community-card">
+                <div class="community-head">
+                  <h3>Developer Community</h3>
+                </div>
+                <div class="community-icons">
+                  <a class="icon-link" href="https://github.com/Evan-k-global/private_order_book" target="_blank" rel="noreferrer" title="GitHub" aria-label="GitHub">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .5C5.65.5.5 5.7.5 12.12c0 5.14 3.3 9.5 7.87 11.03.58.11.79-.26.79-.57 0-.28-.01-1.03-.02-2.03-3.2.71-3.88-1.57-3.88-1.57-.52-1.35-1.28-1.7-1.28-1.7-1.05-.73.08-.72.08-.72 1.16.08 1.76 1.21 1.76 1.21 1.03 1.79 2.7 1.27 3.36.97.1-.76.4-1.27.73-1.56-2.56-.3-5.26-1.3-5.26-5.8 0-1.28.45-2.32 1.2-3.14-.12-.3-.52-1.5.11-3.13 0 0 .98-.32 3.2 1.2a10.9 10.9 0 0 1 5.82 0c2.22-1.52 3.2-1.2 3.2-1.2.63 1.63.23 2.83.11 3.13.75.82 1.2 1.86 1.2 3.14 0 4.51-2.7 5.5-5.28 5.8.41.36.78 1.06.78 2.15 0 1.55-.01 2.8-.01 3.18 0 .31.21.69.8.57A11.65 11.65 0 0 0 23.5 12.1C23.5 5.7 18.35.5 12 .5Z"/></svg>
+                  </a>
+                  <a class="icon-link placeholder" href="#" aria-disabled="true" title="X" aria-label="X">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.9 2H22l-6.78 7.75L23.2 22h-6.26l-4.9-7.34L5.62 22H2.5l7.24-8.27L1.8 2h6.42l4.43 6.67L18.9 2Zm-1.1 18h1.73L7.26 3.9H5.4L17.8 20Z"/></svg>
+                  </a>
+                  <a class="icon-link placeholder" href="#" aria-disabled="true" title="Telegram" aria-label="Telegram">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21.9 4.6 18.7 20c-.24 1.1-.87 1.38-1.76.86l-4.87-3.6-2.35 2.27c-.26.26-.48.48-.98.48l.35-4.97 9.05-8.18c.39-.35-.08-.55-.6-.2L6.4 13.7l-4.82-1.5c-1.05-.33-1.07-1.05.22-1.56L20.64 3.4c.87-.33 1.63.2 1.27 1.2Z"/></svg>
+                  </a>
+                  <a class="icon-link placeholder" href="#" aria-disabled="true" title="Discord" aria-label="Discord">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.3 4.37A16.9 16.9 0 0 0 16.2 3a11.7 11.7 0 0 0-.53 1.08 15.6 15.6 0 0 0-4.7 0A11.7 11.7 0 0 0 10.44 3c-1.42.24-2.8.7-4.1 1.37C3.74 8.2 3.04 11.93 3.4 15.62A16.5 16.5 0 0 0 8.43 18c.4-.55.76-1.13 1.06-1.74-.58-.22-1.13-.5-1.66-.82.14-.1.28-.2.41-.3 3.2 1.5 6.67 1.5 9.84 0 .14.11.28.21.42.3-.53.33-1.09.6-1.67.83.3.6.66 1.18 1.06 1.73a16.4 16.4 0 0 0 5.04-2.38c.42-4.28-.72-7.98-2.63-11.25ZM9.55 13.35c-.96 0-1.75-.88-1.75-1.96s.77-1.97 1.75-1.97c.99 0 1.77.89 1.75 1.97 0 1.08-.77 1.96-1.75 1.96Zm4.9 0c-.97 0-1.75-.88-1.75-1.96s.77-1.97 1.75-1.97 1.76.89 1.75 1.97c0 1.08-.77 1.96-1.75 1.96Z"/></svg>
+                  </a>
+                  <a class="icon-link secondary" href="https://zeko.io/" target="_blank" rel="noreferrer" title="Zeko Website" aria-label="Zeko Website">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm6.93 9h-3.02a15.6 15.6 0 0 0-1.17-5.03A8.03 8.03 0 0 1 18.93 11Zm-6.93 9c-.83 0-2.1-1.99-2.47-5h4.94c-.37 3.01-1.64 5-2.47 5Zm-2.72-7a13.6 13.6 0 0 1 0-2h5.44a13.6 13.6 0 0 1 0 2H9.28Zm-5.2-2A8.03 8.03 0 0 1 9.26 5.97 15.6 15.6 0 0 0 8.09 11H5.07Zm0 2h3.02c.12 1.78.53 3.5 1.17 5.03A8.03 8.03 0 0 1 5.07 13Zm9.67 5.03c.64-1.54 1.05-3.25 1.17-5.03h3.02a8.03 8.03 0 0 1-4.19 5.03ZM14.47 9H9.53c.37-3.01 1.64-5 2.47-5 .83 0 2.1 1.99 2.47 5Z"/></svg>
+                  </a>
+                  <a class="icon-link secondary" href="https://docs.zeko.io/" target="_blank" rel="noreferrer" title="Zeko Docs" aria-label="Zeko Docs">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9a3 3 0 0 1 3 3v12.5a1.5 1.5 0 0 1-2.34 1.24L12 17.2l-3.66 2.54A1.5 1.5 0 0 1 6 18.5V3Zm2 2v9.67l2.86-1.99a2 2 0 0 1 2.28 0L16 14.67V6a1 1 0 0 0-1-1H8Z"/></svg>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </section>
+        </section>
+      </div>
+    </main>
+
+    <script>
+      const statusEl = document.getElementById('status');
+      const metaEl = document.getElementById('accessMeta');
+      const codeEl = document.getElementById('accessCode');
+      const redeemBtn = document.getElementById('redeemBtn');
+      function setStatus(message, kind) {
+        statusEl.textContent = message || '';
+        statusEl.className = 'status' + (kind ? ' ' + kind : '');
+      }
+
+      function updateAuthorizedView(authorized, detail) {
+        redeemBtn.disabled = authorized;
+        codeEl.disabled = authorized;
+        if (authorized) {
+          setStatus('Access granted. Redirecting to the market…', 'ok');
+          metaEl.textContent = detail || 'This browser is authorized for repeated access.';
+          window.setTimeout(() => {
+            window.location.assign('/darkpool');
+          }, 250);
+        }
+      }
+
+      async function refreshStatus() {
+        const res = await fetch('/api/early-access/status');
+        const json = await res.json();
+        if (!json.ok) throw new Error(json.error || 'failed to check access');
+        if (!json.gateEnabled) {
+          updateAuthorizedView(true, 'Early access gate is currently disabled on this deployment.');
+          return;
+        }
+        if (json.authorized) {
+          updateAuthorizedView(true, `Authorized for IP ${json.ip || 'unknown'}. Used codes: ${json.usedCodeCount}/${json.configuredCodeCount}.`);
+          return;
+        }
+        metaEl.textContent = `Access is gated on this deployment. IP: ${json.ip || 'unknown'}.`;
+        setStatus('Enter your early access code to continue.', '');
+      }
+
+      async function redeem() {
+        const code = String(codeEl.value || '').trim();
+        if (!code) {
+          setStatus('Enter an early access code first.', 'err');
+          codeEl.focus();
+          return;
+        }
+        redeemBtn.disabled = true;
+        setStatus('Unlocking access…', '');
+        try {
+          const res = await fetch('/api/early-access/redeem', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ code })
+          });
+          const json = await res.json();
+          if (!res.ok) throw new Error(json.error || 'failed to redeem code');
+          updateAuthorizedView(true, `Access granted for IP ${json.ip || 'unknown'}. Remaining codes: ${json.remainingCodes}.`);
+        } catch (error) {
+          setStatus(error instanceof Error ? error.message : 'Failed to redeem code', 'err');
+        } finally {
+          redeemBtn.disabled = false;
+        }
+      }
+
+      redeemBtn.addEventListener('click', redeem);
+      codeEl.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') redeem();
+      });
+
+      refreshStatus().catch((error) => {
+        setStatus(error instanceof Error ? error.message : 'Failed to check access', 'err');
+      });
+    </script>
+  </body>
+</html>

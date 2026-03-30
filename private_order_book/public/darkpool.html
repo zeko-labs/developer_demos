@@ -1,0 +1,4199 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ShadowBook | Private Order Book</title>
+    <script src="/assets/lightweight-charts.standalone.production.js"></script>
+    <style>
+      :root {
+        --bg: #06090f;
+        --panel: #061120;
+        --panel-alt: #071525;
+        --line: #273f59;
+        --ink: #d9e7f6;
+        --muted: #7f93aa;
+        --green: #2cd889;
+        --red: #ff6b7f;
+        --cyan: #4ec7ff;
+        --amber: #f2c572;
+        --brand-surface: #061120;
+        --shell-max: 1580px;
+        --shell-gutter: 16px;
+        --header-offset: 104px;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        padding-top: var(--header-offset);
+        color: var(--ink);
+        font-family: "Söhne", "Inter", "IBM Plex Sans", sans-serif;
+        background: var(--bg);
+        position: relative;
+      }
+      .bg-image {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: center bottom;
+        z-index: 0;
+        pointer-events: none;
+      }
+      .bg-overlay {
+        position: fixed;
+        inset: 0;
+        background:
+          linear-gradient(180deg, rgba(6, 9, 15, 0.54) 0%, rgba(6, 9, 15, 0.44) 36%, rgba(6, 9, 15, 0.62) 100%);
+        z-index: 1;
+        pointer-events: none;
+      }
+      .brandbar,
+      .top-tabs,
+      .section-head,
+      .app,
+      .vault-strip {
+        position: relative;
+        z-index: 2;
+      }
+      .app {
+        max-width: var(--shell-max);
+        margin: 0 auto;
+        padding: 16px;
+        display: grid;
+        grid-template-columns: minmax(360px, 410px) minmax(0, 1fr) minmax(0, 1fr) minmax(290px, 340px);
+        grid-template-areas:
+          "entry chart chart book"
+          "entry activity activity book";
+        gap: 12px;
+        align-items: start;
+      }
+      .col {
+        display: grid;
+        gap: 12px;
+        align-content: start;
+      }
+      .card { align-self: start; }
+      .order-entry-card { grid-area: entry; }
+      .order-book-card { grid-area: book; }
+      .price-chart-card { grid-area: chart; }
+      .activity-card { grid-area: activity; }
+      .order-entry-card {
+        height: auto;
+        display: grid;
+        grid-template-rows: auto auto;
+      }
+      .order-entry-card .hd {
+        padding: 9px 12px;
+      }
+      .order-entry-card .bd {
+        padding: 9px 10px;
+        gap: 4px;
+        display: grid;
+        grid-auto-rows: max-content;
+        align-content: start;
+        height: 100%;
+        min-height: 0;
+        overflow: auto;
+      }
+      .order-entry-card label {
+        margin-bottom: 3px;
+      }
+      .order-entry-card input,
+      .order-entry-card select,
+      .order-entry-card button,
+      .order-entry-card textarea {
+        padding: 6px 9px;
+      }
+      .order-entry-card .grid2,
+      .order-entry-card .grid3,
+      .order-entry-card .order-primary-grid {
+        gap: 6px;
+      }
+      .order-entry-card .sub {
+        line-height: 1.35;
+      }
+      .order-entry-card .checklist,
+      .order-entry-card .market-verify,
+      .order-entry-card pre {
+        margin-top: 2px;
+      }
+      .price-chart-card {
+        height: 760px;
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr);
+        min-width: 0;
+      }
+      .order-book-card {
+        height: 760px;
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr);
+      }
+      .activity-card {
+        min-height: 296px;
+      }
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        overflow: hidden;
+      }
+      .card .hd {
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--line);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+      }
+      .card .bd {
+        padding: 12px;
+      }
+      h1 {
+        font-size: 16px;
+        margin: 0;
+        letter-spacing: 0.02em;
+      }
+      h2 {
+        font-size: 13px;
+        margin: 0;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+        color: #a7bdd6;
+      }
+      .sub {
+        font-size: 12px;
+        color: var(--muted);
+        line-height: 1.45;
+      }
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border: 1px solid #2c4157;
+        border-radius: 999px;
+        padding: 4px 9px;
+        font-size: 11px;
+        color: #9fc2df;
+        background: #0b1420;
+      }
+      .dot { width: 7px; height: 7px; border-radius: 999px; background: var(--cyan); }
+      .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+      .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+      .stack { display: grid; gap: 8px; }
+      .inline-actions { display: flex; gap: 8px; margin-top: 6px; }
+      .inline-actions button { width: auto; padding: 6px 10px; font-size: 12px; }
+      .market-verify {
+        border: 1px solid #25415a;
+        background: #0a1724;
+        border-radius: 8px;
+        padding: 8px 10px;
+        font-size: 11px;
+        line-height: 1.45;
+        color: #98b7d3;
+      }
+      .hint-box {
+        border: 1px solid #2f4760;
+        background: #0a1521;
+        border-radius: 8px;
+        padding: 8px 10px;
+        font-size: 11px;
+        line-height: 1.45;
+        color: #9eb8cf;
+      }
+      .checklist {
+        border: 1px solid #2f4760;
+        background: #0a1521;
+        border-radius: 8px;
+        padding: 8px 10px;
+        display: grid;
+        gap: 4px;
+      }
+      .check-row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 11px;
+        color: #9eb8cf;
+      }
+      .check-row strong {
+        font-weight: 600;
+      }
+      .check-ok { color: #76e7a6; }
+      .check-warn { color: #f2c572; }
+      .check-bad { color: #ff8a9d; }
+      label { font-size: 11px; color: #8ba5bf; display: block; margin-bottom: 4px; }
+      input, select, button, textarea {
+        width: 100%;
+        border: 1px solid #2a3d52;
+        background: #0a121b;
+        color: var(--ink);
+        border-radius: 8px;
+        padding: 8px 10px;
+        font-size: 13px;
+      }
+      textarea { min-height: 70px; resize: vertical; }
+      button {
+        cursor: pointer;
+        border: 0;
+        font-weight: 600;
+        letter-spacing: 0.01em;
+        background: linear-gradient(120deg, #2a8cff, #25d0b5);
+        color: #001321;
+      }
+      button.txn {
+        background: linear-gradient(120deg, #2a8cff, #25d0b5);
+        color: #001321;
+      }
+      button.ghost {
+        border: 1px solid #2b3d50;
+        background: #0a121a;
+        color: #9bc0df;
+      }
+      a.btn-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 34px;
+        padding: 0 12px;
+        border-radius: 10px;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 12px;
+        line-height: 1;
+        letter-spacing: 0.01em;
+      }
+      a.ghost.btn-link {
+        border: 1px solid #2b3d50;
+        background: #0a121a;
+        color: #9bc0df;
+      }
+      button.sell { background: linear-gradient(120deg, #2a8cff, #25d0b5); color: #001321; }
+      button.buy { background: linear-gradient(120deg, #2a8cff, #25d0b5); color: #001321; }
+      .market-item {
+        padding: 10px;
+        border: 1px solid #213447;
+        border-radius: 10px;
+        display: grid;
+        gap: 6px;
+        background: #0a1118;
+      }
+      .kv { display: flex; justify-content: space-between; font-size: 12px; color: #9ab5cc; }
+      .kv strong { color: #d6e6f7; font-weight: 600; }
+      .tape {
+        height: 460px;
+        overflow: auto;
+        border: 1px solid #1f3246;
+        border-radius: 8px;
+        background: #09131d;
+      }
+      .row {
+        display: grid;
+        grid-template-columns: 90px 1fr 1fr 1fr;
+        gap: 8px;
+        padding: 7px 8px;
+        font-size: 12px;
+        border-bottom: 1px solid #152434;
+      }
+      .row:last-child { border-bottom: 0; }
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+      .green { color: var(--green); }
+      .red { color: var(--red); }
+      .amber { color: var(--amber); }
+      pre {
+        margin: 0;
+        max-height: 230px;
+        overflow: auto;
+        padding: 9px;
+        border: 1px solid #1f3347;
+        border-radius: 8px;
+        background: #07121d;
+        color: #b8d2ea;
+        font-size: 12px;
+      }
+      canvas {
+        width: 100%;
+        height: 180px;
+        display: block;
+        border: 1px solid #1f3346;
+        border-radius: 8px;
+        background: #08121c;
+      }
+      .footnote {
+        font-size: 11px;
+        color: #7e96ad;
+        line-height: 1.45;
+      }
+      .advanced-only { display: none; }
+      .book-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      .book-col {
+        border: 1px solid #214056;
+        border-radius: 8px;
+        overflow: hidden;
+        background: #09131d;
+      }
+      .book-col h4 {
+        margin: 0;
+        font-size: 11px;
+        padding: 8px;
+        border-bottom: 1px solid #1b3348;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+      .book-col.sell h4 { color: #ff9eb0; }
+      .book-col.buy h4 { color: #8ae6b5; }
+      .book-rows {
+        height: 360px;
+        overflow: auto;
+      }
+      .book-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        padding: 7px 8px;
+        border-bottom: 1px solid #14293c;
+        font-size: 12px;
+        cursor: pointer;
+        transition: background 120ms ease;
+      }
+      .book-row:hover { background: rgba(31, 92, 173, 0.18); }
+      .book-row:last-child { border-bottom: 0; }
+      .book-empty {
+        padding: 10px;
+        color: #7d97af;
+        font-size: 12px;
+      }
+      .price-chart-card .bd {
+        height: 100%;
+        display: grid;
+        grid-template-rows: minmax(0, 1fr);
+        min-height: 0;
+        min-width: 0;
+        overflow: hidden;
+      }
+      .chart-body {
+        min-height: 0;
+        height: 100%;
+        min-width: 0;
+        overflow: hidden;
+      }
+      .price-chart-card .hd {
+        display: grid;
+        gap: 10px;
+        align-items: stretch;
+      }
+      .chart-topline {
+        display: grid;
+        grid-template-columns: minmax(0, 1.4fr) repeat(4, minmax(0, 1fr));
+        gap: 10px;
+        align-items: stretch;
+        width: 100%;
+        min-width: 0;
+      }
+      .chart-market-header {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        border: 1px solid #1f3346;
+        border-radius: 10px;
+        background: linear-gradient(180deg, #101a24, #0b1219);
+      }
+      .chart-pair-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 999px;
+        background: linear-gradient(135deg, #7ef6df, #31d2ff);
+        box-shadow: 0 0 18px rgba(78, 199, 255, 0.42);
+        flex: 0 0 auto;
+      }
+      .chart-market-copy {
+        min-width: 0;
+      }
+      .chart-market-select {
+        width: 100%;
+        border: 0;
+        padding: 0;
+        background: transparent;
+        color: #e4f0fb;
+        font-size: 18px;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+      }
+      .chart-market-copy span {
+        display: block;
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #7890a8;
+        margin-top: 3px;
+        line-height: 1.2;
+        min-width: 0;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        word-break: break-word;
+      }
+      .chart-top-stat {
+        border: 1px solid #1f3346;
+        border-radius: 10px;
+        background: linear-gradient(180deg, #101821, #0b1219);
+        padding: 10px 12px;
+        min-width: 0;
+      }
+      .chart-top-stat label {
+        margin: 0 0 4px 0;
+        font-size: 10px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #7f96ad;
+      }
+      .chart-top-stat .value {
+        font-size: 15px;
+        color: #dbe9f8;
+      }
+      .chart-shell {
+        display: grid;
+        grid-template-columns: 42px minmax(0, 1fr);
+        gap: 10px;
+        min-height: 0;
+        min-width: 0;
+        height: 100%;
+      }
+      .chart-toolrail {
+        border: 1px solid #1f3346;
+        border-radius: 10px;
+        background: linear-gradient(180deg, #0c141c, #0a1118);
+        display: grid;
+        align-content: start;
+        gap: 8px;
+        padding: 10px 6px;
+      }
+      .chart-toolbtn {
+        width: 100%;
+        aspect-ratio: 1;
+        padding: 0;
+        border-radius: 8px;
+        border: 1px solid transparent;
+        background: transparent;
+        color: #90aac4;
+        font-size: 14px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .chart-toolbtn:hover {
+        border-color: #27435d;
+        background: #0c1925;
+      }
+      .chart-mainpane {
+        display: grid;
+        grid-template-rows: auto minmax(340px, 1fr) auto auto;
+        min-height: 0;
+        min-width: 0;
+        height: 100%;
+        border: 1px solid #1f3346;
+        border-radius: 10px;
+        background: linear-gradient(180deg, #0c141c, #08121c);
+        overflow: hidden;
+      }
+      .chart-legend {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 12px;
+        align-items: center;
+        padding: 9px 12px;
+        border-bottom: 1px solid #17324a;
+        min-height: 44px;
+        min-width: 0;
+        position: relative;
+        z-index: 1;
+      }
+      .chart-legend-actions {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+      }
+      .chart-icon-btn {
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        border-radius: 8px;
+        border: 1px solid #214056;
+        background: #0d1822;
+        color: #9bc0df;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+      }
+      .chart-legend-main {
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 12px;
+        color: #9db5cb;
+      }
+      .chart-legend-main .swatch {
+        width: 9px;
+        height: 9px;
+        border-radius: 999px;
+        background: #2ed8bf;
+        box-shadow: 0 0 12px rgba(46, 216, 191, 0.42);
+        flex: 0 0 auto;
+      }
+      .chart-legend-values {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        justify-content: flex-end;
+        font-size: 12px;
+        color: #8ca5be;
+        min-width: 0;
+      }
+      .chart-legend-values .up { color: #2cd889; }
+      .chart-legend-values .down { color: #ff6b7f; }
+      .chart-host {
+        width: 100%;
+        height: 100%;
+        min-height: 340px;
+        min-width: 0;
+        background: #08121c;
+        overflow: hidden;
+        position: relative;
+        z-index: 0;
+      }
+      .order-book-card .bd,
+      .activity-card .bd {
+        display: grid;
+        grid-template-rows: auto 1fr;
+      }
+      .order-book-card .hd {
+        flex-wrap: nowrap;
+      }
+      .order-book-card .hd h2 {
+        white-space: nowrap;
+        flex: 0 1 auto;
+      }
+      .order-book-card .hd #refreshBookBtn {
+        width: auto;
+        min-width: 84px;
+        padding: 6px 10px;
+        flex: 0 0 auto;
+      }
+      .order-book-card .bd {
+        height: 100%;
+        min-height: 0;
+      }
+      .activity-card .bd {
+        min-height: 320px;
+      }
+      .order-book-card .book-grid {
+        height: 100%;
+      }
+      .order-book-card .book-rows {
+        height: 100%;
+      }
+      .activity-table {
+        height: 100%;
+        display: grid;
+        grid-template-rows: auto 1fr;
+      }
+      #feeOut {
+        max-height: 86px;
+        font-size: 11px;
+      }
+      .activity-card .activity-body {
+        height: auto;
+      }
+      .segmented {
+        display: inline-flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .seg-btn {
+        width: auto;
+        min-width: 46px;
+        padding: 7px 10px;
+        border: 1px solid #2b3d50;
+        background: #0a121a;
+        color: #9bc0df;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 600;
+      }
+      .seg-btn.active {
+        background: linear-gradient(120deg, #2a8cff, #25d0b5);
+        color: #001321;
+        border-color: transparent;
+      }
+      .chart-statusbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+        padding: 10px 12px;
+        border-top: 1px solid #17324a;
+        background: #0a1218;
+        min-width: 0;
+        position: relative;
+        z-index: 1;
+      }
+      .chart-pill-stat {
+        border: 1px solid #1f3346;
+        border-radius: 999px;
+        background: #0d1822;
+        padding: 7px 10px;
+        min-width: 0;
+      }
+      .chart-pill-stat label {
+        margin: 0 0 2px 0;
+        font-size: 9px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .chart-pill-stat .value {
+        font-size: 11px;
+        color: #d6e6f7;
+      }
+      .chart-pill-stat.note .value {
+        font-size: 11px;
+        line-height: 1.35;
+        color: #8ba5bf;
+      }
+      .chart-controlbar {
+        display: grid;
+        grid-template-columns: auto minmax(140px, 1fr) auto;
+        gap: 12px;
+        align-items: center;
+        padding: 10px 12px;
+        border-top: 1px solid #17324a;
+        background: #09131b;
+        min-width: 0;
+        position: relative;
+        z-index: 1;
+      }
+      .chart-zoom-wrap {
+        display: grid;
+        gap: 5px;
+      }
+      .chart-zoom-top {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: center;
+        color: #8da6be;
+        font-size: 11px;
+      }
+      .chart-zoom-value {
+        color: #d5e6f6;
+      }
+      .chart-zoom-slider {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 100%;
+        height: 5px;
+        border-radius: 999px;
+        background: linear-gradient(90deg, rgba(33,200,192,0.7), rgba(78,199,255,0.7));
+        outline: none;
+      }
+      .chart-zoom-slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 14px;
+        height: 14px;
+        border-radius: 999px;
+        background: #dff2ff;
+        border: 2px solid #2aa8ff;
+      }
+      .chart-footer-meta {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        justify-content: flex-end;
+        color: #7f96ad;
+        font-size: 11px;
+        min-width: 0;
+      }
+      .chart-control-note {
+        color: #7f96ad;
+        font-size: 11px;
+        text-align: right;
+        min-width: 0;
+      }
+      @media (max-width: 1280px) {
+        .chart-topline {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .chart-legend {
+          grid-template-columns: 1fr;
+        }
+        .chart-controlbar {
+          grid-template-columns: 1fr;
+        }
+        .chart-control-note {
+          text-align: left;
+        }
+      }
+      .operator-panel-card {
+        grid-column: 2 / 4;
+      }
+      .operator-panel-card .bd {
+        display: grid;
+        gap: 10px;
+      }
+      .operator-panel-meta {
+        border: 1px solid #1f3346;
+        border-radius: 8px;
+        background: #09131d;
+        padding: 8px 10px;
+        font-size: 11px;
+        color: #8ba5bf;
+        line-height: 1.45;
+      }
+      .withdraw-card {
+        border: 1px solid #2f4760;
+        background: #0a1521;
+        border-radius: 8px;
+        padding: 10px;
+        display: grid;
+        gap: 8px;
+      }
+      .withdraw-summary {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+      }
+      .withdraw-actions {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 8px;
+        align-items: end;
+      }
+      .withdraw-actions button {
+        width: auto;
+        min-width: 150px;
+      }
+      .withdraw-history {
+        border: 1px solid #1f3346;
+        border-radius: 8px;
+        background: #09131d;
+        max-height: 156px;
+        overflow: auto;
+      }
+      .withdraw-row {
+        display: grid;
+        grid-template-columns: 120px 1fr 1fr 1fr;
+        gap: 8px;
+        padding: 7px 8px;
+        border-bottom: 1px solid #152434;
+        font-size: 11px;
+      }
+      .withdraw-row:last-child { border-bottom: 0; }
+      .withdraw-empty {
+        padding: 10px;
+        color: #7d97af;
+        font-size: 12px;
+      }
+      .hd-tools {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        flex-wrap: nowrap;
+        white-space: nowrap;
+      }
+      .hd-tools select,
+      .hd-tools input {
+        width: auto;
+        min-width: 0;
+      }
+      .hd-tools .compact-select {
+        min-width: 122px;
+      }
+      .hd-tools .compact-input {
+        width: 40px;
+        min-width: 40px;
+        padding-left: 7px;
+        padding-right: 7px;
+      }
+      .hd-tools .compact-wallet {
+        min-width: 184px;
+      }
+      .activity-toolbar-label {
+        font-size: 11px;
+        color: #8ba5bf;
+        margin-right: 2px;
+      }
+      .activity-refresh-btn {
+        width: auto;
+        min-width: 0;
+        padding: 6px 8px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        line-height: 1;
+      }
+      .activity-refresh-btn .refresh-icon {
+        font-size: 12px;
+        color: #8fd7ff;
+      }
+      .activity-auto-toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border: 1px solid #244059;
+        border-radius: 999px;
+        padding: 4px 8px 4px 6px;
+        background: #0a1726;
+        color: #9bc0df;
+        font-size: 11px;
+        line-height: 1;
+        cursor: pointer;
+      }
+      .activity-auto-toggle input {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+      }
+      .activity-auto-toggle .toggle-track {
+        position: relative;
+        width: 26px;
+        height: 15px;
+        border-radius: 999px;
+        background: #102235;
+        border: 1px solid #29506f;
+        transition: background 120ms ease, border-color 120ms ease;
+        flex: 0 0 auto;
+      }
+      .activity-auto-toggle .toggle-track::after {
+        content: "";
+        position: absolute;
+        top: 1px;
+        left: 1px;
+        width: 11px;
+        height: 11px;
+        border-radius: 999px;
+        background: #8fa8be;
+        transition: transform 120ms ease, background 120ms ease;
+      }
+      .activity-auto-toggle input:checked + .toggle-track {
+        background: linear-gradient(120deg, rgba(42, 140, 255, 0.28), rgba(37, 208, 181, 0.3));
+        border-color: #34a7d8;
+      }
+      .activity-auto-toggle input:checked + .toggle-track::after {
+        transform: translateX(11px);
+        background: #d8f7ff;
+      }
+      .activity-auto-toggle .toggle-label {
+        color: #a8c6df;
+      }
+      .order-primary-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+      }
+      .trade-action-row button {
+        padding: 0 10px;
+        height: 32px;
+        min-height: 32px;
+        line-height: 1;
+      }
+      .trade-action-row button.prefill-target {
+        box-shadow: 0 0 0 1px rgba(78, 199, 255, 0.72), 0 0 18px rgba(78, 199, 255, 0.18);
+      }
+      .trade-action-row button.prefill-other {
+        filter: saturate(0.78);
+        opacity: 0.84;
+      }
+      .book-prefill-hint {
+        min-height: 16px;
+        color: #9bc7ea;
+      }
+      .vault-zone {
+        background: var(--panel);
+        border: 1px solid var(--line);
+      }
+      .vault-zone .hd {
+        border-bottom: 1px solid var(--line);
+      }
+      .vault-zone .hd h2 {
+        color: #a7bdd6;
+      }
+      .vault-strip {
+        max-width: var(--shell-max);
+        margin: 10px auto 20px;
+        padding: 0 16px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+      .funding-left-col {
+        display: grid;
+        grid-template-rows: auto auto;
+        gap: 12px;
+        align-content: start;
+      }
+      .funding-right-col {
+        display: grid;
+        grid-template-rows: auto;
+        gap: 12px;
+        align-content: start;
+      }
+      .funding-guide {
+        align-self: start;
+      }
+      .funding-sync {
+        align-self: start;
+      }
+      .funding-notes {
+        align-self: start;
+      }
+      .funding-sync-row {
+        align-items: end;
+        grid-template-columns: auto minmax(0, 1fr);
+      }
+      .funding-sync-row #syncBtn {
+        width: auto;
+        min-height: 0;
+        padding: 8px 12px;
+        align-self: end;
+      }
+      .acquire-links {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+      }
+      .acquire-links .btn-link {
+        min-width: 0;
+        width: 100%;
+        justify-content: center;
+      }
+      .meta-label {
+        display: block;
+        margin-top: 2px;
+        margin-bottom: 4px;
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        color: #8ca6c2;
+      }
+      .section-head {
+        max-width: var(--shell-max);
+        margin: 12px auto 6px;
+        padding: 0 16px;
+      }
+      .section-head h3 {
+        margin: 0;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: #91aac3;
+      }
+      .top-tabs {
+        display: flex;
+        gap: 8px;
+        justify-content: flex-start;
+        padding: 0 4px;
+      }
+      .tab-btn {
+        width: auto;
+        padding: 8px 14px;
+        border-radius: 999px;
+        border: 1px solid #2d4665;
+        background: #091a30;
+        color: #a7c4df;
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .tab-btn.active {
+        background: #153752;
+        color: #b8ddff;
+        border-color: #2f5f87;
+      }
+      .brandbar {
+        width: calc(100% - (var(--shell-gutter) * 2));
+        max-width: var(--shell-max);
+        margin: 0 auto;
+        padding: 8px 12px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        position: fixed;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 20;
+        background: var(--brand-surface);
+        backdrop-filter: blur(6px);
+        border: 1px solid #35506f;
+        border-top: 0;
+        border-radius: 0 0 14px 14px;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-shrink: 0;
+      }
+      .brand-logo {
+        display: block;
+        width: clamp(143px, 18vw, 273px);
+        max-width: 100%;
+        height: auto;
+        filter: none;
+      }
+      .brandbar > .pill {
+        margin-left: auto;
+      }
+      .header-actions {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-left: auto;
+      }
+      .wallet-btn {
+        width: auto;
+        padding: 6px 12px;
+        border-radius: 999px;
+      }
+      .wallet-btn.connected {
+        border: 1px solid #2f6e63;
+        background: linear-gradient(120deg, rgba(42, 140, 255, 0.24), rgba(37, 208, 181, 0.26));
+        color: #d7fbff;
+      }
+      .panel-hidden {
+        display: none;
+      }
+      .activity-strip {
+        max-width: 1320px;
+        margin: 0 auto 18px;
+        padding: 0 16px;
+      }
+      .activity-table {
+        border: 1px solid #1f3246;
+        border-radius: 8px;
+        overflow: hidden;
+        background: #09131d;
+      }
+      .activity-head,
+      .activity-row {
+        display: grid;
+        grid-template-columns: 82px 110px 1fr 64px 90px 90px 1fr;
+        gap: 8px;
+        padding: 8px 10px;
+        font-size: 12px;
+      }
+      .activity-head {
+        background: #0f1f2f;
+        color: #9db9d3;
+        border-bottom: 1px solid #1d364a;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        font-size: 11px;
+      }
+      .activity-body {
+        max-height: 290px;
+        overflow: auto;
+      }
+      .activity-row {
+        border-bottom: 1px solid #14293c;
+      }
+      .activity-row:last-child {
+        border-bottom: 0;
+      }
+      @media (max-width: 980px) {
+        .app {
+          grid-template-columns: 1fr;
+          grid-template-areas:
+            "entry"
+            "chart"
+            "book"
+            "activity";
+        }
+        .order-book-card {
+          height: auto;
+        }
+        .vault-strip { grid-template-columns: 1fr; }
+        .funding-left-col { display: contents; }
+        .funding-right-col { display: contents; }
+        .brandbar {
+          flex-wrap: wrap;
+          justify-content: flex-start;
+        }
+        .top-tabs {
+          width: 100%;
+          justify-content: flex-start;
+          padding: 0;
+        }
+        .chart-topline {
+          grid-template-columns: 1fr 1fr;
+        }
+        .order-primary-grid {
+          grid-template-columns: 1fr 1fr;
+        }
+        .hd-tools {
+          flex-wrap: wrap;
+          white-space: normal;
+        }
+        .chart-shell {
+          grid-template-columns: 1fr;
+        }
+        .chart-toolrail {
+          grid-template-columns: repeat(6, 1fr);
+          align-items: center;
+        }
+        .chart-legend {
+          grid-template-columns: 1fr;
+        }
+        .chart-statusbar {
+          justify-content: flex-start;
+        }
+        .chart-controlbar {
+          grid-template-columns: 1fr;
+        }
+        .chart-control-note {
+          text-align: left;
+        }
+        .withdraw-summary,
+        .withdraw-actions {
+          grid-template-columns: 1fr;
+        }
+        .operator-panel-card {
+          grid-column: auto;
+        }
+        .withdraw-row {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+      @media (max-width: 640px) {
+        body {
+          overflow-x: hidden;
+        }
+        .app,
+        .vault-strip {
+          padding-left: 10px;
+          padding-right: 10px;
+          gap: 10px;
+        }
+        .card .hd {
+          padding: 9px 10px;
+        }
+        .card .bd {
+          padding: 10px;
+        }
+        .brandbar-inner {
+          padding-left: 10px;
+          padding-right: 10px;
+        }
+        .top-tabs {
+          gap: 6px;
+        }
+        .price-chart-card,
+        .order-book-card,
+        .activity-card {
+          height: auto;
+          min-height: 0;
+        }
+        .chart-topline {
+          grid-template-columns: 1fr;
+        }
+        .chart-statusbar {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          justify-content: stretch;
+        }
+        .chart-pill-stat.note {
+          grid-column: 1 / -1;
+        }
+        .chart-toolrail {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+        .hd-tools {
+          width: 100%;
+          gap: 6px;
+          justify-content: flex-start;
+        }
+        .hd-tools .compact-select {
+          min-width: 116px;
+        }
+        .hd-tools .compact-wallet {
+          min-width: 0;
+          flex: 1 1 100%;
+        }
+        .activity-refresh-btn {
+          padding-left: 7px;
+          padding-right: 7px;
+        }
+        .activity-refresh-btn span:last-child {
+          display: none;
+        }
+        .activity-table {
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+        }
+        .activity-head,
+        .activity-row {
+          min-width: 760px;
+        }
+        .book-grid {
+          grid-template-columns: 1fr;
+        }
+        .book-rows {
+          height: 220px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <img
+      class="bg-image"
+      src="/assets/replace_the_people_with_crypto_Nano_Banana_2_75683.jpg"
+      alt=""
+      aria-hidden="true"
+    />
+    <div class="bg-overlay" aria-hidden="true"></div>
+    <div class="brandbar">
+      <div class="brand">
+        <img
+          class="brand-logo"
+          src="/assets/now_make_two_variations_same_l_Nano_Banana_2_60031.png"
+          alt="ShadowBook"
+        />
+      </div>
+      <div class="top-tabs">
+        <button id="tabTrading" class="tab-btn active">Trading</button>
+        <button id="tabFunding" class="tab-btn">Funding</button>
+        <button type="button" class="ghost wallet-btn" id="globalConnectWalletBtn">Connect Wallet</button>
+      </div>
+      <div class="header-actions">
+        <span class="pill">Zeko Testnet</span>
+      </div>
+    </div>
+    <div id="tradingPanel" class="app">
+      <section class="card order-entry-card">
+        <div class="hd"><h1>ShadowBook Private Order Entry</h1></div>
+        <div class="bd stack">
+          <div class="grid3">
+            <div>
+              <label>Wallet</label>
+              <input id="ordWallet" value="B62qdemo_wallet_alpha" />
+            </div>
+            <div>
+              <label>Market</label>
+              <select id="ordPair">
+                <option value="">loading...</option>
+              </select>
+            </div>
+            <div>
+              <label>Order Type</label>
+              <select id="ordType"><option>LIMIT</option><option>MARKET</option></select>
+            </div>
+          </div>
+          <input id="ordMarketId" type="hidden" />
+          <input id="replaceOrderId" type="hidden" />
+          <input id="replaceOrderToken" type="hidden" />
+          <input id="replaceOrderSide" type="hidden" />
+          <input id="ordFrontendId" type="hidden" value="shadowbook.web" />
+          <div id="replaceOrderHint" class="hint-box" style="display:none;"></div>
+          <div class="order-primary-grid">
+            <div><label>Time In Force</label><select id="ordTif"><option>GTC</option><option>IOC</option></select></div>
+            <div id="ordPriceField"><label>Limit Price</label><input id="ordPrice" type="number" value="63980" /></div>
+            <div><label>Quantity</label><input id="ordQty" type="number" step="0.001" value="0.08" /></div>
+          </div>
+          <div class="grid2">
+            <div>
+              <label>Visibility</label>
+              <select id="ordVisibility">
+                <option value="public">Public Anonymous</option>
+                <option value="private">Private Dark</option>
+              </select>
+            </div>
+            <div>
+              <label>Specific Note Hashes (Optional)</label>
+              <input id="ordFundingNote" placeholder="Paste note hashes only to force a specific note set." />
+            </div>
+          </div>
+          <div class="grid2 trade-action-row">
+            <button type="button" class="buy" id="placeBuy">Buy</button>
+            <button type="button" class="sell" id="placeSell">Sell</button>
+          </div>
+          <div id="bookPrefillHint" class="sub book-prefill-hint"></div>
+          <div id="ordFundingModeHint" class="sub"></div>
+          <div id="pretradeChecklist" class="checklist"></div>
+          <div id="marketVerify" class="market-verify mono"></div>
+          <label class="meta-label">Order Metadata</label>
+          <pre id="orderOut"></pre>
+        </div>
+      </section>
+
+      <section class="card price-chart-card">
+        <div class="hd">
+          <h2>Price Chart</h2>
+          <div class="chart-topline">
+            <div class="chart-market-header">
+              <div class="chart-pair-dot" aria-hidden="true"></div>
+              <div class="chart-market-copy">
+                <select id="chartPair" class="chart-market-select">
+                  <option value="">loading...</option>
+                </select>
+                <span id="chartHeroVenue">ShadowBook market</span>
+              </div>
+            </div>
+            <div class="chart-top-stat">
+              <label>Price</label>
+              <div id="chartHeroPrice" class="value mono">-</div>
+            </div>
+            <div class="chart-top-stat">
+              <label>24h Change</label>
+              <div id="chartHeroChange" class="value mono">-</div>
+            </div>
+            <div class="chart-top-stat">
+              <label>24h Volume</label>
+              <div id="chartHeroVolume" class="value mono">-</div>
+            </div>
+            <div class="chart-top-stat">
+              <label>Last Print</label>
+              <div id="chartHeroTime" class="value mono">-</div>
+            </div>
+          </div>
+        </div>
+        <div class="bd chart-body">
+          <div class="chart-shell">
+            <div class="chart-toolrail" aria-hidden="true">
+              <button type="button" class="chart-toolbtn" tabindex="-1">&#10010;</button>
+              <button type="button" class="chart-toolbtn" tabindex="-1">&#9585;</button>
+              <button type="button" class="chart-toolbtn" tabindex="-1">&#9586;</button>
+              <button type="button" class="chart-toolbtn" tabindex="-1">&#9716;</button>
+              <button type="button" class="chart-toolbtn" tabindex="-1">T</button>
+              <button type="button" class="chart-toolbtn" tabindex="-1">&#128269;</button>
+            </div>
+            <div class="chart-mainpane">
+              <div class="chart-legend">
+                <div id="chartLegendMain" class="chart-legend-main">
+                  <span class="swatch"></span>
+                  <span class="mono">No public fills yet.</span>
+                </div>
+                <div class="chart-legend-actions">
+                  <div id="chartLegendValues" class="chart-legend-values"></div>
+                  <button type="button" class="chart-icon-btn" id="refreshTrades" title="Refresh chart" aria-label="Refresh chart">&#10227;</button>
+                </div>
+              </div>
+              <div id="tapeChart" class="chart-host"></div>
+              <div id="chartStatusBar" class="chart-statusbar"></div>
+              <div class="chart-controlbar">
+                <input id="chartInterval" type="hidden" value="60" />
+                <div class="segmented" id="chartIntervalButtons">
+                  <button type="button" class="seg-btn active" data-interval="60">1m</button>
+                  <button type="button" class="seg-btn" data-interval="300">5m</button>
+                  <button type="button" class="seg-btn" data-interval="900">15m</button>
+                  <button type="button" class="seg-btn" data-interval="3600">1h</button>
+                </div>
+                <div class="chart-zoom-wrap">
+                  <div class="chart-zoom-top">
+                    <span>View Range</span>
+                    <span id="chartZoomValue" class="chart-zoom-value mono">Showing full chart</span>
+                  </div>
+                  <input id="chartZoomSlider" class="chart-zoom-slider" type="range" min="25" max="100" step="5" value="100" />
+                </div>
+                <div class="chart-control-note mono">UTC public trade tape</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card order-book-card">
+        <div class="hd"><h2>Order Book</h2><button type="button" class="ghost" id="refreshBookBtn">Refresh</button></div>
+        <div class="bd stack">
+          <div class="grid2">
+            <div>
+              <label>Book Market</label>
+              <select id="bookPair">
+                <option value="">loading...</option>
+              </select>
+            </div>
+            <div>
+              <label>Levels</label>
+              <input id="bookLevels" type="number" value="20" />
+            </div>
+          </div>
+          <div class="book-grid">
+            <div class="book-col buy">
+              <h4>Bids</h4>
+              <div id="bidRows" class="book-rows"></div>
+            </div>
+            <div class="book-col sell">
+              <h4>Asks</h4>
+              <div id="askRows" class="book-rows"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card activity-card">
+        <div class="hd">
+          <h2>Activity</h2>
+          <div class="hd-tools">
+            <select id="activityView" class="compact-select">
+              <option value="your">Your Activity</option>
+              <option value="global">Global History</option>
+            </select>
+            <span class="activity-toolbar-label">Wallet</span>
+            <input id="activityWallet" class="compact-wallet" value="B62qdemo_wallet_alpha" />
+            <span class="activity-toolbar-label">Rows</span>
+            <input id="activityLimit" class="compact-input" type="number" value="150" />
+            <button type="button" class="ghost activity-refresh-btn" id="refreshActivityBtn"><span class="refresh-icon">↻</span><span>Refresh</span></button>
+            <label class="activity-auto-toggle" for="activityAuto">
+              <input id="activityAuto" type="checkbox" />
+              <span class="toggle-track" aria-hidden="true"></span>
+              <span class="toggle-label">Auto</span>
+            </label>
+          </div>
+        </div>
+        <div class="bd stack">
+          <div class="activity-table">
+            <div class="activity-head">
+              <div>Time</div>
+              <div>Action</div>
+              <div>Market/Asset</div>
+              <div>Side</div>
+              <div>Price</div>
+              <div>Qty</div>
+              <div>Notes</div>
+            </div>
+            <div id="activityRows" class="activity-body"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card advanced-only">
+          <div class="hd"><h2>Order Inspector</h2></div>
+          <div class="bd stack">
+            <label>Order ID</label>
+            <input id="inspectOrderId" placeholder="uuid" />
+            <label>Order Token</label>
+            <input id="inspectToken" placeholder="cancel token" />
+            <div class="grid2">
+              <button class="ghost" id="inspectBtn">Inspect</button>
+              <button class="ghost" id="cancelBtn">Cancel</button>
+            </div>
+            <pre id="inspectOut"></pre>
+          </div>
+      </section>
+
+      <section class="card advanced-only">
+          <div class="hd"><h2>Maker Tools</h2></div>
+          <div class="bd stack">
+            <div class="footnote">Testing-only maker controls. Production makers should call authenticated APIs directly.</div>
+            <div class="grid2">
+              <div><label>Maker Wallet</label><input id="makerWallet" value="B62qdemo_maker_wallet" /></div>
+              <div><label>Pair</label><input id="makerPair" value="tETH/tZEKO" readonly /></div>
+            </div>
+            <input id="makerMarketId" type="hidden" />
+            <div class="grid2">
+              <div><label>Bid Price</label><input id="makerBidPx" type="number" value="63950" /></div>
+              <div><label>Ask Price</label><input id="makerAskPx" type="number" value="64050" /></div>
+            </div>
+            <div class="grid2">
+              <div><label>Bid Size</label><input id="makerBidSz" type="number" step="0.001" value="0.15" /></div>
+              <div><label>Ask Size</label><input id="makerAskSz" type="number" step="0.001" value="0.15" /></div>
+            </div>
+            <div class="grid2">
+              <div><label>TIF</label><select id="makerTif"><option>GTC</option><option>IOC</option></select></div>
+              <div><label>Replace Existing</label><select id="makerReplace"><option value="true">true</option><option value="false">false</option></select></div>
+            </div>
+            <div><label>Maker API Key</label><input id="makerKey" value="demo-maker-key" /></div>
+            <div class="grid2">
+              <button id="makerQuoteBtn">Post Two-Sided Quote</button>
+              <button class="ghost" id="makerCancelAllBtn">Cancel All For Pair</button>
+            </div>
+            <pre id="makerOut"></pre>
+          </div>
+      </section>
+
+      <section class="card operator-panel-card panel-hidden" id="operatorPanelCard">
+        <div class="hd"><h2>Operator Panel</h2></div>
+        <div class="bd stack">
+          <div class="operator-panel-meta">
+            Live operator controls for the on-chain settlement anchor. Use this to inspect zkApp roots, inspect the current Merkle-backed private state, build the next private-state witness, and prove the next pending batch.
+          </div>
+          <div class="footnote" id="operatorPanelNote">
+            Manual operator actions are gated by the operator admin key. The background operator process still runs independently.
+          </div>
+          <div>
+            <label>Operator Admin Key</label>
+            <input id="operatorAdminKey" type="password" placeholder="Enter admin key to enable manual operator actions" />
+          </div>
+          <div class="grid2">
+            <button type="button" class="ghost" id="refreshFeeBtn">Refresh Fee Stats</button>
+            <button type="button" class="ghost" id="refreshOperatorBtn">Refresh Operator</button>
+            <button type="button" class="ghost" id="inspectMerkleBtn">Inspect Merkle State</button>
+            <button type="button" class="ghost" id="buildWitnessBtn">Build Witness</button>
+            <button type="button" class="ghost" id="provePrivateStateBtn">Prove Next Batch</button>
+          </div>
+          <pre id="feeOut"></pre>
+          <pre id="operatorOut"></pre>
+        </div>
+      </section>
+    </div>
+
+    <div id="fundingPanel" class="vault-strip panel-hidden">
+      <div class="funding-left-col">
+        <section class="card vault-zone funding-guide">
+          <div class="hd"><h2>Funding Guide</h2></div>
+          <div class="bd stack">
+            <div class="footnote mono">
+              1) Connect Wallet.
+              2) Acquire testnet tETH/tZEKO/tMINA in wallet.
+              3) Mint and Redeem privacy notes in Funding UI.
+              4) Place orders in Trading UI.
+            </div>
+          </div>
+        </section>
+        <section class="card vault-zone funding-notes">
+          <div class="hd"><h2>Privacy Notes</h2></div>
+          <div class="bd stack">
+            <div class="footnote">
+              Convert an on-chain vault deposit into private collateral. Trading uses your available notes automatically unless you override with specific note hashes.
+            </div>
+            <div class="grid3">
+              <div><label>Asset</label><select id="noteAsset"></select></div>
+              <div><label>Amount</label><input id="noteAmount" type="number" value="1" /></div>
+              <div><label>Wallet</label><input id="noteWallet" value="B62qdemo_wallet_alpha" /></div>
+            </div>
+            <div id="noteAssetMeta" class="market-verify mono"></div>
+            <div class="footnote">
+              Step 1: Click <span class="mono">Deposit Funds &amp; Mint Notes</span> and approve in wallet.<br />
+              Step 2: Your private collateral appears below and is auto-used by trading.<br />
+              Fallback mint controls remain in <span class="mono">Advanced</span>.
+            </div>
+            <div class="grid2">
+              <button class="txn" id="sendDepositTxBtn">Deposit Funds &amp; Mint Notes</button>
+              <button class="ghost" id="withdrawNotesPrimaryBtn">Redeem Notes &amp; Withdraw</button>
+            </div>
+            <div class="withdraw-card">
+              <div class="withdraw-summary">
+                <div>
+                  <label>Withdrawable Note Balance</label>
+                  <div id="withdrawSummary" class="value mono">Loading...</div>
+                </div>
+                <div>
+                  <label>Recent Withdrawals</label>
+                  <div id="withdrawStatus" class="value mono">No withdrawals yet</div>
+                </div>
+              </div>
+              <div id="withdrawHistory" class="withdraw-history">
+                <div class="withdraw-empty">Withdrawals will appear here after you redeem private collateral back to your wallet.</div>
+              </div>
+            </div>
+            <details id="noteAdvanced" class="stack">
+              <summary class="footnote mono">Advanced</summary>
+              <div>
+                <label>Signed Deposit Tx Hash (Manual)</label>
+                <input id="noteDepositTxHash" placeholder="5J..." />
+              </div>
+              <div>
+                <button class="ghost" id="poolBtn">Note Pool Status</button>
+              </div>
+              <div class="grid2">
+                <button class="ghost" id="findDepositTxBtn">Find Deposit Tx Helper</button>
+                <button class="txn" id="mintNoteBtn">Mint Note From Tx Hash (Manual)</button>
+              </div>
+              <div class="footnote">Withdraw is available directly above in the main note controls.</div>
+            </details>
+            <div id="noteDepositHint" class="hint-box mono"></div>
+          </div>
+        </section>
+      </div>
+
+      <div class="funding-right-col">
+        <section class="card vault-zone">
+          <div class="hd"><h2>Acquire Testnet Funds</h2></div>
+          <div class="bd stack">
+            <div class="acquire-links">
+              <a class="ghost btn-link" href="https://faucet.zeko.io/" target="_blank" rel="noreferrer">Official Faucet</a>
+              <a class="ghost btn-link" href="https://bridge.zeko.io/" target="_blank" rel="noreferrer">Official Bridge</a>
+              <a class="ghost btn-link" href="https://solis.gizmolab.io/" target="_blank" rel="noreferrer">SolisDEX</a>
+            </div>
+          </div>
+        </section>
+        <section class="card vault-zone funding-sync">
+          <div class="hd"><h2>On-Chain Funding</h2></div>
+          <div class="bd stack">
+            <div class="footnote">
+              Fund your wallet on Zeko testnet, then sync balances into ShadowBook.
+            </div>
+            <div class="grid2 funding-sync-row">
+              <button id="syncBtn" class="txn">Sync On-Chain Balance</button>
+              <div>
+                <label>Wallet</label>
+                <input id="chainWallet" value="B62qdemo_wallet_alpha" />
+              </div>
+            </div>
+            <label>Latest Minted Note</label>
+            <textarea id="noteInput" placeholder="zkv_..."></textarea>
+            <label>Wallet + Private Collateral</label>
+            <pre id="notesPortfolioOut"></pre>
+            <pre id="vaultOut"></pre>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <script src="/sdk/shadowbook-sdk.js"></script>
+    <script>
+      const sdk = window.ShadowBookSDK.createClient({
+        baseUrl: window.location.origin,
+        frontendId: 'shadowbook.web'
+      });
+      // Defensive cleanup for older cached markup variants.
+      for (const btn of Array.from(document.querySelectorAll('button'))) {
+        const label = String(btn.textContent || '').trim().toLowerCase();
+        const id = String(btn.id || '').trim().toLowerCase();
+        if (label.includes('prune incomplete') || id.includes('prune')) btn.remove();
+      }
+      let knownMarkets = [];
+      let latestNotesPortfolio = null;
+      let realFundsMode = true;
+      let requireOnchainDepositTx = true;
+      let vaultDepositAddress = '';
+      let walletConnected = false;
+      let chartApi = null;
+      let candleSeries = null;
+      let volumeSeries = null;
+      let chartResizeBound = false;
+      let latestChartCandles = [];
+      let latestChartTrades = [];
+      let latestChartMarket = null;
+      let lastNonMarketTif = 'GTC';
+      let recommendedBookActionSide = '';
+      let operatorPanelAllowedWallet = null;
+      let operatorPanelAdminKeyConfigured = false;
+      const walletSyncTimes = new Map();
+      const WALLET_SYNC_COOLDOWN_MS = 20000;
+
+      function syncFrontendIdFromUi() {
+        const orderFrontend = document.getElementById('ordFrontendId')?.value?.trim();
+        const next = (orderFrontend || 'shadowbook.web').toLowerCase();
+        sdk.frontendId = next;
+        if (document.getElementById('ordFrontendId')) document.getElementById('ordFrontendId').value = next;
+        return next;
+      }
+
+      function mapNumbersForDisplay(value) {
+        if (typeof value === 'number') return fmtDisplayNumber(value);
+        if (Array.isArray(value)) return value.map((v) => mapNumbersForDisplay(v));
+        if (value && typeof value === 'object') {
+          const out = {};
+          for (const [k, v] of Object.entries(value)) out[k] = mapNumbersForDisplay(v);
+          return out;
+        }
+        return value;
+      }
+
+      function setText(id, value) {
+        document.getElementById(id).textContent =
+          typeof value === 'string' ? value : JSON.stringify(mapNumbersForDisplay(value), null, 2);
+      }
+
+      function updateBookPrefillActionUi(side = '') {
+        recommendedBookActionSide = side === 'BUY' || side === 'SELL' ? side : '';
+        const buyBtn = document.getElementById('placeBuy');
+        const sellBtn = document.getElementById('placeSell');
+        const hint = document.getElementById('bookPrefillHint');
+        if (!buyBtn || !sellBtn || !hint) return;
+        buyBtn.classList.toggle('prefill-target', recommendedBookActionSide === 'BUY');
+        buyBtn.classList.toggle('prefill-other', recommendedBookActionSide === 'SELL');
+        sellBtn.classList.toggle('prefill-target', recommendedBookActionSide === 'SELL');
+        sellBtn.classList.toggle('prefill-other', recommendedBookActionSide === 'BUY');
+        if (!recommendedBookActionSide) {
+          hint.textContent = '';
+          return;
+        }
+        hint.textContent = `Book click ready: press ${recommendedBookActionSide === 'BUY' ? 'Buy' : 'Sell'} to trade against that displayed level with a LIMIT order.`;
+      }
+
+      function getConnectedWalletValue() {
+        return String(document.getElementById('ordWallet')?.value || '').trim();
+      }
+
+      function getOperatorAdminKey() {
+        return String(document.getElementById('operatorAdminKey')?.value || '').trim();
+      }
+
+      function syncHeaderOffset() {
+        const header = document.querySelector('.brandbar');
+        if (!header) return;
+        const offset = Math.ceil(header.getBoundingClientRect().height) + 12;
+        document.documentElement.style.setProperty('--header-offset', `${offset}px`);
+      }
+
+      function shouldRenderOperatorPanel() {
+        const wallet = getConnectedWalletValue();
+        if (!walletConnected || !wallet) return false;
+        if (!operatorPanelAllowedWallet) return true;
+        return wallet === operatorPanelAllowedWallet;
+      }
+
+      function hasOperatorPanelAccess() {
+        return shouldRenderOperatorPanel() && (!operatorPanelAdminKeyConfigured || Boolean(getOperatorAdminKey()));
+      }
+
+      function updateOperatorPanelState() {
+        const wallet = getConnectedWalletValue();
+        const visible = shouldRenderOperatorPanel();
+        const allowed = hasOperatorPanelAccess();
+        const panel = document.getElementById('operatorPanelCard');
+        const note = document.getElementById('operatorPanelNote');
+        const buttonIds = ['refreshOperatorBtn', 'inspectMerkleBtn', 'buildWitnessBtn', 'provePrivateStateBtn'];
+        if (panel) panel.classList.toggle('panel-hidden', !visible);
+        for (const id of buttonIds) {
+          const el = document.getElementById(id);
+          if (!el) continue;
+          el.disabled = !allowed;
+          el.title = allowed
+            ? ''
+            : !visible
+              ? operatorPanelAllowedWallet
+                ? `Operator panel is only visible for deployer wallet ${operatorPanelAllowedWallet}`
+                : 'Connect the deployer wallet to view the operator panel'
+              : operatorPanelAdminKeyConfigured
+              ? 'Enter the operator admin key to use operator actions'
+              : operatorPanelAllowedWallet
+                ? `Connect allowed deployer wallet ${operatorPanelAllowedWallet}`
+                : 'Connect the deployer wallet to use operator actions';
+        }
+        if (!visible) return;
+        if (!note) return;
+        if (operatorPanelAdminKeyConfigured) {
+          note.textContent = allowed
+            ? 'Manual operator actions are enabled with the operator admin key. The background operator process still runs independently.'
+            : 'Enter the operator admin key to trigger manual operator actions. The background operator process still runs independently.';
+          return;
+        }
+        if (allowed) {
+          note.textContent = `Connected deployer wallet ${wallet} can trigger manual operator actions. These actions are signed in the browser and verified by the backend.`;
+        } else if (operatorPanelAllowedWallet) {
+          note.textContent = walletConnected && wallet
+            ? `Operator actions are restricted to ${operatorPanelAllowedWallet}. Connected wallet ${wallet} can inspect the panel but cannot trigger buttons.`
+            : `Operator actions are restricted to connected deployer wallet ${operatorPanelAllowedWallet}. Connect that wallet to trigger buttons.`;
+        } else {
+          note.textContent = walletConnected && wallet
+            ? `Manual operator actions are enabled only for the connected deployer wallet.`
+            : `Connect the deployer wallet to trigger manual operator actions.`;
+        }
+      }
+
+      function requireOperatorPanelAdminKey() {
+        const adminKey = getOperatorAdminKey();
+        if (!adminKey) throw new Error('enter the operator admin key to use operator actions');
+        return adminKey;
+      }
+
+      function shortHash(value) {
+        if (!value || typeof value !== 'string') return '-';
+        return value.length <= 14 ? value : value.slice(0, 7) + '...' + value.slice(-5);
+      }
+
+      function fmtDisplayNumber(value) {
+        const n = Number(value);
+        if (!Number.isFinite(n)) return '-';
+        if (Math.abs(n - Math.trunc(n)) < 1e-9) return n.toFixed(2);
+        return n.toFixed(4).replace(/\.?0+$/, '');
+      }
+
+      function fmtUtcTime(value) {
+        const ms = Number(value);
+        if (!Number.isFinite(ms) || ms <= 0) return '-';
+        return new Date(ms).toLocaleTimeString('en-US', {
+          hour12: false,
+          timeZone: 'UTC',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
+        }) + ' UTC';
+      }
+
+      function stableStringify(value) {
+        if (value === null || typeof value !== 'object') return JSON.stringify(value);
+        if (Array.isArray(value)) return `[${value.map((item) => stableStringify(item)).join(',')}]`;
+        const keys = Object.keys(value).sort();
+        return `{${keys.map((k) => `${JSON.stringify(k)}:${stableStringify(value[k])}`).join(',')}}`;
+      }
+
+      function getMarketById(marketId) {
+        return knownMarkets.find((m) => m.marketId === marketId) || null;
+      }
+
+      function getAssetCatalog() {
+        const map = new Map();
+        for (const m of knownMarkets || []) {
+          if (m?.baseAsset && m?.baseTokenId) map.set(String(m.baseAsset).toUpperCase(), { asset: m.baseAsset, tokenId: m.baseTokenId });
+          if (m?.quoteAsset && m?.quoteTokenId) map.set(String(m.quoteAsset).toUpperCase(), { asset: m.quoteAsset, tokenId: m.quoteTokenId });
+        }
+        return Array.from(map.values());
+      }
+
+      function updateSelectedNoteAssetMeta() {
+        const select = document.getElementById('noteAsset');
+        const meta = document.getElementById('noteAssetMeta');
+        if (!select || !meta) return;
+        const opt = select.options[select.selectedIndex];
+        if (!opt) {
+          meta.textContent = 'No asset selected';
+          return;
+        }
+        const tokenId = opt.getAttribute('data-token-id') || '';
+        const avail = opt.getAttribute('data-avail') || '';
+        meta.textContent = `Asset: ${opt.value} | Token ID: ${tokenId} | Available: ${avail}`;
+        updateDepositActionState();
+      }
+
+      function updateDepositActionState() {
+        const sendBtn = document.getElementById('sendDepositTxBtn');
+        const hint = document.getElementById('noteDepositHint');
+        if (!sendBtn || !hint) return;
+        const asset = String(document.getElementById('noteAsset')?.value || '').trim();
+        sendBtn.disabled = false;
+        if (asset.toUpperCase() === 'TMINA') {
+          hint.textContent =
+            `Deposit + Mint uses a native payment flow for ${asset}. Vault: ${vaultDepositAddress || '(not configured)'}.`;
+          return;
+        }
+        hint.textContent =
+          `Deposit + Mint builds an FT-standard transfer transaction for ${asset} and asks your wallet to sign it. Vault: ` +
+          `${vaultDepositAddress || '(not configured)'}.`;
+      }
+
+      function updateNoteDepositHint() {
+        const hint = document.getElementById('noteDepositHint');
+        if (!hint) return;
+        if (!requireOnchainDepositTx) {
+          hint.textContent = 'Deposit tx verification disabled on server (testing mode).';
+          return;
+        }
+        updateDepositActionState();
+      }
+
+      function extractWalletTxHash(response) {
+        if (!response) return '';
+        if (typeof response === 'string') return response.startsWith('5J') ? response : '';
+        const candidates = [
+          response.hash,
+          response.txHash,
+          response?.data?.hash,
+          response?.data?.txHash,
+          response?.result?.hash,
+          response?.result?.txHash,
+          response?.payment?.hash
+        ];
+        for (const c of candidates) {
+          const s = typeof c === 'string' ? c.trim() : '';
+          if (s.startsWith('5J')) return s;
+        }
+        return '';
+      }
+
+      function toAuroTransactionString(transaction) {
+        const original = typeof transaction === 'string' ? JSON.parse(transaction) : transaction;
+        const tx = JSON.parse(JSON.stringify(original));
+        if (tx?.feePayer?.body?.fee === '0') {
+          // Lumina works around an Auro edge case by forcing a non-zero fee here.
+          tx.feePayer.body.fee = '1';
+        }
+        return JSON.stringify(tx);
+      }
+
+      function extractSignedZkappCommand(response, wallet) {
+        const signedData = response?.signedData || response;
+        if (!signedData) throw new Error('wallet returned no signedData');
+        const parsed = typeof signedData === 'string' ? JSON.parse(signedData) : signedData;
+        const zkappCommand =
+          parsed?.zkappCommand ||
+          parsed?.data?.zkappCommand ||
+          parsed?.signedData?.zkappCommand ||
+          null;
+        if (!zkappCommand || typeof zkappCommand !== 'object') {
+          throw new Error('wallet signedData did not contain zkappCommand');
+        }
+        if (zkappCommand?.feePayer?.body?.publicKey && zkappCommand.feePayer.body.publicKey !== wallet) {
+          zkappCommand.feePayer.authorization =
+            '7mWxjLYgbJUkZNcGouvhVj5tJ8yu9hoexb9ntvPK8t5LHqzmrL6QJjjKtf5SgmxB4QWkDw7qoMMbbNGtHVpsbJHPyTy2EzRQ';
+        }
+        return zkappCommand;
+      }
+
+      async function syncWalletContext(wallet, outputId) {
+        if (!wallet) throw new Error('Wallet is required');
+        const result = await sdk.syncOnchainBalance({ wallet });
+        const targets = ['ordWallet', 'activityWallet', 'chainWallet', 'noteWallet'];
+        for (const id of targets) {
+          const el = document.getElementById(id);
+          if (el) el.value = wallet;
+        }
+        if (outputId) setText(outputId, result);
+        await refreshNoteAssetOptions();
+        await refreshNotesPortfolio();
+        await refreshPretradeChecklist();
+        return result;
+      }
+
+      async function sendDepositTxWithWallet() {
+        const provider = window.mina;
+        if (!provider) throw new Error('No Mina wallet provider found in browser');
+        if (!vaultDepositAddress) throw new Error('Vault address is not configured on server');
+        const wallet = document.getElementById('noteWallet').value.trim();
+        const amount = Number(document.getElementById('noteAmount').value || 0);
+        if (!wallet) throw new Error('Wallet is required');
+        if (!Number.isFinite(amount) || amount <= 0) throw new Error('Amount must be positive');
+        await syncWalletContext(wallet);
+        const selected = document.getElementById('noteAsset').selectedOptions?.[0];
+        const tokenId = selected?.getAttribute('data-token-id') || '';
+        const asset = document.getElementById('noteAsset').value.trim() || 'asset';
+        const memo = `shadowbook-deposit:${asset}`;
+        const attempts = [];
+
+        if (asset.toUpperCase() === 'TMINA') {
+          if (typeof provider.sendPayment === 'function') {
+            try {
+              const response = await provider.sendPayment({
+                to: vaultDepositAddress,
+                amount: String(amount),
+                memo
+              });
+              const txHash = extractWalletTxHash(response);
+              return { method: 'sendPayment', response, txHash, asset, tokenId: null };
+            } catch (e) {
+              attempts.push(`sendPayment: ${String(e?.message || e)}`);
+            }
+          }
+          if (typeof provider.request === 'function') {
+            const requestAttempts = [
+              {
+                method: 'mina_sendPayment',
+                params: {
+                  to: vaultDepositAddress,
+                  amount: String(amount),
+                  memo
+                }
+              }
+            ];
+            for (const req of requestAttempts) {
+              try {
+                const response = await provider.request({ method: req.method, params: req.params });
+                const txHash = extractWalletTxHash(response);
+                return { method: req.method, response, txHash, asset, tokenId: null };
+              } catch (e) {
+                attempts.push(`${req.method}: ${String(e?.message || e)}`);
+              }
+            }
+          }
+          throw new Error(
+            `Wallet did not accept the native payment deposit for ${asset}. Attempts: ${attempts.join(' | ') || 'none'}`
+          );
+        }
+
+        const built = await sdk.buildDepositTransaction({
+          wallet,
+          asset,
+          tokenId,
+          amount,
+          memo
+        });
+        const txPayload = toAuroTransactionString(built.transaction);
+        if (typeof provider.sendTransaction === 'function') {
+          try {
+            const response = await provider.sendTransaction({
+              onlySign: true,
+              transaction: txPayload
+            });
+            const zkappCommand = extractSignedZkappCommand(response, wallet);
+            const submitted = await sdk.submitSignedDepositTransaction({
+              zkappCommand
+            });
+            const txHash = extractWalletTxHash(submitted) || submitted?.hash || '';
+            return {
+              method: 'sendTransaction:onlySign+submit',
+              response,
+              txHash,
+              asset,
+              tokenId: tokenId || null,
+              built,
+              submitted
+            };
+          } catch (e) {
+            attempts.push(`sendTransaction: ${String(e?.message || e)}`);
+            const msg = String(e?.message || e);
+            if (msg.toLowerCase().includes('sendzkapp') || msg.toLowerCase().includes('sequencer') || msg.includes('Invalid_fee_excess')) {
+              throw new Error(
+                `Wallet signed the token deposit transaction, but sequencer submission failed for ${asset}. ` +
+                `Attempt: ${attempts.join(' | ')}`
+              );
+            }
+            throw new Error(`Wallet did not accept the generated token deposit transaction for ${asset}. Attempts: ${attempts.join(' | ')}`);
+          }
+        }
+        if (typeof provider.request === 'function') {
+          const requestAttempts = [
+            {
+              method: 'mina_sendTransaction',
+              params: {
+                onlySign: true,
+                transaction: txPayload
+              }
+            }
+          ];
+          for (const req of requestAttempts) {
+            try {
+              const response = await provider.request({ method: req.method, params: req.params });
+              const zkappCommand = extractSignedZkappCommand(response, wallet);
+              const submitted = await sdk.submitSignedDepositTransaction({
+                zkappCommand
+              });
+              const txHash = extractWalletTxHash(submitted) || submitted?.hash || '';
+              return {
+                method: `${req.method}:onlySign+submit`,
+                response,
+                txHash,
+                asset,
+                tokenId: tokenId || null,
+                built,
+                submitted
+              };
+            } catch (e) {
+              attempts.push(`${req.method}: ${String(e?.message || e)}`);
+            }
+          }
+        }
+        throw new Error(
+          `Wallet did not accept the generated token deposit transaction for ${asset}. ` +
+          `Use wallet UI to send to ${vaultDepositAddress}, then click Find Latest Eligible Deposit Tx. ` +
+          `Attempts: ${attempts.join(' | ') || 'none'}`
+        );
+      }
+
+      function sleep(ms) {
+        return new Promise((resolve) => setTimeout(resolve, ms));
+      }
+
+      async function autoMintNoteFromLatestDeposit(options = {}) {
+        const selected = document.getElementById('noteAsset').selectedOptions?.[0];
+        const tokenId = selected?.getAttribute('data-token-id') || '';
+        const payload = {
+          wallet: document.getElementById('noteWallet').value.trim(),
+          asset: document.getElementById('noteAsset').value.trim(),
+          tokenId,
+          amount: Number(document.getElementById('noteAmount').value || 0),
+          txHash: options.txHash || document.getElementById('noteDepositTxHash').value.trim()
+        };
+        const attempts = Number.isFinite(Number(options.attempts)) ? Number(options.attempts) : 20;
+        const delayMs = Number.isFinite(Number(options.delayMs)) ? Number(options.delayMs) : 800;
+        const onProgress = typeof options.onProgress === 'function' ? options.onProgress : null;
+        let lastError = null;
+        for (let i = 0; i < attempts; i += 1) {
+          try {
+            if (onProgress) {
+              onProgress({
+                phase: 'confirming',
+                attempt: i + 1,
+                attempts,
+                txHash: payload.txHash || '',
+                wallet: payload.wallet,
+                asset: payload.asset
+              });
+            }
+            const result = await sdk.depositAuto(payload);
+            if (result.note?.note) {
+              document.getElementById('noteInput').value = result.note.note;
+            }
+            if (result.verifiedDepositTx?.txHash) {
+              document.getElementById('noteDepositTxHash').value = result.verifiedDepositTx.txHash;
+            }
+            await syncWalletContext(payload.wallet);
+            await refreshNoteAssetOptions();
+            await refreshNotesPortfolio();
+            await refreshPretradeChecklist();
+            if (isActivityAutoRefreshEnabled()) await refreshActivity();
+            return result;
+          } catch (error) {
+            lastError = error;
+            if (i < attempts - 1) {
+              if (onProgress) {
+                onProgress({
+                  phase: 'retrying',
+                  attempt: i + 1,
+                  attempts,
+                  txHash: payload.txHash || '',
+                  wallet: payload.wallet,
+                  asset: payload.asset,
+                  error: error instanceof Error ? error.message : String(error)
+                });
+              }
+              const waitMs =
+                i < 5 ? delayMs :
+                i < 12 ? Math.max(delayMs, 1200) :
+                Math.max(delayMs, 1800);
+              await sleep(waitMs);
+            }
+          }
+        }
+        throw lastError || new Error('auto note mint failed');
+      }
+
+      async function refreshNoteAssetOptions() {
+        const select = document.getElementById('noteAsset');
+        const wallet = document.getElementById('noteWallet')?.value?.trim();
+        if (!select) return;
+        const catalog = getAssetCatalog();
+        const previous = select.value;
+        let balances = {};
+        if (wallet) {
+          try {
+            const bal = await sdk.getBalance(wallet);
+            balances = bal?.onchainTotals || bal?.balances?.__onchainTotals || {};
+          } catch {}
+        }
+        select.innerHTML = '';
+        for (const item of catalog) {
+          const key = String(item.asset || '').toUpperCase();
+          const avail = Number(balances[key] || 0);
+          const opt = document.createElement('option');
+          opt.value = item.asset;
+          opt.textContent = `${item.asset} (${fmtDisplayNumber(avail)})`;
+          opt.setAttribute('data-token-id', item.tokenId);
+          opt.setAttribute('data-avail', fmtDisplayNumber(avail));
+          select.appendChild(opt);
+        }
+        if (previous && Array.from(select.options).some((o) => o.value === previous)) select.value = previous;
+        updateSelectedNoteAssetMeta();
+      }
+
+      async function refreshNotesPortfolio() {
+        const wallet = document.getElementById('noteWallet')?.value?.trim();
+        if (!wallet) return;
+        try {
+          const data = await sdk.getNotesPortfolio(wallet);
+          latestNotesPortfolio = data;
+          const walletTotals = data?.onchainTotals || {};
+          const byAsset = data?.outstandingByAsset || {};
+          const outstanding = Array.isArray(data?.outstandingNotes) ? data.outstandingNotes : [];
+          const lines = [];
+          lines.push('Wallet totals');
+          for (const [asset, amount] of Object.entries(walletTotals)) {
+            lines.push(`  ${asset}: ${fmtDisplayNumber(amount)}`);
+          }
+          lines.push('');
+          lines.push(`Private collateral notes (${Number(data?.outstandingNoteCount || 0)})`);
+          if (Object.keys(byAsset).length === 0) {
+            lines.push('  none');
+          } else {
+            for (const [asset, amount] of Object.entries(byAsset)) {
+              lines.push(`  ${asset}: ${fmtDisplayNumber(amount)}`);
+            }
+          }
+          lines.push('');
+          lines.push('Recent notes');
+          if (outstanding.length === 0) {
+            lines.push('  none');
+          } else {
+            for (const note of outstanding.slice(0, 8)) {
+              lines.push(
+                `  ${note.asset} ${fmtDisplayNumber(note.amount)}  ${shortHash(note.noteHash)}  ${new Date(note.createdAtUnixMs).toLocaleTimeString()}`
+              );
+            }
+          }
+          document.getElementById('notesPortfolioOut').textContent = lines.join('\n');
+          await refreshWithdrawPanel();
+        } catch (error) {
+          latestNotesPortfolio = null;
+          setText('notesPortfolioOut', String(error));
+          await refreshWithdrawPanel();
+        }
+      }
+
+      function renderMarketVerify(market) {
+        const root = document.getElementById('marketVerify');
+        if (!market) {
+          root.textContent = 'Market metadata unavailable';
+          return;
+        }
+        const bands = Array.isArray(market?.depthBands?.bands) ? market.depthBands.bands : [];
+        const bandText = bands.length
+          ? '\n' + bands.map((band) =>
+              `Depth ${Math.round(Number(band.pct || 0) * 100)}%: bids ${fmtDisplayNumber(band.bidsSize)} / asks ${fmtDisplayNumber(band.asksSize)}`
+            ).join('\n')
+          : '';
+        root.textContent =
+          `Market ID: ${market.marketId}\n` +
+          `Base: ${market.baseAsset} (${market.baseTokenId})\n` +
+          `Quote: ${market.quoteAsset} (${market.quoteTokenId})\n` +
+          `Best Bid / Ask: ${fmtDisplayNumber(market.bestBid)} / ${fmtDisplayNumber(market.bestAsk)}\n` +
+          `Indicative Mid: ${fmtDisplayNumber(market.indicativeMid)}` +
+          bandText;
+      }
+
+      function updateOrderIntent(market) {
+        const root = document.getElementById('ordIntent');
+        if (root) root.textContent = '';
+        if (!market) return;
+        document.getElementById('placeBuy').textContent = `Buy ${market.baseAsset}`;
+        document.getElementById('placeSell').textContent = `Sell ${market.baseAsset}`;
+      }
+
+      function updateFundingHint() {
+        return;
+      }
+
+      function updateFundingModeHint() {
+        const hint = document.getElementById('ordFundingModeHint');
+        if (!hint) return;
+        const visibility = document.getElementById('ordVisibility')?.value || 'public';
+        const orderType = document.getElementById('ordType')?.value || 'LIMIT';
+        hint.textContent =
+          (visibility === 'private'
+            ? 'Private dark orders use note funding and do not appear in the public book before execution. '
+            : 'Public anonymous orders show price and size in the book, but do not expose your wallet. ') +
+          'Orders are note-collateralized only. ' +
+          (orderType === 'MARKET'
+            ? 'Market orders are IOC and execute against standing liquidity.'
+            : 'Limit orders lock collateral until filled, canceled, or expired.');
+      }
+
+      function formatOrderError(error) {
+        const msg = String(error || '');
+        if (msg.includes('on-chain balances are stale')) {
+          return 'On-chain balance sync required. Click Connect Wallet or Sync On-Chain Balance, then retry.';
+        }
+        if (msg.includes('wallet-funded trading removed')) {
+          return 'Trading is note-backed only. Mint privacy notes first, then place the order.';
+        }
+        if (msg.includes('wallet-signed order authorization')) {
+          return 'Wallet signature required. Approve the order authorization in your wallet and retry.';
+        }
+        if (msg.includes('wallet linkage missing')) {
+          return 'Wallet must be synced first in Real Funds Mode. Use Connect Wallet.';
+        }
+        if (msg.includes('insufficient')) {
+          return `${msg}. Mint more notes for this asset or cancel an open order to release note collateral.`;
+        }
+        if (msg.includes('no opposite liquidity')) {
+          return 'No opposite liquidity available for market execution right now.';
+        }
+        return msg;
+      }
+
+      function checklistRow(label, status, detail) {
+        const cls = status === 'ok' ? 'check-ok' : status === 'warn' ? 'check-warn' : 'check-bad';
+        return `<div class="check-row"><span>${label}</span><strong class="${cls}">${detail}</strong></div>`;
+      }
+
+      async function refreshPretradeChecklist() {
+        const root = document.getElementById('pretradeChecklist');
+        if (!root) return;
+        const wallet = document.getElementById('ordWallet').value.trim();
+        const marketId = document.getElementById('ordMarketId').value.trim();
+        const orderType = document.getElementById('ordType').value;
+        const quantity = Number(document.getElementById('ordQty').value || 0);
+        const limitPrice = orderType === 'MARKET' ? null : Number(document.getElementById('ordPrice').value || 0);
+        if (!wallet || !marketId || !Number.isFinite(quantity) || quantity <= 0) {
+          root.innerHTML = checklistRow('Checklist', 'warn', 'enter wallet/market/qty');
+          return;
+        }
+        try {
+          const [buyCheck, sellCheck] = await Promise.all([
+            sdk.getPretradeChecklist({
+              wallet,
+              marketId,
+              side: 'BUY',
+              orderType,
+              quantity,
+              limitPrice
+            }),
+            sdk.getPretradeChecklist({
+              wallet,
+              marketId,
+              side: 'SELL',
+              orderType,
+              quantity,
+              limitPrice
+            })
+          ]);
+          const buyReq = buyCheck.required || {};
+          const sellReq = sellCheck.required || {};
+          const buyReqAmt = Number(buyReq.amount || 0);
+          const sellReqAmt = Number(sellReq.amount || 0);
+          const buyAvail = Number((buyCheck.availableByAsset || {})[buyReq.asset || ''] || 0);
+          const sellAvail = Number((sellCheck.availableByAsset || {})[sellReq.asset || ''] || 0);
+          const lockedBase = Number((buyCheck.lockedByAsset || {})[(sellReq.asset || '')] || 0);
+          const lockedQuote = Number((buyCheck.lockedByAsset || {})[(buyReq.asset || '')] || 0);
+          root.innerHTML =
+            checklistRow('Wallet linked', buyCheck.walletLinked ? 'ok' : 'bad', buyCheck.walletLinked ? 'yes' : 'no') +
+            checklistRow(
+              'Sync freshness',
+              buyCheck.syncFresh ? 'ok' : 'bad',
+              buyCheck.realFundsMode ? (buyCheck.syncFresh ? 'fresh' : 'stale') : 'n/a'
+            ) +
+            checklistRow(
+              'Market executable',
+              orderType === 'MARKET' && (!buyCheck.marketExecutable || !sellCheck.marketExecutable) ? 'bad' : 'ok',
+              orderType === 'MARKET' ? `buy:${buyCheck.marketExecutable ? 'yes' : 'no'} sell:${sellCheck.marketExecutable ? 'yes' : 'no'}` : 'limit order'
+            ) +
+            checklistRow(`Buy note collateral ${buyReq.asset || '-'}`, buyAvail + 1e-9 >= buyReqAmt ? 'ok' : 'bad', `${fmtDisplayNumber(buyReqAmt)} / notes ${fmtDisplayNumber(buyAvail)}`) +
+            checklistRow(`Sell note collateral ${sellReq.asset || '-'}`, sellAvail + 1e-9 >= sellReqAmt ? 'ok' : 'bad', `${fmtDisplayNumber(sellReqAmt)} / notes ${fmtDisplayNumber(sellAvail)}`) +
+            checklistRow('Locked base collateral', lockedBase > 0 ? 'warn' : 'ok', fmtDisplayNumber(lockedBase)) +
+            checklistRow('Locked quote collateral', lockedQuote > 0 ? 'warn' : 'ok', fmtDisplayNumber(lockedQuote));
+        } catch (error) {
+          root.innerHTML = checklistRow('Checklist', 'bad', formatOrderError(error));
+        }
+      }
+
+      async function signMessageWithWallet(message, wallet) {
+        const provider = window.mina;
+        if (!provider) throw new Error('No Mina wallet provider found in browser');
+        const attempts = [];
+        function normalizeSignatureValue(value) {
+          if (typeof value === 'string' && value.trim()) return value.trim();
+          const candidate =
+            value?.signature ??
+            value?.signedData ??
+            value?.data?.signature ??
+            value?.data?.signedData ??
+            value ??
+            null;
+          if (typeof candidate === 'string' && candidate.trim()) return candidate.trim();
+          const field = candidate?.field ?? candidate?.r ?? candidate?.R ?? null;
+          const scalar = candidate?.scalar ?? candidate?.s ?? candidate?.S ?? null;
+          if (field !== null && field !== undefined && scalar !== null && scalar !== undefined) {
+            return { field: String(field), scalar: String(scalar) };
+          }
+          return null;
+        }
+        function normalizeSignedMessage(response, method) {
+          const signature = normalizeSignatureValue(response?.signatureBase58 || response?.signature || response?.signedData || response);
+          if (!signature) {
+            throw new Error('Wallet signature was not completed');
+          }
+          return {
+            method,
+            publicKey: response?.publicKey || response?.address || wallet,
+            signature,
+            raw: response
+          };
+        }
+        if (typeof provider.signMessage === 'function') {
+          try {
+            const response = await provider.signMessage({ message });
+            return normalizeSignedMessage(response, 'signMessage');
+          } catch (e) {
+            attempts.push(`signMessage: ${String(e?.message || e)}`);
+          }
+        }
+        if (typeof provider.request === 'function') {
+          const variants = [
+            { method: 'mina_signMessage', params: { message } },
+            { method: 'zeko_signMessage', params: { message } },
+            { method: 'wallet_signMessage', params: { message } }
+          ];
+          for (const variant of variants) {
+            try {
+              const response = await provider.request({ method: variant.method, params: variant.params });
+              return normalizeSignedMessage(response, variant.method);
+            } catch (e) {
+              attempts.push(`${variant.method}: ${String(e?.message || e)}`);
+            }
+          }
+        }
+        throw new Error(`Wallet does not expose a supported signMessage API. Attempts: ${attempts.join(' | ') || 'none'}`);
+      }
+
+      function parseOverrideNoteHashes(raw) {
+        return String(raw || '')
+          .split(',')
+          .map((item) => item.trim())
+          .filter(Boolean);
+      }
+
+      function sanitizeOverrideNoteHashes(noteHashes, asset) {
+        const notes = Array.isArray(latestNotesPortfolio?.outstandingNotes) ? latestNotesPortfolio.outstandingNotes : [];
+        const valid = new Set(
+          notes
+            .filter((note) => String(note?.asset || '').toUpperCase() === String(asset || '').toUpperCase())
+            .map((note) => String(note.noteHash))
+        );
+        return (noteHashes || []).filter((hash) => valid.has(String(hash)));
+      }
+
+      function autoSelectFundingNotes(asset, requiredAmount) {
+        const notes = Array.isArray(latestNotesPortfolio?.outstandingNotes) ? latestNotesPortfolio.outstandingNotes : [];
+        const matches = notes
+          .filter((note) => String(note?.asset || '').toUpperCase() === String(asset || '').toUpperCase())
+          .sort((a, b) => Number(a.createdAtUnixMs || 0) - Number(b.createdAtUnixMs || 0));
+        const selected = [];
+        let remaining = Number(requiredAmount || 0);
+        for (const note of matches) {
+          if (!(remaining > 1e-9)) break;
+          selected.push(String(note.noteHash));
+          remaining -= Number(note.amount || 0);
+        }
+        if (remaining > 1e-9) {
+          throw new Error(`insufficient note collateral for ${asset}: required ${fmtDisplayNumber(requiredAmount)}`);
+        }
+        return selected;
+      }
+
+      async function createOrderAuthorization({ wallet, market, side, orderType, timeInForce, limitPrice, quantity, fundingNoteHashes, frontendId }) {
+        const nonce = `ord_${Date.now()}_${Math.random().toString(16).slice(2, 10)}`;
+        const expiresAtUnixMs = Date.now() + 5 * 60 * 1000;
+        const payload = stableStringify({
+          wallet,
+          marketId: market.marketId,
+          baseTokenId: market.baseTokenId,
+          quoteTokenId: market.quoteTokenId,
+          side,
+          orderType,
+          timeInForce,
+          limitPrice: orderType === 'MARKET' ? null : limitPrice,
+          quantity,
+          fundingNoteHashes,
+          visibility: document.getElementById('ordVisibility')?.value === 'private' ? 'private' : 'public',
+          frontendId: frontendId || null,
+          nonce,
+          expiresAtUnixMs
+        });
+        const signed = await signMessageWithWallet(payload, wallet);
+        return {
+          publicKey: signed.publicKey || wallet,
+          payload,
+          nonce,
+          expiresAtUnixMs,
+          signature: signed.signature,
+          method: signed.method,
+          raw: signed.raw
+        };
+      }
+
+      function updateOrderTypeUi() {
+        const orderType = document.getElementById('ordType').value;
+        const tif = document.getElementById('ordTif');
+        const price = document.getElementById('ordPrice');
+        const priceField = document.getElementById('ordPriceField');
+        if (orderType === 'MARKET') {
+          if (!tif.disabled) lastNonMarketTif = tif.value || lastNonMarketTif || 'GTC';
+          tif.value = 'IOC';
+          tif.disabled = true;
+          price.disabled = true;
+          if (priceField) priceField.style.display = 'none';
+        } else {
+          tif.disabled = false;
+          tif.value = lastNonMarketTif || 'GTC';
+          price.disabled = false;
+          if (priceField) priceField.style.display = '';
+        }
+        updateFundingModeHint();
+        updateVisibilityHint();
+        refreshPretradeChecklist().catch(() => {});
+      }
+
+      function updateVisibilityHint() {
+        updateFundingModeHint();
+      }
+
+      function isActivityAutoRefreshEnabled() {
+        return Boolean(document.getElementById('activityAuto')?.checked);
+      }
+
+      function updateWalletButtonState() {
+        const btn = document.getElementById('globalConnectWalletBtn');
+        if (!btn) return;
+        if (!walletConnected) {
+          btn.textContent = 'Connect Wallet';
+          btn.classList.remove('connected');
+          btn.disabled = false;
+          btn.title = '';
+          return;
+        }
+        const w = String(document.getElementById('ordWallet')?.value || '').trim();
+        btn.textContent = 'Wallet Connected';
+        btn.classList.add('connected');
+        btn.disabled = false;
+        btn.title = w || '';
+      }
+
+      async function connectWallet() {
+        const provider = window.mina;
+        if (!provider) throw new Error('No Mina wallet provider found in browser');
+        let accounts = [];
+        if (typeof provider.requestAccounts === 'function') {
+          accounts = await provider.requestAccounts();
+        } else if (typeof provider.request === 'function') {
+          const result = await provider.request({ method: 'mina_requestAccounts' });
+          accounts = Array.isArray(result) ? result : (result?.result || []);
+        } else {
+          throw new Error('Connected wallet provider does not support account requests');
+        }
+        const wallet = Array.isArray(accounts) ? accounts[0] : accounts;
+        if (!wallet || typeof wallet !== 'string') throw new Error('Wallet did not return an address');
+
+        const targets = ['ordWallet', 'activityWallet', 'chainWallet', 'noteWallet'];
+        for (const id of targets) {
+          const el = document.getElementById(id);
+          if (el) el.value = wallet;
+        }
+
+        await sdk.syncOnchainBalance({ wallet });
+        walletSyncTimes.set(wallet, Date.now());
+        walletConnected = true;
+        updateWalletButtonState();
+        updateOperatorPanelState();
+        setText('orderOut', { ok: true, connectedWallet: wallet, realFundsMode });
+        const activityView = document.getElementById('activityView');
+        if (activityView) activityView.value = 'your';
+        await refreshNoteAssetOptions();
+        await refreshNotesPortfolio();
+        await refreshPretradeChecklist();
+        await refreshActivity();
+      }
+
+      async function syncWalletIfNeeded(wallet, force = false) {
+        const w = String(wallet || '').trim();
+        if (!w) throw new Error('wallet is required');
+        const last = Number(walletSyncTimes.get(w) || 0);
+        const due = force || !last || (Date.now() - last > WALLET_SYNC_COOLDOWN_MS);
+        if (!due) return;
+        try {
+          await sdk.syncOnchainBalance({ wallet: w });
+          walletSyncTimes.set(w, Date.now());
+        } catch (error) {
+          throw error;
+        }
+      }
+
+      function populateMarketSelectors(markets) {
+        knownMarkets = Array.isArray(markets) ? markets : [];
+        if (!knownMarkets.length) return;
+        const selected = knownMarkets[0];
+
+        const targets = ['bookPair', 'chartPair', 'ordPair'];
+        for (const id of targets) {
+          const el = document.getElementById(id);
+          if (!el) continue;
+          el.innerHTML = '';
+          for (const market of knownMarkets) {
+            const opt = document.createElement('option');
+            opt.value = market.marketId;
+            opt.textContent = `${market.baseAsset}/${market.quoteAsset}`;
+            el.appendChild(opt);
+          }
+          el.value = selected.marketId;
+        }
+
+        document.getElementById('makerPair').value = selected.pair;
+        document.getElementById('ordMarketId').value = selected.marketId;
+        document.getElementById('makerMarketId').value = selected.marketId;
+        renderMarketVerify(selected);
+        updateOrderIntent(selected);
+        refreshNoteAssetOptions().catch(() => {});
+        refreshPretradeChecklist().catch(() => {});
+      }
+
+      async function cancelOpenOrder(orderId, cancelToken) {
+        if (!orderId || !cancelToken) throw new Error('cancel credentials missing');
+        const result = await sdk.cancelOrder(orderId, cancelToken);
+        if (document.getElementById('replaceOrderId').value.trim() === String(orderId)) {
+          clearReplaceOrderState();
+        }
+        setText('orderOut', result);
+        await refreshBook();
+        await refreshTrades();
+        await refreshActivity();
+        await refreshPretradeChecklist();
+      }
+
+      function renderGlobalTradeRows(trades) {
+        const root = document.getElementById('activityRows');
+        root.innerHTML = '';
+        if (!trades || trades.length === 0) {
+          const row = document.createElement('div');
+          row.className = 'activity-row';
+          row.innerHTML = `<div>-</div><div>No global trades</div><div>-</div><div>-</div><div>-</div><div>-</div><div>Submit orders to populate history.</div>`;
+          root.appendChild(row);
+          return;
+        }
+        for (const t of trades) {
+          const row = document.createElement('div');
+          row.className = 'activity-row';
+          row.innerHTML = `
+            <div class="mono">${fmtUtcTime(t.createdAtUnixMs)}</div>
+            <div>Trade</div>
+            <div class="mono">${t.pair || '-'}</div>
+            <div class="mono">-</div>
+            <div class="mono">${fmtDisplayNumber(t.price)}</div>
+            <div class="mono">${fmtDisplayNumber(t.quantity)}</div>
+            <div class="mono">${shortHash(t.buyCommitment)} / ${shortHash(t.sellCommitment)}</div>
+          `;
+          root.appendChild(row);
+        }
+      }
+
+      function prefillOrderFromBookLevel(level, side) {
+        const marketId = document.getElementById('bookPair')?.value || '';
+        const market = getMarketById(marketId);
+        if (!market || !level) return;
+        const tradeSide = side === 'buy' ? 'SELL' : 'BUY';
+        const quantity = Number(level.size || 0);
+        const price = Number(level.price || 0);
+
+        document.getElementById('bookPair').value = market.marketId;
+        document.getElementById('chartPair').value = market.marketId;
+        document.getElementById('ordPair').value = market.marketId;
+        document.getElementById('ordMarketId').value = market.marketId;
+        document.getElementById('ordType').value = 'LIMIT';
+        if (lastNonMarketTif === 'IOC') lastNonMarketTif = 'GTC';
+        document.getElementById('ordTif').value = lastNonMarketTif || 'GTC';
+        document.getElementById('ordQty').value = quantity > 0 ? fmtDisplayNumber(quantity) : document.getElementById('ordQty').value;
+        document.getElementById('ordPrice').value = price > 0 ? fmtDisplayNumber(price) : document.getElementById('ordPrice').value;
+        clearReplaceOrderState();
+        updateOrderTypeUi();
+        renderMarketVerify(market);
+        updateOrderIntent(market);
+        updateBookPrefillActionUi(tradeSide);
+        setText('orderOut', {
+          ok: true,
+          action: 'book_level_prefilled',
+          selectedSide: side === 'buy' ? 'bid' : 'ask',
+          orderEntrySide: tradeSide,
+          pair: market.pair,
+          limitPrice: price > 0 ? price : null,
+          quantity: quantity > 0 ? quantity : null,
+          message: `Prefilled a ${tradeSide} LIMIT order from the ${side === 'buy' ? 'bid' : 'ask'} level. You can submit as-is or edit it before signing.`
+        });
+        refreshPretradeChecklist().catch(() => {});
+      }
+
+      function renderBookRows(targetId, rows, side) {
+        const root = document.getElementById(targetId);
+        root.innerHTML = '';
+        if (!rows || rows.length === 0) {
+          const empty = document.createElement('div');
+          empty.className = 'book-empty';
+          empty.textContent = 'No levels';
+          root.appendChild(empty);
+          return;
+        }
+        for (const level of rows) {
+          const row = document.createElement('div');
+          row.className = 'book-row';
+          row.innerHTML = `
+            <div class="mono ${side === 'buy' ? 'green' : 'red'}">${fmtDisplayNumber(level.price)}</div>
+            <div class="mono">${fmtDisplayNumber(level.size)}</div>
+          `;
+          row.title = side === 'buy'
+            ? 'Click to prefill a SELL limit order against this bid'
+            : 'Click to prefill a BUY limit order against this ask';
+          row.onclick = () => prefillOrderFromBookLevel(level, side);
+          root.appendChild(row);
+        }
+      }
+
+      function fmtNum(v, digits = 4) {
+        return fmtDisplayNumber(v);
+      }
+
+      function collapseActivityEvents(events) {
+        const collapsed = [];
+        const selfFillByTradeId = new Map();
+        for (const ev of Array.isArray(events) ? events : []) {
+          if (ev?.type === 'trade_fill') {
+            const tradeId = String(ev?.details?.tradeId || '').trim();
+            const side = String(ev?.details?.side || '').trim().toUpperCase();
+            if (tradeId && (side === 'BUY' || side === 'SELL')) {
+              const existingIndex = selfFillByTradeId.get(tradeId);
+              if (existingIndex !== undefined) {
+                const existing = collapsed[existingIndex];
+                const existingSide = String(existing?.details?.side || '').trim().toUpperCase();
+                const preferredSide =
+                  String(ev?.details?.initiatorSide || existing?.details?.initiatorSide || existingSide || side)
+                    .trim()
+                    .toUpperCase();
+                if ((existingSide === 'BUY' && side === 'SELL') || (existingSide === 'SELL' && side === 'BUY')) {
+                  collapsed[existingIndex] = {
+                    ...existing,
+                    details: {
+                      ...(existing.details || {}),
+                      side: preferredSide === 'SELL' ? 'SELL' : 'BUY',
+                      selfMatched: true,
+                      initiatorSide: preferredSide
+                    }
+                  };
+                  selfFillByTradeId.delete(tradeId);
+                  continue;
+                }
+              } else {
+                selfFillByTradeId.set(tradeId, collapsed.length);
+              }
+            }
+          }
+          collapsed.push(ev);
+        }
+        return collapsed;
+      }
+
+      function renderActivity(events, openOrders) {
+        const root = document.getElementById('activityRows');
+        root.innerHTML = '';
+        const collapsedEvents = collapseActivityEvents(events);
+        const activeOrders = Array.isArray(openOrders) ? openOrders : [];
+        if ((!collapsedEvents || collapsedEvents.length === 0) && activeOrders.length === 0) {
+          const row = document.createElement('div');
+          row.className = 'activity-row';
+          row.innerHTML = `<div>-</div><div>No activity</div><div>-</div><div>-</div><div>-</div><div>-</div><div>Submit orders to populate history.</div>`;
+          root.appendChild(row);
+          return;
+        }
+        for (const order of activeOrders) {
+          const row = document.createElement('div');
+          row.className = 'activity-row';
+          const sequencingLabel = order.sequenceNumber ? `Seq ${order.sequenceNumber}` : 'Open';
+          row.innerHTML = `
+            <div class="mono">${fmtUtcTime(order.createdAtUnixMs)}</div>
+            <div>Open Order</div>
+            <div class="mono">${order.pair || '-'}</div>
+            <div class="mono">${order.side || '-'}</div>
+            <div class="mono">${fmtNum(order.limitPrice, 4)}</div>
+            <div class="mono">${fmtNum(order.remaining, 6)}</div>
+            <div class="mono">${sequencingLabel} · ${(order.visibility || 'public').toUpperCase()} · ${(order.timeInForce || 'GTC')} · ${order.sequencingReceiptHash ? shortHash(order.sequencingReceiptHash) : 'no-seq'} <button type="button" class="ghost replace-open-order" data-order='${JSON.stringify(order).replace(/'/g, '&apos;')}' style="width:auto;padding:3px 8px;margin-left:8px;">Edit</button><button type="button" class="ghost cancel-open-order" data-order-id="${order.id}" data-cancel-token="${order.cancelToken}" style="width:auto;padding:3px 8px;margin-left:8px;">Cancel</button></div>
+          `;
+          root.appendChild(row);
+        }
+        for (const ev of collapsedEvents) {
+          const row = document.createElement('div');
+          row.className = 'activity-row';
+          const d = ev.details || {};
+          const actionMap = {
+            order_submitted: 'Order',
+            trade_fill: 'Fill',
+            order_canceled: 'Cancel',
+            balance_synced_onchain: 'Sync',
+            balance_funded: 'Fund',
+            note_issued: 'Note Out',
+            note_spent_for_order: 'Note Spend',
+            note_redeemed: 'Note In',
+            note_withdrawn: 'Withdraw'
+          };
+          const action = actionMap[ev.type] || ev.type;
+          const marketOrAsset = d.pair || d.asset || '-';
+          const side = d.side || '-';
+          const price = d.price ?? d.limitPrice ?? null;
+          const qty = d.quantity ?? d.amount ?? null;
+          let note = '-';
+          if (ev.type === 'order_submitted') note = `${d.orderType || 'LIMIT'} ${d.tif || ''} ${d.sequenceNumber ? `· SEQ ${d.sequenceNumber}` : ''}`.trim();
+          else if (ev.type === 'trade_fill') {
+            note = d.tradeId ? shortHash(d.tradeId) : 'matched';
+            if (d.selfMatched) note += ' · self-match';
+          }
+          else if (ev.type === 'order_canceled') note = d.orderId ? shortHash(d.orderId) : 'canceled';
+          else if (ev.type === 'balance_synced_onchain') note = d.wallet ? shortHash(d.wallet) : 'synced';
+          else if (ev.type === 'note_withdrawn') note = d.recipient ? shortHash(d.recipient) : 'withdrawn';
+          else if (ev.type === 'note_issued') note = d.reason || 'issued';
+          else if (ev.type === 'note_spent_for_order') note = d.orderId ? shortHash(d.orderId) : 'consumed';
+          else if (ev.type === 'note_redeemed') note = 'redeemed';
+          else if (ev.type === 'balance_funded') note = 'manual';
+          else if (ev.type === 'settlement_batch_enqueued' || ev.type === 'settlement_batch_appended') {
+            note = [d.batchId ? `B${d.batchId}` : null, d.privateStateTransitionHash ? shortHash(d.privateStateTransitionHash) : null].filter(Boolean).join(' · ') || '-';
+          }
+          row.innerHTML = `
+            <div class="mono">${fmtUtcTime(ev.createdAtUnixMs)}</div>
+            <div>${action}</div>
+            <div class="mono">${marketOrAsset}</div>
+            <div class="mono">${side}</div>
+            <div class="mono">${price === null ? '-' : fmtNum(price, 4)}</div>
+            <div class="mono">${qty === null ? '-' : fmtNum(qty, 6)}</div>
+            <div class="mono">${note}</div>
+          `;
+          root.appendChild(row);
+        }
+        for (const btn of root.querySelectorAll('.cancel-open-order')) {
+          btn.onclick = async () => {
+            try {
+              btn.disabled = true;
+              await cancelOpenOrder(btn.dataset.orderId, btn.dataset.cancelToken);
+            } catch (e) {
+              setText('orderOut', String(e?.message || e));
+            } finally {
+              btn.disabled = false;
+            }
+          };
+        }
+        for (const btn of root.querySelectorAll('.replace-open-order')) {
+          btn.onclick = () => {
+            try {
+              const raw = btn.getAttribute('data-order') || '{}';
+              const order = JSON.parse(raw.replace(/&apos;/g, "'"));
+              loadOrderIntoEntry(order);
+            } catch (e) {
+              setText('orderOut', String(e?.message || e));
+            }
+          };
+        }
+      }
+
+      function clearReplaceOrderState() {
+        document.getElementById('replaceOrderId').value = '';
+        document.getElementById('replaceOrderToken').value = '';
+        document.getElementById('replaceOrderSide').value = '';
+        const hint = document.getElementById('replaceOrderHint');
+        if (hint) {
+          hint.style.display = 'none';
+          hint.textContent = '';
+        }
+      }
+
+      function loadOrderIntoEntry(order) {
+        if (!order || !order.id) throw new Error('open order payload is invalid');
+        updateBookPrefillActionUi('');
+        const market = getMarketById(order.marketId) || knownMarkets.find((m) => m.pair === order.pair) || null;
+        if (market) {
+          document.getElementById('ordPair').value = market.marketId;
+          document.getElementById('bookPair').value = market.marketId;
+          document.getElementById('chartPair').value = market.marketId;
+          document.getElementById('ordMarketId').value = market.marketId;
+          renderMarketVerify(market);
+          updateOrderIntent(market);
+        }
+        document.getElementById('ordType').value = order.orderType || 'LIMIT';
+        document.getElementById('ordQty').value = fmtDisplayNumber(order.remaining || order.quantity || 0);
+        document.getElementById('ordPrice').value = Number(order.limitPrice || 0) > 0 ? fmtDisplayNumber(order.limitPrice) : document.getElementById('ordPrice').value;
+        document.getElementById('ordVisibility').value = (order.visibility || 'public') === 'private' ? 'private' : 'public';
+        lastNonMarketTif = order.timeInForce || 'GTC';
+        document.getElementById('replaceOrderId').value = order.id;
+        document.getElementById('replaceOrderToken').value = order.cancelToken || '';
+        document.getElementById('replaceOrderSide').value = order.side || '';
+        const hint = document.getElementById('replaceOrderHint');
+        if (hint) {
+          hint.style.display = '';
+          hint.textContent =
+            `Editing open ${order.side || '-'} ${order.orderType || 'LIMIT'} order ${shortHash(order.id)}. ` +
+            `Next ${order.side || ''} submit will replace it.`;
+        }
+        updateOrderTypeUi();
+        updateVisibilityHint();
+        refreshPretradeChecklist().catch(() => {});
+      }
+
+      function ensureTradeChart() {
+        if (chartApi) return;
+        const host = document.getElementById('tapeChart');
+        if (!host) return;
+        if (!window.LightweightCharts) {
+          host.innerHTML = '<div class="book-empty">Chart library failed to load. Hard refresh once.</div>';
+          return;
+        }
+        try {
+          chartApi = window.LightweightCharts.createChart(host, {
+            autoSize: true,
+            layout: {
+              background: { color: '#08121c' },
+              textColor: '#93abc2',
+              fontFamily: '"IBM Plex Sans", "Söhne", "Inter", sans-serif'
+            },
+            grid: {
+              vertLines: { color: 'rgba(31, 51, 70, 0.74)' },
+              horzLines: { color: 'rgba(31, 51, 70, 0.74)' }
+            },
+            timeScale: {
+              timeVisible: true,
+              secondsVisible: false,
+              rightOffset: 8,
+              borderColor: '#1c3449',
+              barSpacing: 10,
+              minBarSpacing: 6
+            },
+            leftPriceScale: {
+              visible: true,
+              borderColor: '#1c3449',
+              scaleMargins: { top: 0.08, bottom: 0.28 }
+            },
+            rightPriceScale: {
+              visible: true,
+              borderColor: '#1c3449',
+              scaleMargins: { top: 0.08, bottom: 0.28 }
+            },
+            crosshair: {
+              mode: window.LightweightCharts.CrosshairMode.Normal
+            },
+            handleScroll: true,
+            handleScale: true
+          });
+          const candleOptions = {
+            upColor: '#21c8c0',
+            downColor: '#ff5f6d',
+            borderVisible: false,
+            wickUpColor: '#21c8c0',
+            wickDownColor: '#ff5f6d',
+            priceLineVisible: true,
+            lastValueVisible: true
+          };
+          const volumeOptions = {
+            priceFormat: { type: 'volume' },
+            priceScaleId: '',
+            color: 'rgba(78, 199, 255, 0.45)',
+            lastValueVisible: false
+          };
+          if (typeof chartApi.addCandlestickSeries === 'function') {
+            candleSeries = chartApi.addCandlestickSeries(candleOptions);
+          } else if (typeof chartApi.addSeries === 'function' && window.LightweightCharts.CandlestickSeries) {
+            candleSeries = chartApi.addSeries(window.LightweightCharts.CandlestickSeries, candleOptions);
+          } else {
+            throw new Error('candlestick series API unavailable');
+          }
+          if (typeof chartApi.addHistogramSeries === 'function') {
+            volumeSeries = chartApi.addHistogramSeries(volumeOptions);
+          } else if (typeof chartApi.addSeries === 'function' && window.LightweightCharts.HistogramSeries) {
+            volumeSeries = chartApi.addSeries(window.LightweightCharts.HistogramSeries, volumeOptions);
+          } else {
+            throw new Error('histogram series API unavailable');
+          }
+          if (volumeSeries?.priceScale) {
+            volumeSeries.priceScale().applyOptions({
+              scaleMargins: { top: 0.82, bottom: 0.02 }
+            });
+          }
+          host.dataset.chartStatus = 'ready';
+        } catch (error) {
+          chartApi = null;
+          candleSeries = null;
+          volumeSeries = null;
+          host.innerHTML = `<div class="book-empty">Chart init failed: ${String(error && error.message ? error.message : error)}</div>`;
+          return;
+        }
+        if (!chartResizeBound) {
+          window.addEventListener('resize', () => {
+            if (chartApi) chartApi.timeScale().fitContent();
+          });
+          chartResizeBound = true;
+        }
+      }
+
+      function teardownTradeChart() {
+        if (chartApi && typeof chartApi.remove === 'function') {
+          try { chartApi.remove(); } catch (_) {}
+        }
+        chartApi = null;
+        candleSeries = null;
+        volumeSeries = null;
+      }
+
+      function updateChartHero(candles, trades, market) {
+        const rows = Array.isArray(candles) ? candles : [];
+        const last = rows.length ? rows[rows.length - 1] : null;
+        const first = rows.length ? rows[0] : null;
+        const lastPrice = Number(last?.close || 0);
+        const firstPrice = Number(first?.open || 0);
+        const change = lastPrice > 0 && firstPrice > 0 ? lastPrice - firstPrice : 0;
+        const changePct = lastPrice > 0 && firstPrice > 0 ? (change / firstPrice) * 100 : 0;
+        const volume = rows.reduce((sum, row) => sum + Number(row.volume || 0), 0);
+        const lastTrade = Array.isArray(trades) && trades.length ? trades[0] : null;
+        document.getElementById('chartHeroVenue').textContent = market?.marketId
+          ? `${market.marketId} · Last print ${lastTrade?.createdAtUnixMs ? fmtUtcTime(lastTrade.createdAtUnixMs) : 'UTC pending'}`
+          : 'ShadowBook market';
+        document.getElementById('chartHeroPrice').textContent = last ? fmtDisplayNumber(last.close) : '-';
+        const changeNode = document.getElementById('chartHeroChange');
+        if (changeNode) {
+          changeNode.textContent = last
+            ? `${change >= 0 ? '+' : ''}${fmtDisplayNumber(change)} / ${changePct >= 0 ? '+' : ''}${fmtDisplayNumber(changePct)}%`
+            : '-';
+          changeNode.style.color = change >= 0 ? '#21c8c0' : '#ff6b7f';
+        }
+        document.getElementById('chartHeroVolume').textContent = volume > 0 ? fmtDisplayNumber(volume) : '-';
+        document.getElementById('chartHeroTime').textContent = lastTrade?.createdAtUnixMs ? fmtUtcTime(lastTrade.createdAtUnixMs) : '-';
+      }
+
+      function updateChartLegend(candles, trades, market) {
+        const rows = Array.isArray(candles) ? candles : [];
+        const last = rows.length ? rows[rows.length - 1] : null;
+        const legendMain = document.getElementById('chartLegendMain');
+        const legendValues = document.getElementById('chartLegendValues');
+        if (!legendMain || !legendValues) return;
+        if (!last) {
+          legendMain.innerHTML = '<span class="swatch"></span><span class="mono">No public fills yet.</span>';
+          legendValues.innerHTML = '';
+          return;
+        }
+        const intervalLabel = ({ 60: '1m', 300: '5m', 900: '15m', 3600: '1h' })[Number(document.getElementById('chartInterval')?.value || 60)] || '1m';
+        legendMain.innerHTML =
+          `<span class="swatch"></span>` +
+          `<span>${market?.pair || '-'} · ${intervalLabel} · ShadowBook</span>`;
+        const delta = Number(last.close || 0) - Number(last.open || 0);
+        const deltaPct = Number(last.open || 0) > 0 ? (delta / Number(last.open || 0)) * 100 : 0;
+        legendValues.innerHTML = [
+          `<span>O <strong>${fmtDisplayNumber(last.open)}</strong></span>`,
+          `<span>H <strong class="up">${fmtDisplayNumber(last.high)}</strong></span>`,
+          `<span>L <strong class="down">${fmtDisplayNumber(last.low)}</strong></span>`,
+          `<span>C <strong>${fmtDisplayNumber(last.close)}</strong></span>`,
+          `<span class="${delta >= 0 ? 'up' : 'down'}">${delta >= 0 ? '+' : ''}${fmtDisplayNumber(delta)} (${deltaPct >= 0 ? '+' : ''}${fmtDisplayNumber(deltaPct)}%)</span>`
+        ].join('');
+      }
+
+      function getChartZoomPercent() {
+        const slider = document.getElementById('chartZoomSlider');
+        return Math.max(25, Math.min(100, Number(slider?.value || 100)));
+      }
+
+      function computeVisibleCandleCount(totalCount) {
+        const total = Math.max(1, Number(totalCount || 0));
+        const zoomPct = getChartZoomPercent();
+        return Math.max(12, Math.min(total, Math.ceil(total * (zoomPct / 100))));
+      }
+
+      function updateChartZoomLabel(totalCount, visibleCount) {
+        const label = document.getElementById('chartZoomValue');
+        if (!label) return;
+        const total = Math.max(0, Number(totalCount || 0));
+        const visible = Math.max(0, Number(visibleCount || 0));
+        if (!total) {
+          label.textContent = 'Showing full chart';
+          return;
+        }
+        label.textContent = visible >= total
+          ? `Showing all ${total} candles`
+          : `Showing last ${visible} of ${total} candles`;
+      }
+
+      function applyChartSeries(candles, trades, market) {
+        ensureTradeChart();
+        if (!chartApi || !candleSeries || !volumeSeries) return false;
+        const rows = Array.isArray(candles) ? candles : [];
+        if (!rows.length) return false;
+        candleSeries.setData(rows.map((row) => ({
+          time: Number(row.time || 0),
+          open: Number(row.open || 0),
+          high: Number(row.high || 0),
+          low: Number(row.low || 0),
+          close: Number(row.close || 0)
+        })));
+        volumeSeries.setData(rows.map((row) => {
+          const open = Number(row.open || 0);
+          const close = Number(row.close || 0);
+          return {
+            time: Number(row.time || 0),
+            value: Number(row.volume || 0),
+            color: close >= open ? 'rgba(33, 200, 192, 0.45)' : 'rgba(255, 95, 109, 0.45)'
+          };
+        }));
+        const visibleCount = computeVisibleCandleCount(rows.length);
+        const from = Math.max(0, rows.length - visibleCount);
+        const to = rows.length - 1;
+        if (chartApi.timeScale && typeof chartApi.timeScale().setVisibleLogicalRange === 'function') {
+          chartApi.timeScale().setVisibleLogicalRange({ from, to });
+        } else {
+          chartApi.timeScale().fitContent();
+        }
+        updateChartZoomLabel(rows.length, visibleCount);
+        updateChartHero(rows, trades, market);
+        updateChartLegend(rows, trades, market);
+        return true;
+      }
+
+      function drawTapeChart(candles, trades, market) {
+        const host = document.getElementById('tapeChart');
+        if (!host) return;
+        const rows = Array.isArray(candles) ? candles : [];
+        if (!rows.length) {
+          host.innerHTML = '<div class="book-empty">No public fills yet.</div>';
+          return;
+        }
+        const width = Math.max(260, Math.floor(host.clientWidth || 260));
+        const height = Math.max(320, Math.floor(host.clientHeight || 320));
+        const visibleCount = computeVisibleCandleCount(rows.length);
+        const visibleRows = rows.slice(-visibleCount);
+        const pad = { top: 14, right: 64, bottom: 42, left: 64 };
+        const volumeHeight = 72;
+        const priceBottom = height - volumeHeight - 22;
+        const priceHeight = Math.max(120, priceBottom - pad.top);
+        const volumeTop = priceBottom + 18;
+        const usableWidth = Math.max(120, width - pad.left - pad.right);
+        const candleWidth = Math.max(4, Math.min(16, usableWidth / Math.max(1, visibleRows.length) * 0.58));
+        const highs = visibleRows.map((c) => Number(c.high || 0)).filter((n) => n > 0);
+        const lows = visibleRows.map((c) => Number(c.low || 0)).filter((n) => n > 0);
+        const maxPriceRaw = highs.length ? Math.max(...highs) : 1;
+        const minPriceRaw = lows.length ? Math.min(...lows) : 0;
+        const priceSpan = Math.max(0.000001, maxPriceRaw - minPriceRaw);
+        const maxPrice = maxPriceRaw + priceSpan * 0.08;
+        const minPrice = Math.max(0, minPriceRaw - priceSpan * 0.08);
+        const scaledSpan = Math.max(0.000001, maxPrice - minPrice);
+        const maxVolume = Math.max(1, ...visibleRows.map((c) => Number(c.volume || 0)));
+        const xForIndex = (index) => pad.left + (usableWidth / Math.max(1, visibleRows.length)) * (index + 0.5);
+        const yForPrice = (price) => pad.top + ((maxPrice - Number(price || 0)) / scaledSpan) * priceHeight;
+        const yForVolume = (volume) => volumeTop + (1 - Number(volume || 0) / maxVolume) * (volumeHeight - 10);
+        const visibleStartMs = Number(visibleRows[0]?.time || 0) * 1000;
+        const visibleEndMs = Number(visibleRows[visibleRows.length - 1]?.time || 0) * 1000 + Number(document.getElementById('chartInterval')?.value || 60) * 1000;
+        const xForTimestamp = (tsMs) => {
+          const span = Math.max(1, visibleEndMs - visibleStartMs);
+          const pct = Math.max(0, Math.min(1, (Number(tsMs || 0) - visibleStartMs) / span));
+          return pad.left + pct * usableWidth;
+        };
+
+        const grid = [];
+        const labels = [];
+        for (let i = 0; i <= 4; i += 1) {
+          const y = pad.top + (priceHeight / 4) * i;
+          const price = maxPrice - (scaledSpan / 4) * i;
+          grid.push(`<line x1="${pad.left}" y1="${y.toFixed(2)}" x2="${(width - pad.right).toFixed(2)}" y2="${y.toFixed(2)}" stroke="#17324a" stroke-width="1" />`);
+          labels.push(
+            `<text x="${(pad.left - 8).toFixed(2)}" y="${(y + 4).toFixed(2)}" text-anchor="end" fill="#8ba5bf" font-size="10" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">${fmtDisplayNumber(price)}</text>` +
+            `<text x="${(width - pad.right + 8).toFixed(2)}" y="${(y + 4).toFixed(2)}" fill="#8ba5bf" font-size="10" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">${fmtDisplayNumber(price)}</text>`
+          );
+        }
+        grid.push(`<line x1="${pad.left}" y1="${pad.top}" x2="${pad.left}" y2="${(priceBottom + 1).toFixed(2)}" stroke="#214056" stroke-width="1" />`);
+        grid.push(`<line x1="${(width - pad.right).toFixed(2)}" y1="${pad.top}" x2="${(width - pad.right).toFixed(2)}" y2="${(priceBottom + 1).toFixed(2)}" stroke="#214056" stroke-width="1" />`);
+
+        const depthBands = Array.isArray(market?.depthBands?.bands) ? market.depthBands.bands : [];
+        const mid = Number(market?.indicativeMid || 0);
+        const bandOverlays = [];
+        if (mid > 0 && depthBands.length) {
+          const orderedBands = [...depthBands].sort((a, b) => Number(b.pct || 0) - Number(a.pct || 0));
+          for (const band of orderedBands) {
+            const pct = Number(band.pct || 0);
+            if (!(pct > 0)) continue;
+            const buyTop = yForPrice(mid);
+            const buyBottom = yForPrice(mid * (1 - pct));
+            const sellTop = yForPrice(mid * (1 + pct));
+            const sellBottom = yForPrice(mid);
+            const labelY = Math.max(pad.top + 12, Math.min(priceBottom - 6, (sellTop + sellBottom) / 2));
+            bandOverlays.push(
+              `<rect x="${pad.left}" y="${sellTop.toFixed(2)}" width="${usableWidth.toFixed(2)}" height="${Math.max(0, sellBottom - sellTop).toFixed(2)}" fill="#ff5d7a" fill-opacity="${pct >= 0.05 ? '0.05' : '0.09'}" />` +
+              `<rect x="${pad.left}" y="${buyTop.toFixed(2)}" width="${usableWidth.toFixed(2)}" height="${Math.max(0, buyBottom - buyTop).toFixed(2)}" fill="#27d7a1" fill-opacity="${pct >= 0.05 ? '0.04' : '0.08'}" />` +
+              `<text x="${(pad.left + 8).toFixed(2)}" y="${labelY.toFixed(2)}" fill="#6f8ca9" font-size="10" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">Depth ${Math.round(pct * 100)}%</text>`
+            );
+          }
+          bandOverlays.push(
+            `<line x1="${pad.left}" y1="${yForPrice(mid).toFixed(2)}" x2="${(width - pad.right).toFixed(2)}" y2="${yForPrice(mid).toFixed(2)}" stroke="#3aa7ff" stroke-width="1" stroke-dasharray="4 4" opacity="0.7" />`
+          );
+        }
+
+        const volumeBars = [];
+        const candleMarks = [];
+        const closeLine = [];
+        visibleRows.forEach((candle, index) => {
+          const x = xForIndex(index);
+          const open = Number(candle.open || 0);
+          const high = Number(candle.high || 0);
+          const low = Number(candle.low || 0);
+          const close = Number(candle.close || 0);
+          const volume = Number(candle.volume || 0);
+          const color = close >= open ? '#2cd889' : '#ff6b7f';
+          const yOpen = yForPrice(open);
+          const yClose = yForPrice(close);
+          const yHigh = yForPrice(high);
+          const yLow = yForPrice(low);
+          const bodyTop = Math.min(yOpen, yClose);
+          const bodyHeight = Math.max(1.5, Math.abs(yClose - yOpen));
+          const barTop = yForVolume(volume);
+          const barHeight = Math.max(2, volumeTop + volumeHeight - 10 - barTop);
+          volumeBars.push(
+            `<rect x="${(x - candleWidth / 2).toFixed(2)}" y="${barTop.toFixed(2)}" width="${candleWidth.toFixed(2)}" height="${barHeight.toFixed(2)}" fill="${color}" fill-opacity="0.26" rx="1.5"><title>Volume ${fmtDisplayNumber(volume)}</title></rect>`
+          );
+          candleMarks.push(
+            `<line x1="${x.toFixed(2)}" y1="${yHigh.toFixed(2)}" x2="${x.toFixed(2)}" y2="${yLow.toFixed(2)}" stroke="${color}" stroke-width="1.4" />` +
+            `<rect x="${(x - candleWidth / 2).toFixed(2)}" y="${bodyTop.toFixed(2)}" width="${candleWidth.toFixed(2)}" height="${bodyHeight.toFixed(2)}" fill="${color}" rx="1.5"><title>${new Date(Number(candle.time || 0) * 1000).toISOString()} | O ${fmtDisplayNumber(open)} H ${fmtDisplayNumber(high)} L ${fmtDisplayNumber(low)} C ${fmtDisplayNumber(close)} V ${fmtDisplayNumber(volume)}</title></rect>`
+          );
+          closeLine.push(`${index === 0 ? 'M' : 'L'} ${x.toFixed(2)} ${yClose.toFixed(2)}`);
+        });
+
+        const timeLabels = [];
+        const labelCount = Math.max(2, Math.min(6, Math.floor(usableWidth / 92)));
+        const chosenLabelIdx = new Set();
+        for (let i = 0; i < labelCount; i += 1) {
+          const index = Math.min(visibleRows.length - 1, Math.round((visibleRows.length - 1) * (labelCount === 1 ? 1 : i / (labelCount - 1))));
+          if (chosenLabelIdx.has(index)) continue;
+          chosenLabelIdx.add(index);
+          const x = xForIndex(index);
+          const ts = Number(visibleRows[index].time || 0) * 1000;
+          const label = new Date(ts).toLocaleTimeString('en-US', {
+            hour12: false,
+            timeZone: 'UTC',
+            hour: '2-digit',
+            minute: '2-digit'
+          });
+          timeLabels.push(`<line x1="${x.toFixed(2)}" y1="${(priceBottom + 4).toFixed(2)}" x2="${x.toFixed(2)}" y2="${(priceBottom + 10).toFixed(2)}" stroke="#35516b" stroke-width="1" />`);
+          timeLabels.push(
+            `<text x="${x.toFixed(2)}" y="${(height - 10).toFixed(2)}" text-anchor="middle" fill="#7f93aa" font-size="10" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">${label}Z</text>`
+          );
+        }
+        const markerTrades = (Array.isArray(trades) ? trades : [])
+          .filter((trade) => {
+            const tsMs = Number(trade.createdAtUnixMs || 0);
+            const price = Number(trade.price || 0);
+            return tsMs >= visibleStartMs && tsMs <= visibleEndMs && price > 0;
+          })
+          .slice(0, 18);
+        const tradeMarkers = markerTrades.map((trade, index) => {
+          const x = xForTimestamp(Number(trade.createdAtUnixMs || 0));
+          const y = yForPrice(Number(trade.price || 0));
+          const isLatest = index === 0;
+          const qty = fmtDisplayNumber(trade.quantity || 0);
+          return (
+            `<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="${isLatest ? '4.5' : '3.2'}" fill="${isLatest ? '#ffd166' : '#4ec7ff'}" stroke="#08121c" stroke-width="1.3" opacity="${isLatest ? '1' : '0.88'}"><title>${new Date(Number(trade.createdAtUnixMs || 0)).toISOString()} | Price ${fmtDisplayNumber(trade.price || 0)} | Qty ${qty}</title></circle>` +
+            (isLatest
+              ? `<text x="${(x + 8).toFixed(2)}" y="${(y - 8).toFixed(2)}" fill="#ffd166" font-size="10" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">Last ${qty}</text>`
+              : '')
+          );
+        });
+
+        host.innerHTML = `
+          <svg viewBox="0 0 ${width} ${height}" width="100%" height="100%" preserveAspectRatio="none" aria-label="ShadowBook price chart">
+            <rect x="0" y="0" width="${width}" height="${height}" fill="#08121c"></rect>
+            ${grid.join('')}
+            ${bandOverlays.join('')}
+            <path d="${closeLine.join(' ')}" fill="none" stroke="#4ec7ff" stroke-width="1.4" opacity="0.55"></path>
+            ${volumeBars.join('')}
+            ${candleMarks.join('')}
+            ${tradeMarkers.join('')}
+            ${labels.join('')}
+            ${timeLabels.join('')}
+          </svg>
+        `;
+        updateChartZoomLabel(rows.length, visibleCount);
+      }
+
+      function renderCurrentChart(candles, trades, market) {
+        teardownTradeChart();
+        drawTapeChart(candles, trades, market);
+        updateChartHero(candles, trades, market);
+        updateChartLegend(candles, trades, market);
+        renderChartSummary(candles, trades, market);
+      }
+
+      function candlesFromTrades(trades, intervalSec, limit) {
+        const safeIntervalSec = Math.max(1, Number(intervalSec || 60));
+        const buckets = new Map();
+        for (const trade of Array.isArray(trades) ? trades : []) {
+          const tsMs = Number(trade.createdAtUnixMs || 0);
+          const price = Number(trade.price || 0);
+          const qty = Number(trade.quantity || 0);
+          if (!(tsMs > 0) || !(price > 0) || !(qty > 0)) continue;
+          const bucketSec = Math.floor(tsMs / 1000 / safeIntervalSec) * safeIntervalSec;
+          const existing = buckets.get(bucketSec);
+          if (!existing) {
+            buckets.set(bucketSec, {
+              time: bucketSec,
+              open: price,
+              high: price,
+              low: price,
+              close: price,
+              volume: qty,
+              trades: 1
+            });
+            continue;
+          }
+          existing.high = Math.max(existing.high, price);
+          existing.low = Math.min(existing.low, price);
+          existing.close = price;
+          existing.volume += qty;
+          existing.trades += 1;
+        }
+        return Array.from(buckets.values()).sort((a, b) => a.time - b.time).slice(-Math.max(10, Number(limit || 60)));
+      }
+
+      function renderChartSummary(candles, trades, market) {
+        const root = document.getElementById('chartStatusBar');
+        if (!root) return;
+        const rows = Array.isArray(candles) ? candles : [];
+        const last = rows.length ? rows[rows.length - 1] : null;
+        const highs = rows.map((c) => Number(c.high || 0)).filter((n) => n > 0);
+        const lows = rows.map((c) => Number(c.low || 0)).filter((n) => n > 0);
+        const high = highs.length ? Math.max(...highs) : null;
+        const low = lows.length ? Math.min(...lows) : null;
+        const volume = rows.reduce((sum, row) => sum + Number(row.volume || 0), 0);
+        const lastTrade = Array.isArray(trades) && trades.length ? trades[0] : null;
+        const pairLabel = market?.pair || '-';
+        const summary = [
+          { label: 'Market', value: pairLabel },
+          { label: 'Range', value: high !== null && low !== null ? `${fmtDisplayNumber(low)} - ${fmtDisplayNumber(high)}` : '-' },
+          { label: 'Volume', value: volume > 0 ? fmtDisplayNumber(volume) : '-' },
+          { label: 'Trades', value: String(Array.isArray(trades) ? trades.length : 0) },
+          { label: 'Public Tape', value: 'UTC prints after all fills', note: true },
+          { label: 'Last Print', value: lastTrade?.createdAtUnixMs ? fmtUtcTime(lastTrade.createdAtUnixMs) : 'UTC pending' }
+        ];
+        root.innerHTML = summary
+          .map((item) => `
+            <div class="chart-pill-stat${item.note ? ' note' : ''}">
+              <label>${item.label}</label>
+              <div class="value mono">${item.value}</div>
+            </div>
+          `)
+          .join('');
+      }
+
+      function setChartIntervalButtonState(intervalSec) {
+        for (const btn of Array.from(document.querySelectorAll('#chartIntervalButtons .seg-btn'))) {
+          btn.classList.toggle('active', String(btn.dataset.interval || '') === String(intervalSec || '60'));
+        }
+      }
+
+      function renderWithdrawHistory(events) {
+        const root = document.getElementById('withdrawHistory');
+        if (!root) return;
+        const withdrawals = Array.isArray(events) ? events : [];
+        if (!withdrawals.length) {
+          root.innerHTML = '<div class="withdraw-empty">Withdrawals will appear here after you redeem private collateral back to your wallet.</div>';
+          return;
+        }
+        root.innerHTML = withdrawals.slice(0, 5).map((ev) => {
+          const d = ev.details || {};
+          return `
+            <div class="withdraw-row">
+              <div class="mono">${fmtUtcTime(ev.createdAtUnixMs)}</div>
+              <div class="mono">${d.asset || '-'}</div>
+              <div class="mono">${fmtDisplayNumber(d.amount)}</div>
+              <div class="mono">${d.txHash ? shortHash(d.txHash) : '-'}</div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      async function refreshWithdrawPanel() {
+        const wallet = document.getElementById('noteWallet')?.value?.trim();
+        const asset = document.getElementById('noteAsset')?.value?.trim();
+        const summary = document.getElementById('withdrawSummary');
+        const status = document.getElementById('withdrawStatus');
+        if (!summary || !status) return;
+        const outstanding = latestNotesPortfolio?.outstandingByAsset || {};
+        const total = Number(outstanding[String(asset || '').toUpperCase()] || 0);
+        summary.textContent = asset ? `${asset}: ${fmtDisplayNumber(total)}` : 'Select an asset';
+        if (!wallet) {
+          status.textContent = 'Enter a wallet to view withdrawals';
+          renderWithdrawHistory([]);
+          return;
+        }
+        try {
+          const activity = await sdk.getActivity(wallet, 100);
+          const withdrawals = (activity.events || []).filter((ev) => ev.type === 'note_withdrawn');
+          const latest = withdrawals[0];
+          status.textContent = latest
+            ? `${latest.details?.asset || '-'} ${fmtDisplayNumber(latest.details?.amount)} at ${fmtUtcTime(latest.createdAtUnixMs)}`
+            : 'No withdrawals yet';
+          renderWithdrawHistory(withdrawals);
+        } catch (error) {
+          status.textContent = 'Unable to load withdrawals';
+          renderWithdrawHistory([]);
+        }
+      }
+
+      async function refreshTrades() {
+        const selectedMarketId = document.getElementById('chartPair').value;
+        const selectedMarket = getMarketById(selectedMarketId);
+        const maxPoints = 120;
+        const intervalSec = Math.max(1, Number(document.getElementById('chartInterval').value || 60));
+        setChartIntervalButtonState(intervalSec);
+        const candleData = await sdk.getCandles({ marketId: selectedMarketId, intervalSec, limit: maxPoints });
+        const data = await sdk.getTrades();
+        const trades = (data.trades || []).filter((t) => {
+          if (selectedMarketId && t.marketId) return t.marketId === selectedMarketId;
+          return selectedMarket ? t.pair === selectedMarket.pair : true;
+        });
+        const candles =
+          Array.isArray(candleData.candles) && candleData.candles.length
+            ? candleData.candles
+            : candlesFromTrades(trades, intervalSec, maxPoints);
+        latestChartCandles = candles;
+        latestChartTrades = trades;
+        latestChartMarket = selectedMarket;
+        renderCurrentChart(candles, trades, selectedMarket);
+        if ((document.getElementById('activityView')?.value || 'your') === 'global') {
+          renderGlobalTradeRows(trades);
+        }
+      }
+
+      async function refreshBook() {
+        const marketId = document.getElementById('bookPair').value;
+        const levels = Math.max(1, Number(document.getElementById('bookLevels').value || 20));
+        const data = await sdk.getBook({ marketId }, levels);
+        renderBookRows('askRows', data.depth?.asks || [], 'sell');
+        renderBookRows('bidRows', data.depth?.bids || [], 'buy');
+        const bestBid = Number(data.depth?.bids?.[0]?.price || 0);
+        const bestAsk = Number(data.depth?.asks?.[0]?.price || 0);
+        const ordMarketId = document.getElementById('ordMarketId').value;
+        const orderType = document.getElementById('ordType').value;
+        if (marketId && marketId === ordMarketId && orderType === 'LIMIT') {
+          const mid = bestBid > 0 && bestAsk > 0 ? (bestBid + bestAsk) / 2 : (bestBid || bestAsk || 0);
+          if (mid > 0) document.getElementById('ordPrice').value = fmtDisplayNumber(mid);
+        }
+        const market = getMarketById(marketId);
+        if (market) {
+          market.bestBid = data.depth?.bids?.[0]?.price ?? null;
+          market.bestAsk = data.depth?.asks?.[0]?.price ?? null;
+          market.indicativeMid =
+            market.bestBid !== null && market.bestAsk !== null
+              ? (Number(market.bestBid) + Number(market.bestAsk)) / 2
+              : market.bestBid ?? market.bestAsk ?? null;
+          market.depthBands = data.depth?.depthBands || market.depthBands || null;
+          renderMarketVerify(market);
+        }
+        await refreshPretradeChecklist();
+      }
+
+      async function refreshActivity() {
+        const view = document.getElementById('activityView')?.value || 'your';
+        if (view === 'global') {
+          await refreshTrades();
+          return;
+        }
+        const wallet = document.getElementById('activityWallet').value.trim();
+        const limit = Math.max(1, Number(document.getElementById('activityLimit').value || 150));
+        const data = await sdk.getActivity(wallet, limit);
+        renderActivity(data.events || [], data.openOrders || []);
+      }
+
+      async function refreshFeeStats() {
+        const frontendId = syncFrontendIdFromUi();
+        const data = await sdk.getFrontendFees(frontendId);
+        const stats = data.frontend || {};
+        setText('feeOut', {
+          frontendId,
+          tradeCount: stats.tradeCount || 0,
+          routedVolumeQuote: fmtDisplayNumber(stats.routedVolumeQuote || 0),
+          earningsByAsset: stats.earningsByAsset || {},
+          protocolFeeBalances: data.protocolFeeBalances || {},
+          feeConfig: data.config || {}
+        });
+      }
+
+      async function refreshOperatorPanel() {
+        const [status, settlementBatches] = await Promise.all([
+          sdk.getStatus(),
+          sdk.getSettlementBatches(20)
+        ]);
+        operatorPanelAllowedWallet = status?.server?.zkapp?.operatorPanelAllowedWallet || null;
+        operatorPanelAdminKeyConfigured = Boolean(status?.server?.zkapp?.operatorPanelAdminKeyConfigured);
+        updateOperatorPanelState();
+        const latestBatch = settlementBatches?.batches?.[0] || null;
+        const pendingBatch = (settlementBatches?.batches || []).find((batch) => batch && batch.status === 'pending') || null;
+        if (!hasOperatorPanelAccess()) {
+          setText('operatorOut', {
+            serverBuildId: status?.server?.buildId || null,
+            zkappPublicKey: status?.server?.zkapp?.zkappPublicKey || null,
+            operatorPublicKey: status?.server?.zkapp?.operatorPublicKey || null,
+            operatorPanelAllowedWallet: operatorPanelAllowedWallet || null,
+            operatorPanelAdminKeyConfigured,
+            nextPendingBatchId: status?.server?.zkapp?.nextPendingBatchId || null,
+            localIntegrity: {
+              openOrderBookHash: status?.integrity?.openOrderBookHash || null,
+              noteCommitmentRootHash: status?.integrity?.noteCommitmentRootHash || null,
+              spentNullifierRootHash: status?.integrity?.spentNullifierRootHash || null,
+              sequencingReceiptRootHash: status?.integrity?.sequencingReceiptRootHash || null
+            },
+            latestBatch: latestBatch
+              ? {
+                  batchId: latestBatch.batchId,
+                  batchType: latestBatch.batchType,
+                  status: latestBatch.status,
+                  txHash: latestBatch.txHash || null
+                }
+              : null,
+            pendingBatch: pendingBatch
+              ? {
+                  batchId: pendingBatch.batchId,
+                  batchType: pendingBatch.batchType,
+                  tradeCount: pendingBatch.tradeCount || 0
+                }
+              : null,
+            message: operatorPanelAdminKeyConfigured
+              ? 'Enter the operator admin key to run manual operator actions.'
+              : 'Connect the allowed deployer wallet to sign and run manual operator actions.'
+          });
+          return;
+        }
+        const adminKey = requireOperatorPanelAdminKey();
+        const [zkappState, merkleState] = await Promise.all([
+          sdk.getOperatorZkappState(adminKey).catch((error) => ({ ok: false, error: String(error?.message || error) })),
+          sdk.getPrivateStateMerkle(adminKey).catch((error) => ({ ok: false, error: String(error?.message || error) }))
+        ]);
+        setText('operatorOut', {
+          serverBuildId: status?.server?.buildId || null,
+          zkappPublicKey: status?.server?.zkapp?.zkappPublicKey || null,
+          nextPendingBatchId: status?.server?.zkapp?.nextPendingBatchId || null,
+          localIntegrity: {
+            openOrderBookHash: status?.integrity?.openOrderBookHash || null,
+            noteCommitmentRootHash: status?.integrity?.noteCommitmentRootHash || null,
+            spentNullifierRootHash: status?.integrity?.spentNullifierRootHash || null,
+            sequencingReceiptRootHash: status?.integrity?.sequencingReceiptRootHash || null
+          },
+          latestBatch: latestBatch
+            ? {
+                batchId: latestBatch.batchId,
+                batchType: latestBatch.batchType,
+                status: latestBatch.status,
+                txHash: latestBatch.txHash || null,
+                bookRootHash: latestBatch.bookRootHash || null,
+                noteRootHash: latestBatch.noteRootHash || null,
+                nullifierRootHash: latestBatch.nullifierRootHash || null,
+                sequencingRootHash: latestBatch.sequencingRootHash || null,
+                privateStateTransitionHash: latestBatch.privateStateTransitionHash || null
+              }
+            : null,
+          pendingBatch: pendingBatch
+            ? {
+                batchId: pendingBatch.batchId,
+                batchType: pendingBatch.batchType,
+                tradeCount: pendingBatch.tradeCount || 0,
+                privateStateTransitionHash: pendingBatch.privateStateTransitionHash || null
+              }
+            : null,
+          merkleState: merkleState?.ok ? merkleState?.merkle || null : null,
+          merkleStateError: merkleState?.ok === false ? merkleState.error || 'unable to inspect private state merkle snapshot' : null,
+          zkappState: zkappState?.zkappState || null,
+          zkappStateError: zkappState?.ok === false ? zkappState.error || 'unable to load zkapp state' : null
+        });
+      }
+
+      async function inspectPrivateStateMerkle() {
+        const result = await sdk.getPrivateStateMerkle(requireOperatorPanelAdminKey());
+        setText('operatorOut', result);
+      }
+
+      async function buildPrivateStateWitness() {
+        const result = await sdk.getPrivateStateWitness(requireOperatorPanelAdminKey());
+        setText('operatorOut', result);
+      }
+
+      async function proveNextPrivateState() {
+        const result = await sdk.provePrivateState(requireOperatorPanelAdminKey());
+        setText('operatorOut', result);
+      }
+
+      async function placeOrder(side) {
+        const frontendId = syncFrontendIdFromUi();
+        const marketId = document.getElementById('ordMarketId').value.trim();
+        const market = getMarketById(marketId);
+        if (!marketId || !market) throw new Error('market not selected');
+        const wallet = document.getElementById('ordWallet').value.trim();
+        if (!wallet) throw new Error('wallet is required');
+        const orderType = document.getElementById('ordType').value;
+        const quantity = Number(document.getElementById('ordQty').value);
+        const timeInForce = document.getElementById('ordTif').value;
+        const limitPrice = Number(document.getElementById('ordPrice').value);
+        const fundingNoteRaw = document.getElementById('ordFundingNote').value.trim();
+
+        await syncWalletIfNeeded(wallet, false);
+
+        const pretrade = await sdk.getPretradeChecklist({
+          wallet,
+          marketId,
+          side,
+          orderType,
+          quantity,
+          limitPrice: orderType === 'MARKET' ? null : Number(limitPrice)
+        });
+        const required = pretrade.required || {};
+        const requiredAsset = required.asset;
+        const requiredAmount = Number(required.amount || 0);
+        const parsedOverrideHashes = fundingNoteRaw ? parseOverrideNoteHashes(fundingNoteRaw) : [];
+        const sanitizedOverrideHashes = sanitizeOverrideNoteHashes(parsedOverrideHashes, requiredAsset);
+        const fundingNoteHashes = sanitizedOverrideHashes.length
+          ? sanitizedOverrideHashes
+          : autoSelectFundingNotes(requiredAsset, requiredAmount);
+        if (parsedOverrideHashes.length && !sanitizedOverrideHashes.length) {
+          document.getElementById('ordFundingNote').value = '';
+        }
+        const orderAuthorization = await createOrderAuthorization({
+          wallet,
+          market,
+          side,
+          orderType,
+          timeInForce,
+          limitPrice: Number(limitPrice),
+          quantity,
+          fundingNoteHashes,
+          frontendId
+        });
+
+        const payload = {
+          wallet,
+          marketId,
+          pair: market?.pair || document.getElementById('makerPair').value,
+          side,
+          orderType,
+          timeInForce,
+          limitPrice: orderType === 'MARKET' ? null : Number(limitPrice),
+          quantity,
+          fundingNoteHashes,
+          visibility: document.getElementById('ordVisibility')?.value === 'private' ? 'private' : 'public',
+          orderAuthorization,
+          frontendId
+        };
+        const replaceOrderId = document.getElementById('replaceOrderId').value.trim();
+        const replaceOrderToken = document.getElementById('replaceOrderToken').value.trim();
+        const replaceOrderSide = document.getElementById('replaceOrderSide').value.trim();
+        let result;
+        try {
+          if (replaceOrderId && replaceOrderToken && replaceOrderSide === side) {
+            result = await sdk.replaceOrder(replaceOrderId, {
+              ...payload,
+              cancelToken: replaceOrderToken
+            });
+          } else {
+            result = await sdk.placeOrder(payload);
+          }
+        } catch (error) {
+          const msg = String(error || '');
+          if (msg.includes('funding note already spent') && fundingNoteRaw) {
+            await refreshNotesPortfolio();
+            document.getElementById('ordFundingNote').value = '';
+            payload.fundingNoteHashes = autoSelectFundingNotes(requiredAsset, requiredAmount);
+            payload.orderAuthorization = await createOrderAuthorization({
+              wallet,
+              market,
+              side,
+              orderType,
+              timeInForce,
+              limitPrice: Number(limitPrice),
+              quantity,
+              fundingNoteHashes: payload.fundingNoteHashes,
+              frontendId
+            });
+            result = await sdk.placeOrder(payload);
+          } else if (realFundsMode && msg.includes('on-chain balances are stale')) {
+            await syncWalletIfNeeded(wallet, true);
+            result = await sdk.placeOrder(payload);
+          } else {
+            throw error;
+          }
+        }
+        setText('orderOut', result);
+        const effectiveOrder = result.replacementOrder || result.order || null;
+        if (effectiveOrder?.id) document.getElementById('inspectOrderId').value = effectiveOrder.id;
+        if (result.cancelToken) document.getElementById('inspectToken').value = result.cancelToken;
+        clearReplaceOrderState();
+        await refreshNotesPortfolio();
+        await refreshNoteAssetOptions();
+        await refreshTrades();
+        await refreshBook();
+        await refreshActivity();
+        await refreshFeeStats();
+        await refreshPretradeChecklist();
+      }
+
+      document.getElementById('placeBuy').onclick = async () => {
+        try {
+          document.getElementById('placeBuy').disabled = true;
+          await placeOrder('BUY');
+          updateBookPrefillActionUi('');
+        } catch (e) {
+          setText('orderOut', formatOrderError(e));
+        } finally {
+          document.getElementById('placeBuy').disabled = false;
+        }
+      };
+      document.getElementById('placeSell').onclick = async () => {
+        try {
+          document.getElementById('placeSell').disabled = true;
+          await placeOrder('SELL');
+          updateBookPrefillActionUi('');
+        } catch (e) {
+          setText('orderOut', formatOrderError(e));
+        } finally {
+          document.getElementById('placeSell').disabled = false;
+        }
+      };
+
+      document.getElementById('refreshTrades').onclick = async () => {
+        try { await refreshTrades(); } catch (e) { setText('orderOut', String(e)); }
+      };
+      document.getElementById('refreshBookBtn').onclick = async () => {
+        try { await refreshBook(); } catch (e) { setText('askRows', String(e)); setText('bidRows', String(e)); }
+      };
+      document.getElementById('bookPair').onchange = async () => {
+        const market = getMarketById(document.getElementById('bookPair').value);
+        if (market) {
+          updateBookPrefillActionUi('');
+          clearReplaceOrderState();
+          document.getElementById('chartPair').value = market.marketId;
+          document.getElementById('ordPair').value = market.marketId;
+          document.getElementById('makerPair').value = market.pair;
+          document.getElementById('ordMarketId').value = market.marketId;
+          document.getElementById('makerMarketId').value = market.marketId;
+          renderMarketVerify(market);
+          updateOrderIntent(market);
+        }
+        try {
+          await refreshBook();
+          await refreshTrades();
+        } catch (e) { console.error(e); }
+      };
+      document.getElementById('ordPair').onchange = async () => {
+        const market = getMarketById(document.getElementById('ordPair').value);
+        if (market) {
+          updateBookPrefillActionUi('');
+          clearReplaceOrderState();
+          document.getElementById('bookPair').value = market.marketId;
+          document.getElementById('chartPair').value = market.marketId;
+          document.getElementById('ordMarketId').value = market.marketId;
+          document.getElementById('makerMarketId').value = market.marketId;
+          document.getElementById('makerPair').value = market.pair;
+          renderMarketVerify(market);
+          updateOrderIntent(market);
+        }
+        try {
+          await refreshBook();
+          await refreshTrades();
+        } catch (e) {
+          console.error(e);
+        }
+      };
+      document.getElementById('chartPair').onchange = async () => {
+        const market = getMarketById(document.getElementById('chartPair').value);
+        if (market) {
+          updateBookPrefillActionUi('');
+          document.getElementById('bookPair').value = market.marketId;
+        }
+        try {
+          await refreshTrades();
+          await refreshBook();
+        } catch (e) { console.error(e); }
+      };
+      for (const btn of Array.from(document.querySelectorAll('#chartIntervalButtons .seg-btn'))) {
+        btn.onclick = async () => {
+          document.getElementById('chartInterval').value = btn.dataset.interval || '60';
+          setChartIntervalButtonState(btn.dataset.interval || '60');
+          try { await refreshTrades(); } catch (e) { console.error(e); }
+        };
+      }
+      document.getElementById('chartZoomSlider').oninput = () => {
+        updateChartZoomLabel(
+          Array.isArray(latestChartCandles) ? latestChartCandles.length : 0,
+          computeVisibleCandleCount(Array.isArray(latestChartCandles) ? latestChartCandles.length : 0)
+        );
+        if (latestChartCandles?.length) {
+          renderCurrentChart(latestChartCandles, latestChartTrades, latestChartMarket);
+        }
+      };
+      document.getElementById('ordType').onchange = () => {
+        updateBookPrefillActionUi('');
+        updateOrderTypeUi();
+      };
+      document.getElementById('ordVisibility').onchange = () => {
+        updateBookPrefillActionUi('');
+        updateVisibilityHint();
+      };
+      document.getElementById('activityView').onchange = () => { refreshActivity().catch(() => {}); };
+      document.getElementById('ordWallet').oninput = () => {
+        updateBookPrefillActionUi('');
+        clearReplaceOrderState();
+        refreshPretradeChecklist().catch(() => {});
+        updateOperatorPanelState();
+      };
+      document.getElementById('operatorAdminKey').oninput = () => {
+        updateOperatorPanelState();
+      };
+      document.getElementById('ordQty').oninput = () => {
+        updateBookPrefillActionUi('');
+        refreshPretradeChecklist().catch(() => {});
+      };
+      document.getElementById('ordPrice').oninput = () => {
+        updateBookPrefillActionUi('');
+        refreshPretradeChecklist().catch(() => {});
+      };
+      document.getElementById('ordTif').onchange = () => {
+        updateBookPrefillActionUi('');
+        if (document.getElementById('ordType').value !== 'MARKET') {
+          lastNonMarketTif = document.getElementById('ordTif').value || lastNonMarketTif || 'GTC';
+        }
+        refreshPretradeChecklist().catch(() => {});
+      };
+      document.getElementById('ordFundingNote').oninput = () => {
+        updateBookPrefillActionUi('');
+        refreshPretradeChecklist().catch(() => {});
+      };
+      document.getElementById('noteWallet').oninput = () => {
+        const noteWallet = document.getElementById('noteWallet').value.trim();
+        const chainWallet = document.getElementById('chainWallet');
+        if (chainWallet && !chainWallet.value.trim()) chainWallet.value = noteWallet;
+        refreshNoteAssetOptions().catch(() => {});
+        refreshNotesPortfolio().catch(() => {});
+        refreshWithdrawPanel().catch(() => {});
+      };
+      document.getElementById('noteAsset').onchange = () => {
+        updateSelectedNoteAssetMeta();
+        refreshWithdrawPanel().catch(() => {});
+      };
+      document.getElementById('globalConnectWalletBtn').onclick = async () => {
+        try { await connectWallet(); } catch (e) { setText('orderOut', String(e)); }
+      };
+
+      document.getElementById('inspectBtn').onclick = async () => {
+        try {
+          const id = document.getElementById('inspectOrderId').value.trim();
+          const token = document.getElementById('inspectToken').value.trim();
+          setText('inspectOut', await sdk.getOrder(id, token));
+        } catch (e) { setText('inspectOut', String(e)); }
+      };
+
+      document.getElementById('cancelBtn').onclick = async () => {
+        try {
+          const id = document.getElementById('inspectOrderId').value.trim();
+          const token = document.getElementById('inspectToken').value.trim();
+          const result = await sdk.cancelOrder(id, token);
+          setText('inspectOut', result);
+          await refreshTrades();
+          await refreshBook();
+          if (isActivityAutoRefreshEnabled()) await refreshActivity();
+          await refreshPretradeChecklist();
+        } catch (e) { setText('inspectOut', String(e)); }
+      };
+
+      document.getElementById('syncBtn').onclick = async () => {
+        try {
+          const wallet = document.getElementById('chainWallet').value.trim();
+          setText('notesPortfolioOut', 'Syncing on-chain balances and rebuilding wallet + private collateral view...');
+          await syncWalletContext(wallet);
+        } catch (e) { setText('notesPortfolioOut', String(e)); }
+      };
+
+      document.getElementById('mintNoteBtn').onclick = async () => {
+        try {
+          const selected = document.getElementById('noteAsset').selectedOptions?.[0];
+          const tokenId = selected?.getAttribute('data-token-id') || '';
+          const txHash = document.getElementById('noteDepositTxHash').value.trim();
+          if (requireOnchainDepositTx && !txHash) throw new Error('Deposit tx hash is required for note mint in real-funds mode');
+          const result = await sdk.deposit({
+            wallet: document.getElementById('noteWallet').value.trim(),
+            asset: document.getElementById('noteAsset').value.trim(),
+            tokenId,
+            amount: Number(document.getElementById('noteAmount').value || 0),
+            txHash
+          });
+          setText('vaultOut', result);
+          if (result.note?.note) {
+            document.getElementById('noteInput').value = result.note.note;
+          }
+          if (result.verifiedDepositTx?.txHash) document.getElementById('noteDepositTxHash').value = '';
+          await refreshNoteAssetOptions();
+          await refreshNotesPortfolio();
+          await refreshPretradeChecklist();
+          if (isActivityAutoRefreshEnabled()) await refreshActivity();
+        } catch (e) { setText('vaultOut', String(e)); }
+      };
+
+      document.getElementById('findDepositTxBtn').onclick = async () => {
+        try {
+          const selected = document.getElementById('noteAsset').selectedOptions?.[0];
+          const tokenId = selected?.getAttribute('data-token-id') || '';
+          const payload = {
+            wallet: document.getElementById('noteWallet').value.trim(),
+            asset: document.getElementById('noteAsset').value.trim(),
+            tokenId,
+            amount: Number(document.getElementById('noteAmount').value || 0)
+          };
+          const result = await sdk.findLatestDepositTx(payload);
+          if (result.txHash) document.getElementById('noteDepositTxHash').value = result.txHash;
+          setText('vaultOut', result);
+        } catch (e) { setText('vaultOut', String(e)); }
+      };
+
+      document.getElementById('sendDepositTxBtn').onclick = async () => {
+        const asset = String(document.getElementById('noteAsset')?.value || '').trim() || 'asset';
+        try {
+          setDepositBusyState(true, asset.toUpperCase() === 'TMINA' ? 'wallet' : 'building');
+          setText('vaultOut', {
+            ok: true,
+            pending: true,
+            message:
+              asset.toUpperCase() === 'TMINA'
+                ? `Preparing native ${asset} deposit request in wallet.`
+                : `Building ${asset} token deposit transaction. This can take a few seconds on first load.`,
+            asset
+          });
+          const result = await sendDepositTxWithWallet();
+          setDepositBusyState(true, 'confirming');
+          if (result.txHash) document.getElementById('noteDepositTxHash').value = result.txHash;
+          setText('vaultOut', {
+            ok: true,
+            message: result.txHash
+              ? 'Deposit tx signed and submitted. Waiting for on-chain inclusion before minting the privacy note.'
+              : 'Transfer request submitted in wallet. Waiting for tx hash before auto-mint.',
+            method: result.method,
+            txHash: result.txHash || null,
+            response: result.response
+          });
+          if (result.txHash) {
+            const minted = await autoMintNoteFromLatestDeposit({
+              txHash: result.txHash,
+              onProgress(progress) {
+                setDepositBusyState(true, progress?.phase === 'confirming' ? 'confirming' : 'minting');
+                setText('vaultOut', {
+                  ok: true,
+                  pending: true,
+                  message:
+                    progress?.phase === 'retrying'
+                      ? `Deposit tx submitted. Waiting for chain inclusion before note mint (${progress.attempt}/${progress.attempts}).`
+                      : `Deposit tx submitted. Confirming on-chain before note mint (${progress.attempt}/${progress.attempts}).`,
+                  txHash: progress?.txHash || result.txHash || null,
+                  asset: progress?.asset || asset,
+                  lastError: progress?.error || null
+                });
+              }
+            });
+            setText('vaultOut', {
+              ok: true,
+              message: 'Deposit confirmed and privacy note minted.',
+              depositTxHash: result.txHash,
+              note: minted.note,
+              verifiedDepositTx: minted.verifiedDepositTx || null,
+              participantBalances: minted.participantBalances || null
+            });
+          }
+        } catch (e) {
+          setText('vaultOut', String(e));
+        } finally {
+          setDepositBusyState(false);
+        }
+      };
+
+      document.getElementById('poolBtn').onclick = async () => {
+        try {
+          setText('vaultOut', await sdk.getVaultPool());
+        } catch (e) { setText('vaultOut', String(e)); }
+      };
+
+      function setWithdrawBusyState(isBusy) {
+        const primaryBtn = document.getElementById('withdrawNotesPrimaryBtn');
+        const advancedBtn = document.getElementById('withdrawNotesBtn');
+        if (primaryBtn) {
+          primaryBtn.disabled = Boolean(isBusy);
+          primaryBtn.textContent = isBusy ? 'Withdrawing...' : 'Withdraw Notes to Wallet';
+        }
+        if (advancedBtn) {
+          advancedBtn.disabled = Boolean(isBusy);
+          advancedBtn.textContent = isBusy ? 'Withdrawing...' : 'Withdraw Notes to Wallet';
+        }
+      }
+
+      function setDepositBusyState(isBusy, phase) {
+        const sendBtn = document.getElementById('sendDepositTxBtn');
+        if (!sendBtn) return;
+        if (!isBusy) {
+          sendBtn.disabled = false;
+          sendBtn.textContent = 'Deposit Funds & Mint Notes';
+          return;
+        }
+        sendBtn.disabled = true;
+        if (phase === 'building') {
+          sendBtn.textContent = 'Building Deposit...';
+          return;
+        }
+        if (phase === 'wallet') {
+          sendBtn.textContent = 'Awaiting Wallet...';
+          return;
+        }
+        if (phase === 'minting') {
+          sendBtn.textContent = 'Minting Notes...';
+          return;
+        }
+        if (phase === 'confirming') {
+          sendBtn.textContent = 'Confirming On-Chain...';
+          return;
+        }
+        sendBtn.textContent = 'Processing Deposit...';
+      }
+
+      async function runWithdrawNotesFlow() {
+        setWithdrawBusyState(true);
+        try {
+          const wallet = document.getElementById('noteWallet').value.trim();
+          const asset = document.getElementById('noteAsset').value.trim();
+          const amount = Number(document.getElementById('noteAmount').value || 0);
+          setText('vaultOut', {
+            ok: true,
+            pending: true,
+            message: `Preparing ${fmtDisplayNumber(amount)} ${asset} withdrawal to ${wallet}. Spending private notes and submitting payout transaction...`
+          });
+          const result = await sdk.withdraw({ wallet, asset, amount });
+          setText('vaultOut', result);
+          await refreshNotesPortfolio();
+          await refreshNoteAssetOptions();
+          await refreshActivity();
+          await refreshWithdrawPanel();
+          if (wallet) {
+            const chainWallet = document.getElementById('chainWallet');
+            if (chainWallet) chainWallet.value = wallet;
+            await syncWalletContext(wallet);
+          }
+        } catch (e) {
+          setText('vaultOut', String(e));
+        } finally {
+          setWithdrawBusyState(false);
+        }
+      }
+
+      const withdrawNotesBtn = document.getElementById('withdrawNotesBtn');
+      if (withdrawNotesBtn) withdrawNotesBtn.onclick = runWithdrawNotesFlow;
+
+      document.getElementById('withdrawNotesPrimaryBtn').onclick = async () => {
+        await runWithdrawNotesFlow();
+      };
+
+      document.getElementById('makerQuoteBtn').onclick = async () => {
+        try {
+          const makerKey = document.getElementById('makerKey').value.trim();
+          const result = await sdk.postMakerQuote(
+            {
+              wallet: document.getElementById('makerWallet').value,
+              marketId: document.getElementById('makerMarketId').value,
+              pair: document.getElementById('makerPair').value,
+              bidPrice: Number(document.getElementById('makerBidPx').value),
+              askPrice: Number(document.getElementById('makerAskPx').value),
+              bidSize: Number(document.getElementById('makerBidSz').value),
+              askSize: Number(document.getElementById('makerAskSz').value),
+              timeInForce: document.getElementById('makerTif').value,
+              replace: document.getElementById('makerReplace').value === 'true',
+              makerTag: 'ui-maker-quote',
+              frontendId: sdk.frontendId
+            },
+            makerKey
+          );
+          setText('makerOut', result);
+          await refreshTrades();
+          await refreshBook();
+          if (isActivityAutoRefreshEnabled()) await refreshActivity();
+        } catch (e) {
+          setText('makerOut', String(e));
+        }
+      };
+
+      document.getElementById('makerCancelAllBtn').onclick = async () => {
+        try {
+          const makerKey = document.getElementById('makerKey').value.trim();
+          const result = await sdk.cancelMakerOrders(
+            {
+              wallet: document.getElementById('makerWallet').value,
+              marketId: document.getElementById('makerMarketId').value,
+              pair: document.getElementById('makerPair').value
+            },
+            makerKey
+          );
+          setText('makerOut', result);
+          await refreshTrades();
+          await refreshBook();
+          if (isActivityAutoRefreshEnabled()) await refreshActivity();
+        } catch (e) {
+          setText('makerOut', String(e));
+        }
+      };
+
+      document.getElementById('refreshActivityBtn').onclick = async () => {
+        try {
+          await refreshActivity();
+        } catch (e) {
+          renderActivity([]);
+        }
+      };
+
+      document.getElementById('refreshFeeBtn').onclick = async () => {
+        try {
+          await refreshFeeStats();
+        } catch (e) {
+          setText('feeOut', String(e));
+        }
+      };
+
+      document.getElementById('refreshOperatorBtn').onclick = async () => {
+        try {
+          await refreshOperatorPanel();
+          await refreshFeeStats();
+        } catch (e) {
+          setText('operatorOut', String(e));
+        }
+      };
+
+      document.getElementById('inspectMerkleBtn').onclick = async () => {
+        try {
+          await inspectPrivateStateMerkle();
+        } catch (e) {
+          setText('operatorOut', String(e));
+        }
+      };
+
+      document.getElementById('buildWitnessBtn').onclick = async () => {
+        try {
+          await buildPrivateStateWitness();
+        } catch (e) {
+          setText('operatorOut', String(e));
+        }
+      };
+
+      document.getElementById('provePrivateStateBtn').onclick = async () => {
+        try {
+          await proveNextPrivateState();
+        } catch (e) {
+          setText('operatorOut', String(e));
+        }
+      };
+
+      document.getElementById('ordFrontendId').onchange = () => syncFrontendIdFromUi();
+
+      function activateTab(mode) {
+        const tradingActive = mode === 'trading';
+        document.getElementById('tradingPanel').classList.toggle('panel-hidden', !tradingActive);
+        document.getElementById('fundingPanel').classList.toggle('panel-hidden', tradingActive);
+        document.getElementById('tabTrading').classList.toggle('active', tradingActive);
+        document.getElementById('tabFunding').classList.toggle('active', !tradingActive);
+      }
+      document.getElementById('tabTrading').onclick = () => activateTab('trading');
+      document.getElementById('tabFunding').onclick = () => activateTab('funding');
+
+      (async () => {
+        try {
+          syncHeaderOffset();
+          window.addEventListener('resize', syncHeaderOffset);
+          requestAnimationFrame(syncHeaderOffset);
+          activateTab('trading');
+          syncFrontendIdFromUi();
+          const status = await sdk.getStatus();
+          realFundsMode = Boolean(status?.server?.realFundsMode);
+          requireOnchainDepositTx = Boolean(status?.server?.requireOnchainDepositTx);
+          vaultDepositAddress = String(status?.server?.vaultDepositAddress || '');
+          updateFundingHint();
+          updateNoteDepositHint();
+          setText(
+            'vaultOut',
+            'Privacy notes are enabled with on-chain deposit verification. Sync wallet, submit transfer to vault address, then mint with tx hash.'
+          );
+          const marketsResp = await sdk.getMarkets();
+          populateMarketSelectors(marketsResp.markets || []);
+          updateWalletButtonState();
+          updateOrderTypeUi();
+          updateFundingModeHint();
+          await refreshTrades();
+          await refreshBook();
+          await refreshActivity();
+          await refreshNotesPortfolio();
+          await refreshFeeStats();
+          await refreshOperatorPanel();
+          await refreshPretradeChecklist();
+          setText('notesPortfolioOut', 'Refreshing wallet + private collateral...');
+          await refreshNotesPortfolio();
+          setInterval(async () => {
+            try {
+              const w = document.getElementById('ordWallet')?.value?.trim();
+              if (w) await syncWalletIfNeeded(w, false);
+            } catch {}
+          }, 15000);
+        } catch (e) {
+          console.error(e);
+        }
+      })();
+    </script>
+  </body>
+</html>

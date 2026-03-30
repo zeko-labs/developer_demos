@@ -31,6 +31,12 @@ A collection of practical demos for building zero-knowledge apps and agent syste
   - Client-side encrypted prayer text with wallet and non-wallet submission paths
   - Sponsored batch anchoring, Auro signing, moderation queue, and proof-of-prayer participation
 
+- `private_order_book`
+  - Private order book exchange on Zeko
+  - Note-backed trading with public-anonymous and private-dark order flow
+  - Fast off-chain matching with batched on-chain settlement anchoring
+  - Lean default runtime with advanced proof-heavy reference paths included
+
 ## Core docs and links
 
 ### Zeko + Mina
