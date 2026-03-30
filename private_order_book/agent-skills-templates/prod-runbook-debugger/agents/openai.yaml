@@ -1,0 +1,4 @@
+interface:
+  display_name: "Prod Runbook Debugger"
+  short_description: "Diagnose protocol runtime failures fast."
+  default_prompt: "Use $prod-runbook-debugger to triage live protocol issues with exact restart, verification, and remediation commands."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Trading UI Composer"
+  short_description: "Compose dense, execution-safe trading interfaces."
+  default_prompt: "Use $trading-ui-composer to lay out a high-signal trading UI with clear order entry, chart, book, and activity panels."

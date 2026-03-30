@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ShadowBook Partner Frontend</title>
+    <style>
+      body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif; margin: 0; background: #081019; color: #d7e6f6; }
+      .wrap { max-width: 920px; margin: 18px auto; padding: 0 14px; display: grid; gap: 12px; }
+      .card { border: 1px solid #23384d; border-radius: 10px; background: #0d1823; }
+      .hd { padding: 10px 12px; border-bottom: 1px solid #23384d; font-weight: 600; font-size: 14px; }
+      .bd { padding: 12px; display: grid; gap: 8px; }
+      .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+      .row { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px; padding: 6px 0; border-bottom: 1px solid #172736; font-size: 12px; }
+      label { font-size: 11px; color: #8fb0cd; }
+      input, select, button { width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #29425a; background: #08131d; color: #d7e6f6; }
+      button { cursor: pointer; }
+      pre { white-space: pre-wrap; margin: 0; font-size: 12px; color: #a8c4dd; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="card">
+        <div class="hd">Partner Frontend Router</div>
+        <div class="bd grid">
+          <div><label>Backend URL</label><input id="apiBase" value="http://127.0.0.1:8791" /></div>
+          <div><label>Frontend ID</label><input id="frontendId" value="partner.alpha" /></div>
+          <div><label>Wallet</label><input id="wallet" value="B62qpartner_wallet" /></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="hd">Place Order (same shared liquidity pool)</div>
+        <div class="bd grid">
+          <div><label>Pair</label><input id="pair" value="tETH/tZEKO" /></div>
+          <div><label>Side</label><select id="side"><option>BUY</option><option>SELL</option></select></div>
+          <div><label>TIF</label><select id="tif"><option>GTC</option><option>IOC</option></select></div>
+          <div><label>Price</label><input id="px" type="number" value="64000" /></div>
+          <div><label>Qty</label><input id="qty" type="number" step="0.001" value="0.02" /></div>
+          <div><label>&nbsp;</label><button id="place">Place</button></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="hd">Partner Fee Stats</div>
+        <div class="bd">
+          <button id="fees">Refresh Fee Stats</button>
+          <pre id="feeOut"></pre>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="hd">Public Tape (shared across all front-ends)</div>
+        <div class="bd">
+          <div id="rows"></div>
+        </div>
+      </div>
+    </div>
+
+    <script src="/sdk/shadowbook-sdk.js"></script>
+    <script>
+      let sdk = null;
+
+      function mkClient() {
+        sdk = window.ShadowBookSDK.createClient({
+          baseUrl: document.getElementById('apiBase').value.trim(),
+          frontendId: document.getElementById('frontendId').value.trim()
+        });
+      }
+
+      function renderTape(trades) {
+        const root = document.getElementById('rows');
+        root.innerHTML = '';
+        for (const t of trades.slice(0, 15)) {
+          const row = document.createElement('div');
+          row.className = 'row';
+          row.innerHTML = `
+            <div>${new Date(t.createdAtUnixMs).toLocaleTimeString()}</div>
+            <div>${t.pair}</div>
+            <div>${Number(t.price).toFixed(2)}</div>
+            <div>${Number(t.quantity).toFixed(5)}</div>
+          `;
+          root.appendChild(row);
+        }
+      }
+
+      async function refreshTape() {
+        const data = await sdk.getTrades();
+        renderTape(data.trades || []);
+      }
+
+      document.getElementById('place').onclick = async () => {
+        try {
+          mkClient();
+          const result = await sdk.placeOrder({
+            wallet: document.getElementById('wallet').value.trim(),
+            pair: document.getElementById('pair').value.trim(),
+            side: document.getElementById('side').value,
+            timeInForce: document.getElementById('tif').value,
+            limitPrice: Number(document.getElementById('px').value),
+            quantity: Number(document.getElementById('qty').value),
+            privateMemo: 'partner-frontend-order'
+          });
+          document.getElementById('feeOut').textContent = JSON.stringify(result, null, 2);
+          await refreshTape();
+        } catch (e) {
+          document.getElementById('feeOut').textContent = String(e);
+        }
+      };
+
+      document.getElementById('fees').onclick = async () => {
+        try {
+          mkClient();
+          const stats = await sdk.getFrontendFees();
+          document.getElementById('feeOut').textContent = JSON.stringify(stats, null, 2);
+        } catch (e) {
+          document.getElementById('feeOut').textContent = String(e);
+        }
+      };
+
+      (async () => {
+        try {
+          mkClient();
+          await refreshTape();
+          const stats = await sdk.getFrontendFees();
+          document.getElementById('feeOut').textContent = JSON.stringify(stats, null, 2);
+        } catch (e) {
+          document.getElementById('feeOut').textContent = String(e);
+        }
+      })();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,45 @@
+{
+  "name": "private-order-book",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "darkpool:serve": "node src/darkpool-server.js",
+    "render:start": "pnpm build:zkapp && AUTO_RUN_SETTLEMENT_WORKER=true AUTO_RUN_PROOF_WORKER=false ZKAPP_COMMIT_USE_PROOF=false REQUIRE_CACHED_PRIVATE_STATE_PROOF=false node src/darkpool-server.js",
+    "da:relay": "node src/da-relay-server.js",
+    "start": "node src/darkpool-server.js",
+    "bot:arb": "node scripts/arb-bot.js",
+    "settlement:worker": "node scripts/settlement-worker.js",
+    "settlement:worker:onchain": "SETTLEMENT_MODE=zkapp node scripts/settlement-worker.js",
+    "settlement:worker:local": "SETTLEMENT_MODE=local node scripts/settlement-worker.js",
+    "settlement:worker:proofs": "node scripts/private-state-proof-worker.js",
+    "settlement:worker:proofs:remote": "node scripts/private-state-proof-agent.js",
+    "settlement:payout:template": "node scripts/settlement-payout-template.js",
+    "settlement:payout:auto": "node scripts/settlement-payout-executor.js",
+    "replay:demo": "node scripts/replay-demo.js",
+    "build:zkapp": "tsc -p tsconfig.zkapp.json",
+    "zkapp:preflight": "node scripts/zkapp-preflight.js",
+    "zkapp:deploy": "pnpm build:zkapp && NODE_OPTIONS=\"${NODE_OPTIONS:+$NODE_OPTIONS }--max-old-space-size=${ZKAPP_DEPLOY_MAX_OLD_SPACE_MB:-8192}\" node --enable-source-maps dist-zkapp/deploy.js",
+    "zkapp:deploy:advanced": "pnpm build:zkapp && ZKAPP_DEPLOY_USE_ADVANCED=true NODE_OPTIONS=\"${NODE_OPTIONS:+$NODE_OPTIONS }--max-old-space-size=${ZKAPP_DEPLOY_MAX_OLD_SPACE_MB:-12288}\" node --enable-source-maps dist-zkapp/deploy.js",
+    "zkapp:deploy:onchain-orderbook": "pnpm build:zkapp && NODE_OPTIONS=\"${NODE_OPTIONS:+$NODE_OPTIONS }--max-old-space-size=${ZKAPP_DEPLOY_MAX_OLD_SPACE_MB:-12288}\" node --enable-source-maps dist-zkapp/deploy-onchain-orderbook.js",
+    "zkapp:bootstrap": "pnpm build:zkapp && node --enable-source-maps dist-zkapp/bootstrap-state.js",
+    "zkapp:commit-next": "pnpm build:zkapp && node --enable-source-maps dist-zkapp/commit-next-batch.js",
+    "zkapp:commit-next:advanced": "pnpm build:zkapp && ZKAPP_COMMIT_USE_PROOF=true REQUIRE_CACHED_PRIVATE_STATE_PROOF=true ALLOW_INLINE_PRIVATE_STATE_PROVING=false NODE_OPTIONS=\"${NODE_OPTIONS:+$NODE_OPTIONS }--max-old-space-size=${ZKAPP_COMMIT_MAX_OLD_SPACE_MB:-12288}\" node --enable-source-maps dist-zkapp/commit-next-batch.js",
+    "zkapp:get-state": "pnpm build:zkapp && node --enable-source-maps dist-zkapp/get-state.js",
+    "zkapp:get-state:advanced": "pnpm build:zkapp && ZKAPP_GET_STATE_USE_ADVANCED=true node --enable-source-maps dist-zkapp/get-state.js",
+    "zkapp:get-state:onchain-orderbook": "pnpm build:zkapp && node --enable-source-maps dist-zkapp/get-onchain-orderbook-state.js",
+    "zkapp:build-private-state-witness": "pnpm build:zkapp && node --enable-source-maps dist-zkapp/build-private-state-witness.js",
+    "zkapp:prove-private-state": "pnpm build:zkapp && node --enable-source-maps dist-zkapp/prove-private-state-batch.js",
+    "zkapp:inspect-private-state-merkle": "pnpm build:zkapp && node --enable-source-maps dist-zkapp/inspect-private-state-merkle.js",
+    "zkapp:smoke:onchain-orderbook": "pnpm build:zkapp && node --enable-source-maps dist-zkapp/smoke-onchain-orderbook.js"
+  },
+  "dependencies": {
+    "mina-fungible-token": "1.1.0",
+    "o1js": "^2.13.0",
+    "reflect-metadata": "^0.2.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.3"
+  }
+}

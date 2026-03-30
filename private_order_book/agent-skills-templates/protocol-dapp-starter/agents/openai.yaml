@@ -1,0 +1,4 @@
+interface:
+  display_name: "Protocol Dapp Starter"
+  short_description: "Bootstrap shippable protocol app architecture."
+  default_prompt: "Use $protocol-dapp-starter to scaffold a production-lean protocol app with clear scripts, status endpoints, and runbooks."
