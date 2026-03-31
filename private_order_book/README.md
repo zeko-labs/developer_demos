@@ -72,6 +72,8 @@ That remote proof agent fetches the next pending proof job snapshot, builds the 
 - [Blog explainer](./docs/blog-explainer.md)
 - [Private-state proof roadmap](./docs/private-state-proof-plan.md)
 - [Full-mode implementation path](./docs/full-mode-implementation.md)
+- [Full-mode runbook](./docs/full-mode-runbook.md)
+- [Full-mode production gaps](./docs/full-mode-production-gaps.md)
 - [On-chain order book reference path](./docs/onchain-orderbook-reference.md)
 
 ## System Model

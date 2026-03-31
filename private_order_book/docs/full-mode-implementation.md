@@ -13,6 +13,12 @@ Do **not** treat this as the default hosted mode. The lean contract in
 `zkapp/contract.ts` is the main deployment path today because it is much
 smaller and more reliable operationally.
 
+For operators that want to pick this path up quickly, also see:
+
+- `/Users/evankereiakes/Documents/Codex/private-order-book/docs/full-mode-runbook.md`
+- `/Users/evankereiakes/Documents/Codex/private-order-book/docs/full-mode-production-gaps.md`
+- `/Users/evankereiakes/Documents/Codex/private-order-book/.env.full.example`
+
 ## Lean vs Full
 
 ### Lean default
