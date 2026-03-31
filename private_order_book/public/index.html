@@ -121,7 +121,7 @@
       }
       .code-row {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-columns: 1fr;
         gap: 10px;
       }
       label {
@@ -235,9 +235,17 @@
         text-decoration: none;
       }
       .icon-link svg {
-        width: 20px;
-        height: 20px;
+        width: 24px;
+        height: 24px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.8;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .icon-link svg.fill-icon {
         fill: currentColor;
+        stroke: none;
       }
       .icon-link.placeholder {
         border-style: dashed;
@@ -266,31 +274,25 @@
           <span class="eyebrow">Early Access</span>
           <img
             class="hero-logo"
-            src="/assets/make_a_logo_with_the_text_Shad_Nano_Banana_2_09825.jpg"
+            src="/assets/Untitled design.jpg"
             alt="ShadowBook"
           />
           <h1>ShadowBook - Private Order Book on Zeko</h1>
           <p class="hero-summary">
-            ShadowBook combines fast off-chain matching with note-backed trading and lean on-chain settlement.
+            ShadowBook combines fast off-chain matching with note-backed trading and lean on-chain ZK-proof settlement.
           </p>
           <section class="gate">
             <div class="gate-grid">
               <div>
                 <h2>Early Access</h2>
-                <p class="mini">
-                  Enter your code to unlock the market.
-                </p>
+                <div style="height: 10px;"></div>
                 <div>
-                  <label for="accessCode">Early Access Code</label>
                   <div class="code-row">
                     <input id="accessCode" autocomplete="one-time-code" placeholder="SB-ALPHA-..." />
                     <button id="redeemBtn" type="button">Unlock</button>
                   </div>
                 </div>
                 <div id="status" class="status"></div>
-                <div class="access-meta">
-                  <div class="mini" id="accessMeta">Checking access…</div>
-                </div>
               </div>
               <div class="community-card">
                 <div class="community-head">
@@ -298,22 +300,22 @@
                 </div>
                 <div class="community-icons">
                   <a class="icon-link" href="https://github.com/Evan-k-global/private_order_book" target="_blank" rel="noreferrer" title="GitHub" aria-label="GitHub">
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .5C5.65.5.5 5.7.5 12.12c0 5.14 3.3 9.5 7.87 11.03.58.11.79-.26.79-.57 0-.28-.01-1.03-.02-2.03-3.2.71-3.88-1.57-3.88-1.57-.52-1.35-1.28-1.7-1.28-1.7-1.05-.73.08-.72.08-.72 1.16.08 1.76 1.21 1.76 1.21 1.03 1.79 2.7 1.27 3.36.97.1-.76.4-1.27.73-1.56-2.56-.3-5.26-1.3-5.26-5.8 0-1.28.45-2.32 1.2-3.14-.12-.3-.52-1.5.11-3.13 0 0 .98-.32 3.2 1.2a10.9 10.9 0 0 1 5.82 0c2.22-1.52 3.2-1.2 3.2-1.2.63 1.63.23 2.83.11 3.13.75.82 1.2 1.86 1.2 3.14 0 4.51-2.7 5.5-5.28 5.8.41.36.78 1.06.78 2.15 0 1.55-.01 2.8-.01 3.18 0 .31.21.69.8.57A11.65 11.65 0 0 0 23.5 12.1C23.5 5.7 18.35.5 12 .5Z"/></svg>
+                    <svg class="fill-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .5C5.65.5.5 5.7.5 12.12c0 5.14 3.3 9.5 7.87 11.03.58.11.79-.26.79-.57 0-.28-.01-1.03-.02-2.03-3.2.71-3.88-1.57-3.88-1.57-.52-1.35-1.28-1.7-1.28-1.7-1.05-.73.08-.72.08-.72 1.16.08 1.76 1.21 1.76 1.21 1.03 1.79 2.7 1.27 3.36.97.1-.76.4-1.27.73-1.56-2.56-.3-5.26-1.3-5.26-5.8 0-1.28.45-2.32 1.2-3.14-.12-.3-.52-1.5.11-3.13 0 0 .98-.32 3.2 1.2a10.9 10.9 0 0 1 5.82 0c2.22-1.52 3.2-1.2 3.2-1.2.63 1.63.23 2.83.11 3.13.75.82 1.2 1.86 1.2 3.14 0 4.51-2.7 5.5-5.28 5.8.41.36.78 1.06.78 2.15 0 1.55-.01 2.8-.01 3.18 0 .31.21.69.8.57A11.65 11.65 0 0 0 23.5 12.1C23.5 5.7 18.35.5 12 .5Z"/></svg>
                   </a>
                   <a class="icon-link placeholder" href="#" aria-disabled="true" title="X" aria-label="X">
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.9 2H22l-6.78 7.75L23.2 22h-6.26l-4.9-7.34L5.62 22H2.5l7.24-8.27L1.8 2h6.42l4.43 6.67L18.9 2Zm-1.1 18h1.73L7.26 3.9H5.4L17.8 20Z"/></svg>
+                    <svg class="fill-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M18.24 2H21.5l-7.12 8.14L22.75 22h-6.56l-5.14-7.24L4.72 22H1.45l7.61-8.7L1 2h6.72l4.65 6.56L18.24 2Zm-1.15 18h1.8L6.73 3.9H4.84L17.09 20Z"/></svg>
                   </a>
                   <a class="icon-link placeholder" href="#" aria-disabled="true" title="Telegram" aria-label="Telegram">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21.9 4.6 18.7 20c-.24 1.1-.87 1.38-1.76.86l-4.87-3.6-2.35 2.27c-.26.26-.48.48-.98.48l.35-4.97 9.05-8.18c.39-.35-.08-.55-.6-.2L6.4 13.7l-4.82-1.5c-1.05-.33-1.07-1.05.22-1.56L20.64 3.4c.87-.33 1.63.2 1.27 1.2Z"/></svg>
                   </a>
                   <a class="icon-link placeholder" href="#" aria-disabled="true" title="Discord" aria-label="Discord">
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.3 4.37A16.9 16.9 0 0 0 16.2 3a11.7 11.7 0 0 0-.53 1.08 15.6 15.6 0 0 0-4.7 0A11.7 11.7 0 0 0 10.44 3c-1.42.24-2.8.7-4.1 1.37C3.74 8.2 3.04 11.93 3.4 15.62A16.5 16.5 0 0 0 8.43 18c.4-.55.76-1.13 1.06-1.74-.58-.22-1.13-.5-1.66-.82.14-.1.28-.2.41-.3 3.2 1.5 6.67 1.5 9.84 0 .14.11.28.21.42.3-.53.33-1.09.6-1.67.83.3.6.66 1.18 1.06 1.73a16.4 16.4 0 0 0 5.04-2.38c.42-4.28-.72-7.98-2.63-11.25ZM9.55 13.35c-.96 0-1.75-.88-1.75-1.96s.77-1.97 1.75-1.97c.99 0 1.77.89 1.75 1.97 0 1.08-.77 1.96-1.75 1.96Zm4.9 0c-.97 0-1.75-.88-1.75-1.96s.77-1.97 1.75-1.97 1.76.89 1.75 1.97c0 1.08-.77 1.96-1.75 1.96Z"/></svg>
+                    <svg class="fill-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19.54 5.34A16.7 16.7 0 0 0 15.47 4a11.2 11.2 0 0 0-.52 1.06 15.4 15.4 0 0 0-4.49 0A11.2 11.2 0 0 0 9.94 4a16.7 16.7 0 0 0-4.07 1.34C3.3 9.08 2.62 12.7 2.96 16.27a16.8 16.8 0 0 0 4.99 2.46c.4-.53.75-1.09 1.03-1.68-.55-.21-1.08-.47-1.58-.77.13-.09.25-.19.37-.28 3.04 1.43 6.34 1.43 9.35 0 .12.1.24.19.37.28-.5.3-1.03.56-1.58.77.29.59.63 1.15 1.03 1.68a16.73 16.73 0 0 0 4.99-2.46c.4-4.13-.67-7.72-2.39-10.93ZM9.36 13.98c-.97 0-1.76-.87-1.76-1.94 0-1.08.78-1.95 1.76-1.95.98 0 1.77.88 1.76 1.95 0 1.07-.78 1.94-1.76 1.94Zm5.28 0c-.97 0-1.76-.87-1.76-1.94 0-1.08.78-1.95 1.76-1.95.98 0 1.77.88 1.76 1.95 0 1.07-.78 1.94-1.76 1.94Z"/></svg>
                   </a>
                   <a class="icon-link secondary" href="https://zeko.io/" target="_blank" rel="noreferrer" title="Zeko Website" aria-label="Zeko Website">
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm6.93 9h-3.02a15.6 15.6 0 0 0-1.17-5.03A8.03 8.03 0 0 1 18.93 11Zm-6.93 9c-.83 0-2.1-1.99-2.47-5h4.94c-.37 3.01-1.64 5-2.47 5Zm-2.72-7a13.6 13.6 0 0 1 0-2h5.44a13.6 13.6 0 0 1 0 2H9.28Zm-5.2-2A8.03 8.03 0 0 1 9.26 5.97 15.6 15.6 0 0 0 8.09 11H5.07Zm0 2h3.02c.12 1.78.53 3.5 1.17 5.03A8.03 8.03 0 0 1 5.07 13Zm9.67 5.03c.64-1.54 1.05-3.25 1.17-5.03h3.02a8.03 8.03 0 0 1-4.19 5.03ZM14.47 9H9.53c.37-3.01 1.64-5 2.47-5 .83 0 2.1 1.99 2.47 5Z"/></svg>
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18"></path><path d="M12 3a14.6 14.6 0 0 1 0 18"></path><path d="M12 3a14.6 14.6 0 0 0 0 18"></path></svg>
                   </a>
                   <a class="icon-link secondary" href="https://docs.zeko.io/" target="_blank" rel="noreferrer" title="Zeko Docs" aria-label="Zeko Docs">
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9a3 3 0 0 1 3 3v12.5a1.5 1.5 0 0 1-2.34 1.24L12 17.2l-3.66 2.54A1.5 1.5 0 0 1 6 18.5V3Zm2 2v9.67l2.86-1.99a2 2 0 0 1 2.28 0L16 14.67V6a1 1 0 0 0-1-1H8Z"/></svg>
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5.5A2.5 2.5 0 0 1 7.5 3H19v16H7.5A2.5 2.5 0 0 0 5 21V5.5Z"></path><path d="M7.5 3A2.5 2.5 0 0 0 5 5.5V21"></path><path d="M9 7h6"></path><path d="M9 10h6"></path></svg>
                   </a>
                 </div>
               </div>
@@ -325,7 +327,6 @@
 
     <script>
       const statusEl = document.getElementById('status');
-      const metaEl = document.getElementById('accessMeta');
       const codeEl = document.getElementById('accessCode');
       const redeemBtn = document.getElementById('redeemBtn');
       function setStatus(message, kind) {
@@ -338,7 +339,6 @@
         codeEl.disabled = authorized;
         if (authorized) {
           setStatus('Access granted. Redirecting to the market…', 'ok');
-          metaEl.textContent = detail || 'This browser is authorized for repeated access.';
           window.setTimeout(() => {
             window.location.assign('/darkpool');
           }, 250);
@@ -357,8 +357,7 @@
           updateAuthorizedView(true, `Authorized for IP ${json.ip || 'unknown'}. Used codes: ${json.usedCodeCount}/${json.configuredCodeCount}.`);
           return;
         }
-        metaEl.textContent = `Access is gated on this deployment. IP: ${json.ip || 'unknown'}.`;
-        setStatus('Enter your early access code to continue.', '');
+        setStatus('', '');
       }
 
       async function redeem() {
