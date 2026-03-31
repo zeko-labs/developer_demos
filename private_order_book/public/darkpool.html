@@ -807,9 +807,17 @@
       .hd-tools {
         display: inline-flex;
         align-items: center;
-        gap: 4px;
+        gap: 3px;
         flex-wrap: nowrap;
         white-space: nowrap;
+      }
+      .activity-card .hd {
+        gap: 8px;
+      }
+      .activity-card .hd-tools {
+        flex: 1 1 auto;
+        justify-content: flex-end;
+        min-width: 0;
       }
       .hd-tools select,
       .hd-tools input {
@@ -817,26 +825,26 @@
         min-width: 0;
       }
       .hd-tools .compact-select {
-        min-width: 122px;
+        min-width: 110px;
       }
       .hd-tools .compact-input {
-        width: 40px;
-        min-width: 40px;
+        width: 54px;
+        min-width: 54px;
         padding-left: 7px;
         padding-right: 7px;
       }
       .hd-tools .compact-wallet {
-        min-width: 184px;
+        min-width: 168px;
       }
       .activity-toolbar-label {
         font-size: 11px;
         color: #8ba5bf;
-        margin-right: 2px;
+        margin-right: 1px;
       }
       .activity-refresh-btn {
         width: auto;
         min-width: 0;
-        padding: 6px 8px;
+        padding: 6px 7px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -2710,6 +2718,22 @@
         return fmtDisplayNumber(v);
       }
 
+      function isDemoWalletPlaceholder(wallet) {
+        const value = String(wallet || '').trim().toLowerCase();
+        if (!value) return true;
+        return value === 'b62qdemo_wallet_alpha' || value.includes('demo_wallet');
+      }
+
+      function syncActivityWalletFromOrder(force = false) {
+        const activityWalletEl = document.getElementById('activityWallet');
+        const orderWallet = document.getElementById('ordWallet')?.value.trim() || '';
+        if (!activityWalletEl || !orderWallet) return orderWallet;
+        if (force || isDemoWalletPlaceholder(activityWalletEl.value)) {
+          activityWalletEl.value = orderWallet;
+        }
+        return activityWalletEl.value.trim() || orderWallet;
+      }
+
       function collapseActivityEvents(events) {
         const collapsed = [];
         const selfFillByTradeId = new Map();
@@ -3450,7 +3474,7 @@
           await refreshTrades();
           return;
         }
-        const wallet = document.getElementById('activityWallet').value.trim();
+        const wallet = syncActivityWalletFromOrder(false);
         const limit = Math.max(1, Number(document.getElementById('activityLimit').value || 150));
         const data = await sdk.getActivity(wallet, limit);
         renderActivity(data.events || [], data.openOrders || []);
@@ -3676,6 +3700,7 @@
         if (effectiveOrder?.id) document.getElementById('inspectOrderId').value = effectiveOrder.id;
         if (result.cancelToken) document.getElementById('inspectToken').value = result.cancelToken;
         clearReplaceOrderState();
+        syncActivityWalletFromOrder(true);
         await refreshNotesPortfolio();
         await refreshNoteAssetOptions();
         await refreshTrades();
@@ -3791,6 +3816,7 @@
       document.getElementById('ordWallet').oninput = () => {
         updateBookPrefillActionUi('');
         clearReplaceOrderState();
+        syncActivityWalletFromOrder(false);
         refreshPretradeChecklist().catch(() => {});
         updateOperatorPanelState();
       };
