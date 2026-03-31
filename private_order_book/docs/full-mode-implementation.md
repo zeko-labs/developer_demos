@@ -15,9 +15,9 @@ smaller and more reliable operationally.
 
 For operators that want to pick this path up quickly, also see:
 
-- `/Users/evankereiakes/Documents/Codex/private-order-book/docs/full-mode-runbook.md`
-- `/Users/evankereiakes/Documents/Codex/private-order-book/docs/full-mode-production-gaps.md`
-- `/Users/evankereiakes/Documents/Codex/private-order-book/.env.full.example`
+- `./full-mode-runbook.md`
+- `./full-mode-production-gaps.md`
+- `../.env.full.example`
 
 ## Lean vs Full
 
@@ -61,18 +61,18 @@ That means verifying:
 These code paths already exist and are the starting point for full mode:
 
 - advanced contract:
-  - `/Users/evankereiakes/Documents/Codex/private-order-book/zkapp/advanced-contract.ts`
+  - `../zkapp/advanced-contract.ts`
 - proof program:
-  - `/Users/evankereiakes/Documents/Codex/private-order-book/zkapp/private-state-prover.ts`
+  - `../zkapp/private-state-prover.ts`
 - proof statement / witness model:
-  - `/Users/evankereiakes/Documents/Codex/private-order-book/zkapp/private-state.ts`
+  - `../zkapp/private-state.ts`
 - proof input builder:
-  - `/Users/evankereiakes/Documents/Codex/private-order-book/zkapp/private-state-artifacts.ts`
+  - `../zkapp/private-state-artifacts.ts`
 - optional proof-capable commit path:
-  - `/Users/evankereiakes/Documents/Codex/private-order-book/zkapp/commit-next-batch.ts`
+  - `../zkapp/commit-next-batch.ts`
 - proof worker paths:
-  - `/Users/evankereiakes/Documents/Codex/private-order-book/scripts/private-state-proof-worker.js`
-  - `/Users/evankereiakes/Documents/Codex/private-order-book/scripts/private-state-proof-agent.js`
+  - `../scripts/private-state-proof-worker.js`
+  - `../scripts/private-state-proof-agent.js`
 
 ## What Still Needs To Be Done
 

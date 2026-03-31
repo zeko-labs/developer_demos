@@ -5,7 +5,7 @@
 ### Install
 
 ```bash
-cd /Users/evankereiakes/Documents/Codex/private-order-book
+cd private-order-book
 pnpm install
 cp .env.example .env
 pnpm build:zkapp

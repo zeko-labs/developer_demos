@@ -36,6 +36,6 @@ Use this skill for Zeko transaction builders that must survive real wallet signi
 
 ## In this repo
 
-- Main implementation: `/Users/evankereiakes/Documents/Codex/private-order-book/src/darkpool-server.js`
-- UI submission path: `/Users/evankereiakes/Documents/Codex/private-order-book/public/darkpool.html`
+- Main implementation: `src/darkpool-server.js`
+- UI submission path: `public/darkpool.html`
 - Reuse this skill before changing fee payer, nonce, or wallet submission behavior.

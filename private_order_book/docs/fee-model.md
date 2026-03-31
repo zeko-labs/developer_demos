@@ -19,8 +19,8 @@ Environment variables:
 - `FRONTEND_FEE_SHARE_BPS`
 
 Current implementation references:
-- [src/darkpool-server.js:114](/Users/evankereiakes/Documents/Codex/private-order-book/src/darkpool-server.js:114)
-- [src/darkpool-server.js:115](/Users/evankereiakes/Documents/Codex/private-order-book/src/darkpool-server.js:115)
+- `src/darkpool-server.js:114`
+- `src/darkpool-server.js:115`
 
 ## Who Pays
 
@@ -29,7 +29,7 @@ Only the taker pays the explicit trading fee in the default model.
 Taker identification is based on the aggressing order in the fill path.
 
 Implementation reference:
-- [src/darkpool-server.js:2838](/Users/evankereiakes/Documents/Codex/private-order-book/src/darkpool-server.js:2838)
+- `src/darkpool-server.js:2838`
 
 ## Fee Asset Rules
 
@@ -58,7 +58,7 @@ Important rule:
 - frontend revenue share only accrues when a valid `frontendId` is attached
 
 Implementation reference:
-- [src/darkpool-server.js:1763](/Users/evankereiakes/Documents/Codex/private-order-book/src/darkpool-server.js:1763)
+- `src/darkpool-server.js:1763`
 
 ## Frontend Attribution
 
@@ -86,7 +86,7 @@ The public reporting endpoint is:
 - `GET /api/darkpool/frontends/fees`
 
 Implementation reference:
-- [src/darkpool-server.js:4294](/Users/evankereiakes/Documents/Codex/private-order-book/src/darkpool-server.js:4294)
+- `src/darkpool-server.js:4294`
 
 This endpoint returns:
 - per-frontend stats when `frontendId` is supplied

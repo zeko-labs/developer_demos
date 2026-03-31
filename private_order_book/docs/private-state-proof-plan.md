@@ -41,7 +41,7 @@ engine state for:
 
 See:
 
-- `/Users/evankereiakes/Documents/Codex/private-order-book/zkapp/private-state-merkle.ts`
+- `../zkapp/private-state-merkle.ts`
 - `pnpm zkapp:inspect-private-state-merkle`
 - `GET /api/darkpool/operator/private-state-merkle`
 
@@ -76,7 +76,7 @@ That keeps the proving surface small and stable even as order flow grows.
 
 See:
 
-- `/Users/evankereiakes/Documents/Codex/private-order-book/zkapp/private-state.ts`
+- `../zkapp/private-state.ts`
 
 Core types there:
 
@@ -125,7 +125,7 @@ Status:
 
 For the larger-machine, proof-heavy deployment path, see:
 
-- `/Users/evankereiakes/Documents/Codex/private-order-book/docs/full-mode-implementation.md`
+- `./full-mode-implementation.md`
 
 ## Withdrawals
 

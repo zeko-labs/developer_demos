@@ -21,10 +21,10 @@ Canonical SDK:
 - `/sdk/shadowbook-sdk.js`
 
 Primary implementation:
-- [public/sdk/shadowbook-sdk.js](/Users/evankereiakes/Documents/Codex/private-order-book/public/sdk/shadowbook-sdk.js)
+- [public/sdk/shadowbook-sdk.js](../public/sdk/shadowbook-sdk.js)
 
 Public API reference:
-- [docs/api.md](/Users/evankereiakes/Documents/Codex/private-order-book/docs/api.md)
+- [docs/api.md](./api.md)
 
 ## Client Construction
 

@@ -113,7 +113,7 @@ That policy means:
 
 See:
 
-- `/Users/evankereiakes/Documents/Codex/private-order-book/.env.full.example`
+- `../.env.full.example`
 
 ## Bring-Up Sequence
 

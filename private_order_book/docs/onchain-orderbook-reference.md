@@ -44,15 +44,15 @@ state transition itself.
 
 Core reference files:
 
-- `/Users/evankereiakes/Documents/Codex/private-order-book/zkapp/onchain-orderbook.ts`
-- `/Users/evankereiakes/Documents/Codex/private-order-book/zkapp/onchain-orderbook-prover.ts`
-- `/Users/evankereiakes/Documents/Codex/private-order-book/zkapp/onchain-orderbook-contract.ts`
+- `../zkapp/onchain-orderbook.ts`
+- `../zkapp/onchain-orderbook-prover.ts`
+- `../zkapp/onchain-orderbook-contract.ts`
 
 Supporting scripts:
 
-- `/Users/evankereiakes/Documents/Codex/private-order-book/zkapp/deploy-onchain-orderbook.ts`
-- `/Users/evankereiakes/Documents/Codex/private-order-book/zkapp/get-onchain-orderbook-state.ts`
-- `/Users/evankereiakes/Documents/Codex/private-order-book/zkapp/smoke-onchain-orderbook.ts`
+- `../zkapp/deploy-onchain-orderbook.ts`
+- `../zkapp/get-onchain-orderbook-state.ts`
+- `../zkapp/smoke-onchain-orderbook.ts`
 
 ## State Model
 
