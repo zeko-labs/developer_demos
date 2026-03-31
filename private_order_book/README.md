@@ -21,7 +21,7 @@ ShadowBook is a private order book / dark pool demo built on Zeko with:
 ## Quick Start
 
 ```bash
-cd /Users/evankereiakes/Documents/Codex/private-order-book
+cd private-order-book
 pnpm install
 cp .env.example .env
 pnpm build:zkapp

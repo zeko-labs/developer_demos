@@ -110,7 +110,7 @@ Production expectation:
 
 See:
 
-- `/Users/evankereiakes/Documents/Codex/private-order-book/docs/full-mode-runbook.md`
+- `./full-mode-runbook.md`
 
 ## What Is Not A Gap
 
