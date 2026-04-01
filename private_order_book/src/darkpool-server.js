@@ -115,6 +115,8 @@ const TAKER_FEE_BPS = Number.parseFloat(process.env.TAKER_FEE_BPS || '5');
 const FRONTEND_FEE_SHARE_BPS = Number.parseFloat(process.env.FRONTEND_FEE_SHARE_BPS || '3000');
 const MARKET_ORDER_SLIPPAGE_BPS = Number.parseFloat(process.env.MARKET_ORDER_SLIPPAGE_BPS || '100');
 const GTC_ORDER_EXPIRY_MS = Number.parseInt(process.env.GTC_ORDER_EXPIRY_MS || '0', 10);
+const SETTLEMENT_PROCEEDS_AS_NOTES =
+  String(process.env.SETTLEMENT_PROCEEDS_AS_NOTES || String(!process.env.RENDER)).toLowerCase() === 'true';
 const ORDER_RECEIPT_SECRET = process.env.ORDER_RECEIPT_SECRET || 'shadowbook-receipt-secret';
 const INTERNAL_SERVICE_SECRET = String(process.env.INTERNAL_SERVICE_SECRET || ORDER_RECEIPT_SECRET || 'shadowbook-internal-service').trim();
 const EARLY_ACCESS_COOKIE_NAME = String(process.env.EARLY_ACCESS_COOKIE_NAME || 'shadowbook_access').trim() || 'shadowbook_access';
@@ -1196,6 +1198,26 @@ function mergeSettlementPayouts(existingPayouts, additionalPayouts) {
   return Array.from(payoutsByKey.values())
     .map((p) => ({ ...p, amount: Number(p.amount.toFixed(9)) }))
     .filter((p) => p.amount > 1e-9);
+}
+
+function issueSettlementProceedsNotes(batch) {
+  if (!batch || batch.batchType !== 'trade_settlement') return [];
+  const issued = [];
+  for (const payout of Array.isArray(batch.payouts) ? batch.payouts : []) {
+    const participant = typeof payout?.participant === 'string' ? payout.participant.trim() : '';
+    const asset = canonicalAssetKey(payout?.asset);
+    const amount = Number(payout?.amount || 0);
+    if (!participant || !asset || !Number.isFinite(amount) || amount <= 1e-9) continue;
+    const note = issueNote(asset, amount, 'trade_settlement_proceeds', null, participant);
+    if (!note) continue;
+    issued.push({
+      participant,
+      asset,
+      amount: Number(amount.toFixed(9)),
+      noteHash: note.noteHash
+    });
+  }
+  return issued;
 }
 
 async function verifyOnchainPayoutTx({ txHash, wallet, tokenId, amount }) {
@@ -2484,7 +2506,7 @@ async function enqueueSettlementBatch(accountId, fills) {
       pendingPrivateStateBatch.tradeCount = 0;
       pendingPrivateStateBatch.trades = [];
       pendingPrivateStateBatch.payouts = [];
-      pendingPrivateStateBatch.requiresOnchainPayouts = SETTLEMENT_REQUIRE_ONCHAIN_PAYOUTS;
+      pendingPrivateStateBatch.requiresOnchainPayouts = SETTLEMENT_REQUIRE_ONCHAIN_PAYOUTS && !SETTLEMENT_PROCEEDS_AS_NOTES;
       appendTarget = pendingPrivateStateBatch;
     }
   }
@@ -2536,7 +2558,7 @@ async function enqueueSettlementBatch(accountId, fills) {
     trades: tradeSummaries,
     payouts,
     privateStateDelta: buildLivePrivateStateDelta(),
-    requiresOnchainPayouts: SETTLEMENT_REQUIRE_ONCHAIN_PAYOUTS,
+    requiresOnchainPayouts: SETTLEMENT_REQUIRE_ONCHAIN_PAYOUTS && !SETTLEMENT_PROCEEDS_AS_NOTES,
     status: 'pending',
     createdAtUnixMs: now(),
     committedAtUnixMs: null,
@@ -3708,9 +3730,11 @@ async function markBatchCommittedInternal(batchId, txHash = null, payoutTxs = []
   if (!target) throw new Error('batch not found');
 
   if (
-    SETTLEMENT_REQUIRE_ONCHAIN_PAYOUTS &&
     target.batchType === 'trade_settlement' &&
     target.status !== 'committed' &&
+    (target.requiresOnchainPayouts !== undefined
+      ? Boolean(target.requiresOnchainPayouts)
+      : SETTLEMENT_REQUIRE_ONCHAIN_PAYOUTS) &&
     !(typeof txHash === 'string' && txHash.startsWith('local_'))
   ) {
     const requiredPayouts = Array.isArray(target.payouts) ? target.payouts : [];
@@ -3759,6 +3783,14 @@ async function markBatchCommittedInternal(batchId, txHash = null, payoutTxs = []
   }
 
   if (target.status !== 'committed') {
+    if (SETTLEMENT_PROCEEDS_AS_NOTES && target.batchType === 'trade_settlement') {
+      target.noteSettlementOutputs = issueSettlementProceedsNotes(target);
+      target.privateStateDelta = buildLivePrivateStateDelta();
+      target.noteRootHash = computeNoteCommitmentRoot();
+      target.nullifierRootHash = computeSpentNullifierRoot();
+      target.sequencingRootHash = computeSequencingReceiptRoot();
+      target.privateStateTransitionHash = computePrivateStateTransitionHashForBatch(target);
+    }
     target.status = 'committed';
     target.committedAtUnixMs = now();
     target.txHash = txHash;

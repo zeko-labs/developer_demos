@@ -217,6 +217,12 @@
         font-size: 11px;
         color: #9eb8cf;
       }
+      .check-note {
+        font-size: 10px;
+        line-height: 1.4;
+        color: #7f96ad;
+        padding-left: 2px;
+      }
       .check-row strong {
         font-weight: 600;
       }
@@ -638,7 +644,7 @@
       }
       .chart-statusbar {
         display: flex;
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
         gap: 8px;
         align-items: center;
         padding: 10px 12px;
@@ -647,6 +653,7 @@
         min-width: 0;
         position: relative;
         z-index: 1;
+        overflow-x: auto;
       }
       .chart-pill-stat {
         border: 1px solid #1f3346;
@@ -654,6 +661,7 @@
         background: #0d1822;
         padding: 7px 10px;
         min-width: 0;
+        flex: 0 0 auto;
       }
       .chart-pill-stat label {
         margin: 0 0 2px 0;
@@ -664,6 +672,14 @@
       .chart-pill-stat .value {
         font-size: 11px;
         color: #d6e6f7;
+      }
+      .chart-status-note {
+        flex: 1 1 auto;
+        min-width: 180px;
+        font-size: 11px;
+        line-height: 1.35;
+        color: #8ba5bf;
+        white-space: nowrap;
       }
       .chart-pill-stat.note .value {
         font-size: 11px;
@@ -1120,6 +1136,38 @@
       .activity-row:last-child {
         border-bottom: 0;
       }
+      .activity-filters {
+        display: grid;
+        grid-template-columns: 120px 92px repeat(4, minmax(0, 1fr));
+        gap: 8px;
+        margin-bottom: 10px;
+      }
+      .activity-filter {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .activity-filter label {
+        margin-bottom: 0;
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+      .activity-head button {
+        appearance: none;
+        border: 0;
+        background: transparent;
+        color: inherit;
+        font: inherit;
+        text-transform: inherit;
+        letter-spacing: inherit;
+        padding: 0;
+        text-align: left;
+        cursor: pointer;
+      }
+      .activity-head button.is-active {
+        color: #d5e7f5;
+      }
       @media (max-width: 980px) {
         .app {
           grid-template-columns: 1fr;
@@ -1165,6 +1213,8 @@
           grid-template-columns: 1fr;
         }
         .chart-statusbar {
+          display: flex;
+          flex-wrap: nowrap;
           justify-content: flex-start;
         }
         .chart-controlbar {
@@ -1221,8 +1271,9 @@
           grid-template-columns: repeat(2, minmax(0, 1fr));
           justify-content: stretch;
         }
-        .chart-pill-stat.note {
+        .chart-status-note {
           grid-column: 1 / -1;
+          white-space: normal;
         }
         .chart-toolrail {
           grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1253,6 +1304,9 @@
         .activity-head,
         .activity-row {
           min-width: 760px;
+        }
+        .activity-filters {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
         }
         .book-grid {
           grid-template-columns: 1fr;
@@ -1470,12 +1524,47 @@
           </div>
         </div>
         <div class="bd stack">
+          <div class="activity-filters">
+            <div class="activity-filter">
+              <label for="activityTimeFilter">Time</label>
+              <select id="activityTimeFilter" class="compact-select">
+                <option value="all">All</option>
+                <option value="1h">1 hour</option>
+                <option value="24h">24 hours</option>
+                <option value="7d">7 days</option>
+              </select>
+            </div>
+            <div class="activity-filter">
+              <label for="activitySideFilter">Side</label>
+              <select id="activitySideFilter" class="compact-select">
+                <option value="all">All</option>
+                <option value="BUY">Buy</option>
+                <option value="SELL">Sell</option>
+              </select>
+            </div>
+            <div class="activity-filter">
+              <label for="activityMinPrice">Min Price</label>
+              <input id="activityMinPrice" class="compact-input" type="number" step="any" placeholder="0" />
+            </div>
+            <div class="activity-filter">
+              <label for="activityMaxPrice">Max Price</label>
+              <input id="activityMaxPrice" class="compact-input" type="number" step="any" placeholder="-" />
+            </div>
+            <div class="activity-filter">
+              <label for="activityMinQty">Min Qty</label>
+              <input id="activityMinQty" class="compact-input" type="number" step="any" placeholder="0" />
+            </div>
+            <div class="activity-filter">
+              <label for="activityMaxQty">Max Qty</label>
+              <input id="activityMaxQty" class="compact-input" type="number" step="any" placeholder="-" />
+            </div>
+          </div>
           <div class="activity-table">
             <div class="activity-head">
-              <div>Time</div>
-              <div>Action</div>
+              <div><button type="button" id="activityTimeHeader" title="Toggle newest/oldest first">Time</button></div>
+              <div><button type="button" id="activityActionHeader" title="Toggle open orders only">Action</button></div>
               <div>Market/Asset</div>
-              <div>Side</div>
+              <div><button type="button" id="activitySideHeader" title="Cycle side filter">Side</button></div>
               <div>Price</div>
               <div>Qty</div>
               <div>Notes</div>
@@ -1818,7 +1907,7 @@
         const n = Number(value);
         if (!Number.isFinite(n)) return '-';
         if (Math.abs(n - Math.trunc(n)) < 1e-9) return n.toFixed(2);
-        return n.toFixed(4).replace(/\.?0+$/, '');
+        return n.toFixed(4);
       }
 
       function fmtUtcTime(value) {
@@ -2190,6 +2279,12 @@
       async function refreshNotesPortfolio() {
         const wallet = document.getElementById('noteWallet')?.value?.trim();
         if (!wallet) return;
+        if (isDemoWalletPlaceholder(wallet)) {
+          latestNotesPortfolio = null;
+          setText('notesPortfolioOut', walletSetupMessage('notes'));
+          await refreshWithdrawPanel();
+          return;
+        }
         try {
           const data = await sdk.getNotesPortfolio(wallet);
           latestNotesPortfolio = data;
@@ -2306,6 +2401,10 @@
         return `<div class="check-row"><span>${label}</span><strong class="${cls}">${detail}</strong></div>`;
       }
 
+      function checklistNote(message) {
+        return `<div class="check-note">${message}</div>`;
+      }
+
       async function refreshPretradeChecklist() {
         const root = document.getElementById('pretradeChecklist');
         if (!root) return;
@@ -2316,6 +2415,10 @@
         const limitPrice = orderType === 'MARKET' ? null : Number(document.getElementById('ordPrice').value || 0);
         if (!wallet || !marketId || !Number.isFinite(quantity) || quantity <= 0) {
           root.innerHTML = checklistRow('Checklist', 'warn', 'enter wallet/market/qty');
+          return;
+        }
+        if (isDemoWalletPlaceholder(wallet)) {
+          root.innerHTML = checklistRow('Checklist', 'warn', 'connect wallet + sync/fund account');
           return;
         }
         try {
@@ -2359,6 +2462,7 @@
             ) +
             checklistRow(`Buy note collateral ${buyReq.asset || '-'}`, buyAvail + 1e-9 >= buyReqAmt ? 'ok' : 'bad', `${fmtDisplayNumber(buyReqAmt)} / notes ${fmtDisplayNumber(buyAvail)}`) +
             checklistRow(`Sell note collateral ${sellReq.asset || '-'}`, sellAvail + 1e-9 >= sellReqAmt ? 'ok' : 'bad', `${fmtDisplayNumber(sellReqAmt)} / notes ${fmtDisplayNumber(sellAvail)}`) +
+            checklistNote('Counter-asset note balances update after on-chain trade settlement.') +
             checklistRow('Locked base collateral', lockedBase > 0 ? 'warn' : 'ok', fmtDisplayNumber(lockedBase)) +
             checklistRow('Locked quote collateral', lockedQuote > 0 ? 'warn' : 'ok', fmtDisplayNumber(lockedQuote));
         } catch (error) {
@@ -2576,12 +2680,14 @@
       async function syncWalletIfNeeded(wallet, force = false) {
         const w = String(wallet || '').trim();
         if (!w) throw new Error('wallet is required');
+        if (isDemoWalletPlaceholder(w)) return false;
         const last = Number(walletSyncTimes.get(w) || 0);
         const due = force || !last || (Date.now() - last > WALLET_SYNC_COOLDOWN_MS);
-        if (!due) return;
+        if (!due) return true;
         try {
           await sdk.syncOnchainBalance({ wallet: w });
           walletSyncTimes.set(w, Date.now());
+          return true;
         } catch (error) {
           throw error;
         }
@@ -2718,6 +2824,17 @@
         return fmtDisplayNumber(v);
       }
 
+      function walletSetupMessage(action = 'trade') {
+        if (action === 'sync') return 'Connect your wallet and sync/fund your account to view balances.';
+        if (action === 'notes') return 'Connect your wallet and sync/fund your account to view private collateral.';
+        return 'Connect your wallet and sync/fund your account before trading.';
+      }
+
+      const activityFilterState = {
+        sortTime: 'desc',
+        openOnly: false
+      };
+
       function isDemoWalletPlaceholder(wallet) {
         const value = String(wallet || '').trim().toLowerCase();
         if (!value) return true;
@@ -2732,6 +2849,20 @@
           activityWalletEl.value = orderWallet;
         }
         return activityWalletEl.value.trim() || orderWallet;
+      }
+
+      function scheduleSettlementUiRefresh() {
+        const delaysMs = [3000, 9000];
+        for (const delayMs of delaysMs) {
+          window.setTimeout(async () => {
+            try {
+              await refreshNotesPortfolio();
+              await refreshNoteAssetOptions();
+              await refreshPretradeChecklist();
+              if (isActivityAutoRefreshEnabled()) await refreshActivity();
+            } catch {}
+          }, delayMs);
+        }
       }
 
       function collapseActivityEvents(events) {
@@ -2773,36 +2904,127 @@
         return collapsed;
       }
 
+      function parseFilterNumber(id) {
+        const raw = document.getElementById(id)?.value ?? '';
+        if (raw === '') return null;
+        const n = Number(raw);
+        return Number.isFinite(n) ? n : null;
+      }
+
+      function getActivityFilterConfig() {
+        const timeValue = String(document.getElementById('activityTimeFilter')?.value || 'all');
+        const sideValue = String(document.getElementById('activitySideFilter')?.value || 'all').toUpperCase();
+        const now = Date.now();
+        const timeThreshold =
+          timeValue === '1h' ? now - 60 * 60 * 1000 :
+          timeValue === '24h' ? now - 24 * 60 * 60 * 1000 :
+          timeValue === '7d' ? now - 7 * 24 * 60 * 60 * 1000 :
+          0;
+        return {
+          timeThreshold,
+          side: sideValue,
+          minPrice: parseFilterNumber('activityMinPrice'),
+          maxPrice: parseFilterNumber('activityMaxPrice'),
+          minQty: parseFilterNumber('activityMinQty'),
+          maxQty: parseFilterNumber('activityMaxQty')
+        };
+      }
+
+      function matchesActivityFilters(record, filters) {
+        const createdAtUnixMs = Number(record?.createdAtUnixMs || 0);
+        if (filters.timeThreshold && createdAtUnixMs < filters.timeThreshold) return false;
+        const side = String(record?.side || '').trim().toUpperCase();
+        if (filters.side !== 'ALL') {
+          if (!side || side !== filters.side) return false;
+        }
+        const price = record?.price;
+        if (filters.minPrice !== null && !(Number(price) >= filters.minPrice)) return false;
+        if (filters.maxPrice !== null && !(Number(price) <= filters.maxPrice)) return false;
+        const qty = record?.quantity;
+        if (filters.minQty !== null && !(Number(qty) >= filters.minQty)) return false;
+        if (filters.maxQty !== null && !(Number(qty) <= filters.maxQty)) return false;
+        return true;
+      }
+
+      function updateActivityHeaderUi() {
+        const timeBtn = document.getElementById('activityTimeHeader');
+        const actionBtn = document.getElementById('activityActionHeader');
+        const sideBtn = document.getElementById('activitySideHeader');
+        if (timeBtn) {
+          timeBtn.textContent = activityFilterState.sortTime === 'asc' ? 'Time ↑' : 'Time ↓';
+          timeBtn.classList.add('is-active');
+        }
+        if (actionBtn) {
+          actionBtn.textContent = activityFilterState.openOnly ? 'Action: Open' : 'Action';
+          actionBtn.classList.toggle('is-active', activityFilterState.openOnly);
+        }
+        if (sideBtn) {
+          const sideValue = String(document.getElementById('activitySideFilter')?.value || 'all').toUpperCase();
+          sideBtn.textContent = sideValue === 'ALL' ? 'Side' : `Side: ${sideValue}`;
+          sideBtn.classList.toggle('is-active', sideValue !== 'ALL');
+        }
+      }
+
       function renderActivity(events, openOrders) {
         const root = document.getElementById('activityRows');
         root.innerHTML = '';
-        const collapsedEvents = collapseActivityEvents(events);
-        const activeOrders = Array.isArray(openOrders) ? openOrders : [];
-        if ((!collapsedEvents || collapsedEvents.length === 0) && activeOrders.length === 0) {
+        const filters = getActivityFilterConfig();
+        let collapsedEvents = collapseActivityEvents(events);
+        let activeOrders = Array.isArray(openOrders) ? openOrders : [];
+        activeOrders = activeOrders.filter((order) =>
+          matchesActivityFilters(
+            {
+              createdAtUnixMs: order.createdAtUnixMs,
+              side: order.side,
+              price: order.limitPrice,
+              quantity: order.remaining
+            },
+            filters
+          )
+        );
+        collapsedEvents = collapsedEvents.filter((ev) =>
+          matchesActivityFilters(
+            {
+              createdAtUnixMs: ev.createdAtUnixMs,
+              side: ev?.details?.side,
+              price: ev?.details?.price ?? ev?.details?.limitPrice,
+              quantity: ev?.details?.quantity ?? ev?.details?.amount
+            },
+            filters
+          )
+        );
+        const sortDirection = activityFilterState.sortTime === 'asc' ? 1 : -1;
+        if (activityFilterState.openOnly) collapsedEvents = [];
+        const timeline = [
+          ...activeOrders.map((order) => ({ kind: 'open-order', createdAtUnixMs: Number(order.createdAtUnixMs || 0), order })),
+          ...collapsedEvents.map((ev) => ({ kind: 'event', createdAtUnixMs: Number(ev.createdAtUnixMs || 0), ev }))
+        ].sort((a, b) => (Number(a.createdAtUnixMs || 0) - Number(b.createdAtUnixMs || 0)) * sortDirection);
+        if ((!timeline || timeline.length === 0)) {
           const row = document.createElement('div');
           row.className = 'activity-row';
           row.innerHTML = `<div>-</div><div>No activity</div><div>-</div><div>-</div><div>-</div><div>-</div><div>Submit orders to populate history.</div>`;
           root.appendChild(row);
           return;
         }
-        for (const order of activeOrders) {
+        for (const item of timeline) {
           const row = document.createElement('div');
           row.className = 'activity-row';
-          const sequencingLabel = order.sequenceNumber ? `Seq ${order.sequenceNumber}` : 'Open';
-          row.innerHTML = `
-            <div class="mono">${fmtUtcTime(order.createdAtUnixMs)}</div>
-            <div>Open Order</div>
-            <div class="mono">${order.pair || '-'}</div>
-            <div class="mono">${order.side || '-'}</div>
-            <div class="mono">${fmtNum(order.limitPrice, 4)}</div>
-            <div class="mono">${fmtNum(order.remaining, 6)}</div>
-            <div class="mono">${sequencingLabel} · ${(order.visibility || 'public').toUpperCase()} · ${(order.timeInForce || 'GTC')} · ${order.sequencingReceiptHash ? shortHash(order.sequencingReceiptHash) : 'no-seq'} <button type="button" class="ghost replace-open-order" data-order='${JSON.stringify(order).replace(/'/g, '&apos;')}' style="width:auto;padding:3px 8px;margin-left:8px;">Edit</button><button type="button" class="ghost cancel-open-order" data-order-id="${order.id}" data-cancel-token="${order.cancelToken}" style="width:auto;padding:3px 8px;margin-left:8px;">Cancel</button></div>
-          `;
-          root.appendChild(row);
-        }
-        for (const ev of collapsedEvents) {
-          const row = document.createElement('div');
-          row.className = 'activity-row';
+          if (item.kind === 'open-order') {
+            const order = item.order;
+            const sequencingLabel = order.sequenceNumber ? `Seq ${order.sequenceNumber}` : 'Open';
+            row.innerHTML = `
+              <div class="mono">${fmtUtcTime(order.createdAtUnixMs)}</div>
+              <div>Open Order</div>
+              <div class="mono">${order.pair || '-'}</div>
+              <div class="mono">${order.side || '-'}</div>
+              <div class="mono">${fmtNum(order.limitPrice, 4)}</div>
+              <div class="mono">${fmtNum(order.remaining, 6)}</div>
+              <div class="mono">${sequencingLabel} · ${(order.visibility || 'public').toUpperCase()} · ${(order.timeInForce || 'GTC')} · ${order.sequencingReceiptHash ? shortHash(order.sequencingReceiptHash) : 'no-seq'} <button type="button" class="ghost replace-open-order" data-order='${JSON.stringify(order).replace(/'/g, '&apos;')}' style="width:auto;padding:3px 8px;margin-left:8px;">Edit</button><button type="button" class="ghost cancel-open-order" data-order-id="${order.id}" data-cancel-token="${order.cancelToken}" style="width:auto;padding:3px 8px;margin-left:8px;">Cancel</button></div>
+            `;
+            root.appendChild(row);
+            continue;
+          }
+          const ev = item.ev;
           const d = ev.details || {};
           const actionMap = {
             order_submitted: 'Order',
@@ -3347,7 +3569,6 @@
           { label: 'Range', value: high !== null && low !== null ? `${fmtDisplayNumber(low)} - ${fmtDisplayNumber(high)}` : '-' },
           { label: 'Volume', value: volume > 0 ? fmtDisplayNumber(volume) : '-' },
           { label: 'Trades', value: String(Array.isArray(trades) ? trades.length : 0) },
-          { label: 'Public Tape', value: 'UTC prints after all fills', note: true },
           { label: 'Last Print', value: lastTrade?.createdAtUnixMs ? fmtUtcTime(lastTrade.createdAtUnixMs) : 'UTC pending' }
         ];
         root.innerHTML = summary
@@ -3357,7 +3578,7 @@
               <div class="value mono">${item.value}</div>
             </div>
           `)
-          .join('');
+          .join('') + `<div class="chart-status-note mono">UTC prints after all fills</div>`;
       }
 
       function setChartIntervalButtonState(intervalSec) {
@@ -3470,6 +3691,7 @@
 
       async function refreshActivity() {
         const view = document.getElementById('activityView')?.value || 'your';
+        updateActivityHeaderUi();
         if (view === 'global') {
           await refreshTrades();
           return;
@@ -3604,6 +3826,7 @@
         if (!marketId || !market) throw new Error('market not selected');
         const wallet = document.getElementById('ordWallet').value.trim();
         if (!wallet) throw new Error('wallet is required');
+        if (isDemoWalletPlaceholder(wallet)) throw new Error(walletSetupMessage('trade'));
         const orderType = document.getElementById('ordType').value;
         const quantity = Number(document.getElementById('ordQty').value);
         const timeInForce = document.getElementById('ordTif').value;
@@ -3708,6 +3931,7 @@
         await refreshActivity();
         await refreshFeeStats();
         await refreshPretradeChecklist();
+        scheduleSettlementUiRefresh();
       }
 
       document.getElementById('placeBuy').onclick = async () => {
@@ -3813,6 +4037,26 @@
         updateVisibilityHint();
       };
       document.getElementById('activityView').onchange = () => { refreshActivity().catch(() => {}); };
+      document.getElementById('activityTimeHeader').onclick = () => {
+        activityFilterState.sortTime = activityFilterState.sortTime === 'desc' ? 'asc' : 'desc';
+        refreshActivity().catch(() => {});
+      };
+      document.getElementById('activityActionHeader').onclick = () => {
+        activityFilterState.openOnly = !activityFilterState.openOnly;
+        refreshActivity().catch(() => {});
+      };
+      document.getElementById('activitySideHeader').onclick = () => {
+        const sideEl = document.getElementById('activitySideFilter');
+        if (!sideEl) return;
+        sideEl.value = sideEl.value === 'all' ? 'BUY' : sideEl.value === 'BUY' ? 'SELL' : 'all';
+        refreshActivity().catch(() => {});
+      };
+      for (const id of ['activityTimeFilter', 'activitySideFilter', 'activityMinPrice', 'activityMaxPrice', 'activityMinQty', 'activityMaxQty']) {
+        const el = document.getElementById(id);
+        if (!el) continue;
+        el.oninput = () => { refreshActivity().catch(() => {}); };
+        el.onchange = () => { refreshActivity().catch(() => {}); };
+      }
       document.getElementById('ordWallet').oninput = () => {
         updateBookPrefillActionUi('');
         clearReplaceOrderState();
@@ -3882,6 +4126,10 @@
       document.getElementById('syncBtn').onclick = async () => {
         try {
           const wallet = document.getElementById('chainWallet').value.trim();
+          if (isDemoWalletPlaceholder(wallet)) {
+            setText('notesPortfolioOut', walletSetupMessage('sync'));
+            return;
+          }
           setText('notesPortfolioOut', 'Syncing on-chain balances and rebuilding wallet + private collateral view...');
           await syncWalletContext(wallet);
         } catch (e) { setText('notesPortfolioOut', String(e)); }
@@ -4213,7 +4461,12 @@
           setInterval(async () => {
             try {
               const w = document.getElementById('ordWallet')?.value?.trim();
-              if (w) await syncWalletIfNeeded(w, false);
+              if (w) {
+                await syncWalletIfNeeded(w, false);
+                await refreshNotesPortfolio();
+                await refreshNoteAssetOptions();
+                await refreshPretradeChecklist();
+              }
             } catch {}
           }, 15000);
         } catch (e) {
