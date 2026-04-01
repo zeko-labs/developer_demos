@@ -66,3 +66,4 @@ npm install
 cp .env.example .env
 npm run build
 npm run dev
+- [Private Order Book](./private_order_book) - ShadowBook private order book demo on Zeko.
