@@ -90,6 +90,7 @@ async function main(): Promise<void> {
   const stateFile = parseOptionalArgValue(args, 'state-file') || DEFAULT_STATE_FILE;
   const dailyMarketsFile = parseOptionalArgValue(args, 'daily-markets-file') || './data/demo-daily-threshold-markets.json';
   const graphql = process.env.ZEKO_GRAPHQL || 'https://testnet.zeko.io';
+  const archiveGraphql = process.env.ZEKO_ARCHIVE_GRAPHQL || graphql;
   const networkId = process.env.ZEKO_NETWORK_ID || 'testnet';
   const txFee = process.env.TX_FEE || '200000000';
   const sender = readSenderPrivateKey();
@@ -98,7 +99,7 @@ async function main(): Promise<void> {
   const network = Mina.Network({
     networkId: networkId as never,
     mina: graphql,
-    archive: graphql
+    archive: archiveGraphql
   });
   Mina.setActiveInstance(network);
 
@@ -152,7 +153,7 @@ async function main(): Promise<void> {
     await withTxRetry(
       async () => {
         const tx = await Mina.transaction({ sender: sender.toPublicKey(), fee: txFee }, async () => {
-          zkapp.createMarket(marketKey, newLeaf, marketsMap.getWitness(marketKey));
+          await zkapp.createMarket(marketKey, newLeaf, marketsMap.getWitness(marketKey));
         });
         await tx.prove();
         await tx.sign([sender]).send();

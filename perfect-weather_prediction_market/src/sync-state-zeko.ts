@@ -107,24 +107,6 @@ function leafFromEventData(data: Record<string, unknown>): { marketKey: string; 
 }
 
 function mergeMonotonicState(existingState: OperatorStateFile, nextState: OperatorStateFile): OperatorStateFile {
-  for (const [marketKey, existingLeafStored] of Object.entries(existingState.markets || {})) {
-    const nextLeafStored = nextState.markets[marketKey];
-    if (!nextLeafStored) {
-      nextState.markets[marketKey] = existingLeafStored;
-      continue;
-    }
-    const existingLeaf = deserializeMarketLeaf(existingLeafStored);
-    const nextLeaf = deserializeMarketLeaf(nextLeafStored);
-    if (existingLeaf.resolved.toBoolean() && !nextLeaf.resolved.toBoolean()) {
-      nextState.markets[marketKey] = existingLeafStored;
-    }
-  }
-
-  nextState.claimedReceipts = {
-    ...(existingState.claimedReceipts || {}),
-    ...(nextState.claimedReceipts || {})
-  };
-
   nextState.usedNonces = {
     ...(existingState.usedNonces || {}),
     ...(nextState.usedNonces || {})
@@ -133,23 +115,22 @@ function mergeMonotonicState(existingState: OperatorStateFile, nextState: Operat
   return nextState;
 }
 
-async function main(): Promise<void> {
-  const args = process.argv.slice(2);
-  const stateFile = parseOptionalArgValue(args, 'state-file') || DEFAULT_STATE_FILE;
-  const graphql = process.env.ZEKO_GRAPHQL || 'https://testnet.zeko.io';
-  const networkId = process.env.ZEKO_NETWORK_ID || 'testnet';
-  const zkappAddress = PrivateKey.fromBase58(readEnv('ZKAPP_PRIVATE_KEY')).toPublicKey();
-
+async function buildStateFromEvents(params: {
+  zkappAddress: ReturnType<typeof PrivateKey.fromBase58> extends PrivateKey ? ReturnType<PrivateKey['toPublicKey']> : never;
+  networkId: string;
+  graphql: string;
+  archiveGraphql: string;
+  existingState: OperatorStateFile;
+}): Promise<OperatorStateFile> {
+  const { zkappAddress, networkId, graphql, archiveGraphql, existingState } = params;
   const network = Mina.Network({
     networkId: networkId as never,
     mina: graphql,
-    archive: graphql
+    archive: archiveGraphql
   });
   Mina.setActiveInstance(network);
 
   const zkapp = new FastPredictionMarketPlatform(zkappAddress);
-  const existingState = await loadOperatorState(stateFile);
-
   const rawEvents = await zkapp.fetchEvents();
   const parsed = extractParsedEvents(rawEvents as unknown[]);
   const nextState: OperatorStateFile = {
@@ -187,7 +168,26 @@ async function main(): Promise<void> {
     }
   }
 
+  return mergeMonotonicState(existingState, nextState);
+}
+
+async function main(): Promise<void> {
+  const args = process.argv.slice(2);
+  const stateFile = parseOptionalArgValue(args, 'state-file') || DEFAULT_STATE_FILE;
+  const graphql = process.env.ZEKO_GRAPHQL || 'https://testnet.zeko.io';
+  const archiveGraphql = process.env.ZEKO_ARCHIVE_GRAPHQL || graphql;
+  const networkId = process.env.ZEKO_NETWORK_ID || 'testnet';
+  const zkappAddress = PrivateKey.fromBase58(readEnv('ZKAPP_PRIVATE_KEY')).toPublicKey();
+  const existingState = await loadOperatorState(stateFile);
+
   const latestState = await loadOperatorState(stateFile);
+  const nextState = await buildStateFromEvents({
+    zkappAddress,
+    networkId,
+    graphql,
+    archiveGraphql: graphql,
+    existingState: latestState
+  });
   nextState.marketMeta = {
     ...(existingState.marketMeta || {}),
     ...(latestState.marketMeta || {})
@@ -200,61 +200,39 @@ async function main(): Promise<void> {
     ...(existingState.receiptMeta || {}),
     ...(latestState.receiptMeta || {})
   };
-  mergeMonotonicState(latestState, nextState);
-  await saveOperatorState(stateFile, nextState);
+
   const localRoot = getLocalMarketsRoot(nextState);
   const localReceiptsRoot = getLocalReceiptsRoot(nextState);
+  await saveOperatorState(stateFile, nextState);
 
-  let chainRoot: string;
-  let chainReceiptsRoot: string;
+  let chainRoot: string | null = null;
+  let chainReceiptsRoot: string | null = null;
   try {
     chainRoot = await getOnChainMarketsRoot(zkappAddress);
     chainReceiptsRoot = await getOnChainReceiptsRoot(zkappAddress);
   } catch (error) {
-    if (!isUninitializedFastZkappError(error)) {
-      throw error;
+    if (isUninitializedFastZkappError(error)) {
+      console.warn(
+        '[sync-state-zeko] zkApp account does not exist on-chain yet; saved event-derived fresh-contract state'
+      );
+    } else {
+      console.warn(
+        `[sync-state-zeko] chain root fetch unavailable after event sync: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
-
-    const emptyState: OperatorStateFile = {
-      zkappPublicKey: zkappAddress.toBase58(),
-      markets: {},
-      positions: {},
-      receipts: {},
-      claimedReceipts: {},
-      usedNonces: {},
-      marketMeta: {},
-      positionMeta: {},
-      receiptMeta: {}
-    };
-    await saveOperatorState(stateFile, emptyState);
-    const emptyMarketsRoot = getLocalMarketsRoot(emptyState);
-    const emptyReceiptsRoot = getLocalReceiptsRoot(emptyState);
-    console.warn(
-      '[sync-state-zeko] zkApp account does not exist on-chain yet; bootstrapping empty fresh-contract state'
-    );
-    console.log('State sync bootstrapped.');
-    console.log('Markets synced:', 0);
-    console.log('Receipts synced:', 0);
-    console.log('Used nonces synced:', 0);
-    console.log('Local marketsRoot:', emptyMarketsRoot);
-    console.log('Local receiptsRoot:', emptyReceiptsRoot);
-    console.log('Chain marketsRoot:', 'missing');
-    console.log('Chain receiptsRoot:', 'missing');
-    console.log('Markets root match:', 'pending deploy');
-    console.log('Receipts root match:', 'pending deploy');
-    return;
   }
 
   console.log('State sync complete.');
+  console.log('Events source:', graphql);
   console.log('Markets synced:', Object.keys(nextState.markets).length);
   console.log('Receipts synced:', Object.keys(nextState.receipts || {}).length);
   console.log('Used nonces synced:', Object.keys(nextState.usedNonces).length);
   console.log('Local marketsRoot:', localRoot);
-  console.log('Chain marketsRoot:', chainRoot);
+  console.log('Chain marketsRoot:', chainRoot ?? 'unavailable');
   console.log('Local receiptsRoot:', localReceiptsRoot);
-  console.log('Chain receiptsRoot:', chainReceiptsRoot);
-  console.log('Markets root match:', localRoot === chainRoot ? 'yes' : 'no');
-  console.log('Receipts root match:', localReceiptsRoot === chainReceiptsRoot ? 'yes' : 'no');
+  console.log('Chain receiptsRoot:', chainReceiptsRoot ?? 'unavailable');
+  console.log('Markets root match:', chainRoot ? (localRoot === chainRoot ? 'yes' : 'no') : 'unknown');
+  console.log('Receipts root match:', chainReceiptsRoot ? (localReceiptsRoot === chainReceiptsRoot ? 'yes' : 'no') : 'unknown');
 }
 
 main().catch((error: unknown) => {
