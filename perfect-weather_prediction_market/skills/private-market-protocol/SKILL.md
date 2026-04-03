@@ -12,8 +12,6 @@ description: Use when implementing or modifying the reusable prediction-market p
 - Oracle trust/verification policy changes (`src/tlsn-verifier.ts`, `src/weather-attest.ts`)
 - Global safeguards (nonce handling, root sync, close-only/expired behavior)
 
-This skill should be written and applied as **portable guidance**, not just a log of what happened in this repo. Use the weather market as the concrete example, but extract the reusable rule for any hosted zk application with wallets, proofs, and external data.
-
 ## Workflow
 
 1. Confirm whether change is global protocol or demo-only.
@@ -31,12 +29,6 @@ This skill should be written and applied as **portable guidance**, not just a lo
    - wallet tx flow (`/api/tx/market-bet`, tx-prover, `/api/tx/finalize`)
    - state sync (`pnpm sync-state:zeko`)
 
-When documenting decisions, phrase them as:
-
-- the reusable pattern
-- why it matters generally
-- how this repo instantiates it
-
 ## Guardrails
 
 - Do not hardcode demo thresholds/sources in protocol logic.
@@ -47,9 +39,6 @@ When documenting decisions, phrase them as:
 - If state cannot be reconstructed from chain events, add recovery/bootstrap paths before increasing operational complexity.
 - Preserve wallet metadata (`receiptMeta`, `positionMeta`) across sync/import cycles. On-chain roots alone are not enough for fast wallet-facing claim UX.
 - Keep market-date identity durable beyond the active betting window. Oracle resolution for rolled-off dates should not depend only on current daily-market rows.
-- Keep time-boundary rules enforced in more than one place when they matter operationally:
-  - service-level guards for user/admin entrypoints
-  - on-chain slot semantics for newly created markets
 
 ## Architecture Lessons
 
@@ -75,20 +64,12 @@ When documenting decisions, phrase them as:
   - transient finalize failures are more common than proof failures once the wallet send succeeds, so retry and recovery should stay lean and explicit
 - Prover state drift:
   - `Field.assertEquals(): <a> != <b>` in the tx-prover usually means the witness was built against an older root and the live zkApp state changed before proving
-  - retry by refreshing state, rebuilding context, and proving again before surfacing the error
+  - retry by refreshing state, rebuilding context, and proving again once before surfacing the error
   - treat this as a state-coordination problem first, not as proof corruption
-  - add root preflight checks before `tx.prove()` so stale contexts fail as normal request errors instead of crashing the prover instance
 - Sync monotonicity:
   - event-based sync can be temporarily incomplete on hosted/archive infrastructure
-- do not let sync regress monotonic state like `resolved` markets, claimed receipts, or used oracle nonces
-- if a market resolved once locally, never overwrite it back to unresolved from a thinner event snapshot
-
-## Current market timing semantics
-
-- daily market close: `9pm Pacific`
-- same-day resolution eligible: `9pm Pacific` or later
-- active market window advances at that same `9pm Pacific` cutoff
-- a fresh zkApp epoch is required if existing on-chain markets were created with older close-slot semantics
+  - do not let sync regress monotonic state like `resolved` markets, claimed receipts, or used oracle nonces
+  - if a market resolved once locally, never overwrite it back to unresolved from a thinner event snapshot
 
 ## Receipt-Commitment Extension Guide
 
@@ -119,13 +100,3 @@ Design guidance:
 - treat wallet metadata as UX state, not public protocol state
 - do not call this “fully private” unless wallet funding, betting, and claiming are also hidden from public observers
 - prefer this step before attempting a full sovereign-rollup private state tree, because it is the smallest useful privacy upgrade
-
-## Generalized Takeaways
-
-For another zk app or agent-built market, the reusable rules are:
-
-- keep the proving surface narrow and explicit
-- do not let hosted cache state masquerade as chain truth
-- make time-boundary rules part of both the contract semantics and the service semantics when possible
-- fail stale proof inputs early and recover them through sync/rebuild, not operator guesswork
-- treat contract-breaking fixes as new epochs, not as hot patches to old state

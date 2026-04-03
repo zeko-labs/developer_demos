@@ -39,6 +39,8 @@ import { MarketLeaf } from './market-types.js';
 import {
   assertLocalMarketsRootMatchesChain,
   assertLocalReceiptsRootMatchesChain,
+  getLocalMarketsRoot,
+  getLocalReceiptsRoot,
   getOnChainMarketsRoot,
   getOnChainReceiptsRoot
 } from './fast-chain-state.js';
@@ -57,7 +59,7 @@ import {
   type StoredPositionMeta,
   type StoredReceiptMeta
 } from './state-store.js';
-import { withTxRetry } from './tx-retry.js';
+import { isRetryableTxError, withTxRetry } from './tx-retry.js';
 import { deriveDateKeyedMarketKey } from './payout-upgrade-types.js';
 import { getSuggestedSequencerFee } from './sequencer-fee.js';
 import { getFastNodeCompileCache } from './fast-compile-cache.js';
@@ -73,6 +75,7 @@ const DAILY_SETTLE_STATE_FILE = './data/daily-settle-state.json';
 const TLSN_STATUS_FILE = './data/tlsn-output/latest/status.json';
 const STARTUP_READY_FILE = './data/startup-ready.json';
 const FRESH_ZKAPP_ARCHIVE_DIR = './data/fresh-zkapp-archives';
+const HOSTED_TX_BANLIST_FILE = './data/hosted-tx-banlist.json';
 const CLAIM_STATUS_CACHE_TTL_MS = 30_000;
 const RECEIPT_BACKFILL_TTL_MS = 5 * 60_000;
 
@@ -308,12 +311,31 @@ const balances: Record<string, UserBalance> = {};
 const pendingTxIntents: Record<string, PendingTxIntent> = {};
 const receiptBackfillCache = new Map<string, ReceiptBackfillCacheEntry>();
 const claimTxStatusCache = new Map<string, { status: string; fetchedAtUnixMs: number }>();
+const txSessionTokens = new Map<string, { caller: string; expiresAtUnixMs: number }>();
+const lastTxSessionIssuedAtByCaller = new Map<string, number>();
+const hostedTxBetCountsByFingerprint = new Map<string, { date: string; count: number }>();
+const hostedTxLastBetAtByFingerprint = new Map<string, number>();
+const persistentHostedBlockedCallers = new Set<string>();
+const persistentHostedBlockedWallets = new Set<string>();
 const privateBetQueue: PrivateQueuedBet[] = [];
 const privateBatchHistory: PrivateBatchHistoryEntry[] = [];
 let privateBatchInFlight = false;
 let privateBatchLeaseStartedAtUnixMs: number | null = null;
 let fastContractCompilePromise: Promise<void> | null = null;
 let lastStateRefreshAtUnixMs = 0;
+let backgroundStateRefreshPromise: Promise<void> | null = null;
+let activeChainMutationLease: { owner: string; expiresAtUnixMs: number; kind: string } | null = null;
+
+const CHAIN_MUTATION_LEASE_POLL_MS = 250;
+
+function getHostedClaimSubmitTimeoutMs(): number {
+  const explicit = process.env.CLAIM_SUBMITTED_TIMEOUT_MS;
+  if (explicit !== undefined) {
+    const parsed = Number.parseInt(explicit, 10);
+    if (Number.isFinite(parsed) && parsed > 0) return parsed;
+  }
+  return 10 * 60 * 1000;
+}
 
 function getPrivacyMode(): PrivacyMode {
   const mode = (process.env.PRIVACY_MODE || 'zk_strong').trim().toLowerCase();
@@ -351,9 +373,6 @@ function shouldAssertChainRootsInBetContext(): boolean {
   if (explicit !== undefined) {
     const normalized = explicit.trim().toLowerCase();
     return !['0', 'false', 'no', 'off'].includes(normalized);
-  }
-  if (process.env.RENDER === 'true' || process.env.IS_RENDER === 'true') {
-    return false;
   }
   return true;
 }
@@ -482,6 +501,296 @@ function writeJson(res: import('node:http').ServerResponse, status: number, data
   res.end(JSON.stringify(data, null, 2));
 }
 
+function getChainMutationLeaseStatus() {
+  if (activeChainMutationLease && activeChainMutationLease.expiresAtUnixMs <= Date.now()) {
+    activeChainMutationLease = null;
+  }
+  return activeChainMutationLease;
+}
+
+async function acquireChainMutationLease(params: {
+  owner: string;
+  kind: string;
+  holdMs: number;
+  waitMs: number;
+}): Promise<void> {
+  const deadline = Date.now() + params.waitMs;
+  while (Date.now() <= deadline) {
+    const current = getChainMutationLeaseStatus();
+    if (!current || current.owner === params.owner) {
+      activeChainMutationLease = {
+        owner: params.owner,
+        kind: params.kind,
+        expiresAtUnixMs: Date.now() + params.holdMs
+      };
+      return;
+    }
+    await sleep(CHAIN_MUTATION_LEASE_POLL_MS);
+  }
+  const current = getChainMutationLeaseStatus();
+  throw new Error(
+    `chain mutation busy${current ? ` (${current.kind})` : ''}; retry shortly`
+  );
+}
+
+function releaseChainMutationLease(owner: string): void {
+  const current = getChainMutationLeaseStatus();
+  if (current && current.owner === owner) {
+    activeChainMutationLease = null;
+  }
+}
+
+async function withChainMutationLease<T>(params: {
+  owner: string;
+  kind: string;
+  holdMs: number;
+  waitMs: number;
+  work: () => Promise<T>;
+}): Promise<T> {
+  await acquireChainMutationLease(params);
+  try {
+    return await params.work();
+  } finally {
+    releaseChainMutationLease(params.owner);
+  }
+}
+
+function callerLabel(req: IncomingMessage): string {
+  const forwarded = req.headers['x-forwarded-for'];
+  if (typeof forwarded === 'string' && forwarded.trim()) {
+    return forwarded.split(',')[0].trim();
+  }
+  if (Array.isArray(forwarded) && forwarded[0]) {
+    return forwarded[0].split(',')[0].trim();
+  }
+  return req.socket.remoteAddress || 'unknown';
+}
+
+function requestUserAgent(req: IncomingMessage): string {
+  const value = req.headers['user-agent'];
+  return typeof value === 'string' ? value : Array.isArray(value) ? value[0] || '' : '';
+}
+
+function requestHeaderLabel(req: IncomingMessage, name: string): string {
+  const value = req.headers[name.toLowerCase()];
+  return typeof value === 'string' ? value : Array.isArray(value) ? value[0] || '' : '';
+}
+
+function logHostedTxRequest(req: IncomingMessage, path: string, event: string, detail = ''): void {
+  const caller = callerLabel(req);
+  const origin = requestHeaderLabel(req, 'origin') || '-';
+  const referer = requestHeaderLabel(req, 'referer') || '-';
+  const secFetchSite = requestHeaderLabel(req, 'sec-fetch-site') || '-';
+  const secFetchMode = requestHeaderLabel(req, 'sec-fetch-mode') || '-';
+  const userAgent = requestUserAgent(req) || '-';
+  const suffix = detail ? ` detail=${detail}` : '';
+  console.log(
+    `[market] tx ${event} path=${path} caller=${caller} origin=${origin} referer=${referer} secFetchSite=${secFetchSite} secFetchMode=${secFetchMode} ua=${JSON.stringify(userAgent)}${suffix}`
+  );
+}
+
+function appendLogDetail(detail: string, extra: string): string {
+  if (!extra) return detail;
+  return detail ? `${detail} ${extra}` : extra;
+}
+
+function envCsvSet(name: string): Set<string> {
+  const raw = process.env[name];
+  if (!raw) return new Set();
+  return new Set(
+    raw
+      .split(',')
+      .map((value) => value.trim())
+      .filter(Boolean)
+  );
+}
+
+function loadHostedTxBanlistFromDisk(): void {
+  try {
+    if (!existsSync(HOSTED_TX_BANLIST_FILE)) return;
+    const raw = readFileSync(HOSTED_TX_BANLIST_FILE, 'utf8');
+    const parsed = JSON.parse(raw) as { callers?: unknown; wallets?: unknown };
+    const callers = Array.isArray(parsed.callers) ? parsed.callers : [];
+    const wallets = Array.isArray(parsed.wallets) ? parsed.wallets : [];
+    for (const caller of callers) {
+      if (typeof caller === 'string' && caller.trim()) persistentHostedBlockedCallers.add(caller.trim());
+    }
+    for (const wallet of wallets) {
+      if (typeof wallet === 'string' && wallet.trim()) persistentHostedBlockedWallets.add(wallet.trim());
+    }
+  } catch (error) {
+    console.warn('[market] failed to load hosted tx banlist:', error instanceof Error ? error.message : String(error));
+  }
+}
+
+async function saveHostedTxBanlistToDisk(): Promise<void> {
+  try {
+    await mkdir(path.dirname(HOSTED_TX_BANLIST_FILE), { recursive: true });
+    await writeFile(
+      HOSTED_TX_BANLIST_FILE,
+      JSON.stringify(
+        {
+          callers: Array.from(persistentHostedBlockedCallers).sort(),
+          wallets: Array.from(persistentHostedBlockedWallets).sort()
+        },
+        null,
+        2
+      ),
+      'utf8'
+    );
+  } catch (error) {
+    console.warn('[market] failed to save hosted tx banlist:', error instanceof Error ? error.message : String(error));
+  }
+}
+
+function hostedTxCallerFingerprint(req: IncomingMessage): string {
+  return `${callerLabel(req)}|${requestUserAgent(req)}`;
+}
+
+function requireHostedTxNotBlocked(
+  req: IncomingMessage,
+  path: string,
+  detail: { walletPublicKey?: string | null } = {}
+): void {
+  const caller = callerLabel(req);
+  const blockedCallers = envCsvSet('HOSTED_TX_BLOCKED_CALLERS');
+  if (blockedCallers.has(caller) || persistentHostedBlockedCallers.has(caller)) {
+    logHostedTxRequest(req, path, 'reject', appendLogDetail('', `blocked-caller=${caller}`));
+    throw new Error('tx request rejected: blocked caller');
+  }
+  const wallet = detail.walletPublicKey || null;
+  if (wallet) {
+    const blockedWallets = envCsvSet('HOSTED_TX_BLOCKED_WALLETS');
+    if (blockedWallets.has(wallet) || persistentHostedBlockedWallets.has(wallet)) {
+      logHostedTxRequest(req, path, 'reject', appendLogDetail('', `blocked-wallet=${wallet}`));
+      throw new Error('tx request rejected: blocked wallet');
+    }
+  }
+}
+
+async function recordHostedMarketBetAndMaybeBlock(
+  req: IncomingMessage,
+  path: string,
+  walletPublicKey: string
+): Promise<void> {
+  const fingerprint = hostedTxCallerFingerprint(req);
+  const cooldownMs = Number.parseInt(process.env.HOSTED_TX_MIN_SECONDS_BET_COOLDOWN || '60', 10) * 1000;
+  const lastBetAt = hostedTxLastBetAtByFingerprint.get(fingerprint) || 0;
+  if (cooldownMs > 0 && Date.now() - lastBetAt < cooldownMs) {
+    logHostedTxRequest(req, path, 'reject', `bet-cooldown-ms=${cooldownMs}`);
+    throw new Error('tx request rejected: hosted bet cooldown active');
+  }
+  hostedTxLastBetAtByFingerprint.set(fingerprint, Date.now());
+
+  const maxPerDay = Number.parseInt(process.env.HOSTED_TX_MAX_BETS_PER_BROWSER_PER_DAY || '24', 10);
+  if (!(maxPerDay > 0)) return;
+  const todayIso = currentLocalDate();
+  const existing = hostedTxBetCountsByFingerprint.get(fingerprint);
+  const nextCount = existing && existing.date === todayIso ? existing.count + 1 : 1;
+  hostedTxBetCountsByFingerprint.set(fingerprint, { date: todayIso, count: nextCount });
+  if (nextCount > maxPerDay) {
+    const caller = callerLabel(req);
+    persistentHostedBlockedCallers.add(caller);
+    persistentHostedBlockedWallets.add(walletPublicKey);
+    await saveHostedTxBanlistToDisk();
+    logHostedTxRequest(
+      req,
+      path,
+      'reject',
+      `auto-banned count=${nextCount} max=${maxPerDay} caller=${caller} wallet=${walletPublicKey}`
+    );
+    throw new Error('tx request rejected: hosted browser permanently banned after daily abuse limit');
+  }
+}
+
+function pruneExpiredTxSessions(now = Date.now()): void {
+  for (const [token, entry] of txSessionTokens.entries()) {
+    if (entry.expiresAtUnixMs <= now) txSessionTokens.delete(token);
+  }
+}
+
+function issueTxSessionToken(req: IncomingMessage): { token: string; expiresAtUnixMs: number } {
+  pruneExpiredTxSessions();
+  const caller = callerLabel(req);
+  const minIntervalMs = Number.parseInt(process.env.HOSTED_TX_SESSION_MIN_INTERVAL_MS || '60000', 10);
+  const lastIssuedAt = lastTxSessionIssuedAtByCaller.get(caller) || 0;
+  if (minIntervalMs > 0 && Date.now() - lastIssuedAt < minIntervalMs) {
+    logHostedTxRequest(req, '/api/tx/session', 'reject', `rate-limited minIntervalMs=${minIntervalMs}`);
+    throw new Error('tx request rejected: tx session rate limited');
+  }
+  const token = randomUUID();
+  const expiresAtUnixMs = Date.now() + 15 * 60 * 1000;
+  txSessionTokens.set(token, {
+    caller,
+    expiresAtUnixMs
+  });
+  lastTxSessionIssuedAtByCaller.set(caller, Date.now());
+  return { token, expiresAtUnixMs };
+}
+
+function requireHostedTxSession(req: IncomingMessage, isHosted: boolean, path: string): void {
+  if (!isHosted) return;
+  pruneExpiredTxSessions();
+  const supplied = typeof req.headers['x-market-tx-session'] === 'string'
+    ? req.headers['x-market-tx-session'].trim()
+    : Array.isArray(req.headers['x-market-tx-session'])
+    ? (req.headers['x-market-tx-session'][0] || '').trim()
+    : '';
+  if (!supplied) {
+    logHostedTxRequest(req, path, 'reject', 'missing-tx-session');
+    throw new Error('tx request rejected: missing tx session');
+  }
+  const entry = txSessionTokens.get(supplied);
+  if (!entry) {
+    logHostedTxRequest(req, path, 'reject', 'invalid-or-expired-tx-session');
+    throw new Error('tx request rejected: invalid or expired tx session');
+  }
+  const caller = callerLabel(req);
+  if (entry.caller !== caller) {
+    logHostedTxRequest(req, path, 'reject', `tx-session-caller-mismatch expected=${entry.caller}`);
+    throw new Error(`tx request rejected: tx session caller mismatch ${caller}`);
+  }
+}
+
+function requireHostedTxOrigin(req: IncomingMessage, url: URL, isHosted: boolean, path: string): void {
+  if (!isHosted) return;
+  const host = req.headers.host;
+  if (!host) {
+    logHostedTxRequest(req, path, 'reject', 'missing-host');
+    throw new Error('tx request rejected: missing host');
+  }
+  const expectedHost = url.host || host;
+  const rawOrigin = typeof req.headers.origin === 'string' ? req.headers.origin.trim() : '';
+  const rawReferer = typeof req.headers.referer === 'string' ? req.headers.referer.trim() : '';
+
+  const matchesHost = (value: string): boolean => {
+    if (!value) return false;
+    try {
+      return new URL(value).host === expectedHost;
+    } catch {
+      return false;
+    }
+  };
+
+  if (matchesHost(rawOrigin) || matchesHost(rawReferer)) return;
+  logHostedTxRequest(req, path, 'reject', `cross-origin expectedHost=${expectedHost}`);
+  throw new Error(`tx request rejected: cross-origin caller ${callerLabel(req)}`);
+}
+
+function requireHostedBrowserFetch(req: IncomingMessage, isHosted: boolean, path: string): void {
+  if (!isHosted) return;
+  const secFetchSite = typeof req.headers['sec-fetch-site'] === 'string' ? req.headers['sec-fetch-site'].trim().toLowerCase() : '';
+  const secFetchMode = typeof req.headers['sec-fetch-mode'] === 'string' ? req.headers['sec-fetch-mode'].trim().toLowerCase() : '';
+  if (secFetchSite !== 'same-origin') {
+    logHostedTxRequest(req, path, 'reject', `invalid-fetch-site=${secFetchSite || 'missing'}`);
+    throw new Error(`tx request rejected: invalid fetch site ${secFetchSite || 'missing'}`);
+  }
+  if (secFetchMode !== 'cors' && secFetchMode !== 'same-origin') {
+    logHostedTxRequest(req, path, 'reject', `invalid-fetch-mode=${secFetchMode || 'missing'}`);
+    throw new Error(`tx request rejected: invalid fetch mode ${secFetchMode || 'missing'}`);
+  }
+}
+
 function contentTypeForFile(filePath: string): string {
   const ext = path.extname(filePath).toLowerCase();
   if (ext === '.html') return 'text/html; charset=utf-8';
@@ -588,20 +897,25 @@ function parseIntOrDefault(value: string | null, fallback: number): number {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 function getNetworkConfig() {
   const graphql = process.env.ZEKO_GRAPHQL || 'https://testnet.zeko.io';
+  const archiveGraphql = process.env.ZEKO_ARCHIVE_GRAPHQL || graphql;
   const requestedNetworkId = process.env.ZEKO_NETWORK_ID || 'testnet';
   const isZekoTestnet = /testnet\.zeko\.io/i.test(graphql);
   const networkId = isZekoTestnet && requestedNetworkId === 'zeko' ? 'testnet' : requestedNetworkId;
-  return { graphql, networkId };
+  return { graphql, archiveGraphql, networkId };
 }
 
 function setActiveZekoNetwork() {
-  const { graphql, networkId } = getNetworkConfig();
+  const { graphql, archiveGraphql, networkId } = getNetworkConfig();
   const network = Mina.Network({
     networkId: networkId as never,
     mina: graphql,
-    archive: graphql
+    archive: archiveGraphql
   });
   Mina.setActiveInstance(network);
 }
@@ -1588,9 +1902,34 @@ async function refreshState(projectRoot: string): Promise<void> {
   lastStateRefreshAtUnixMs = Date.now();
 }
 
+async function refreshStateInBackground(projectRoot: string, reason: string): Promise<void> {
+  if (backgroundStateRefreshPromise) return backgroundStateRefreshPromise;
+  backgroundStateRefreshPromise = (async () => {
+    try {
+      await refreshState(projectRoot);
+      console.log(`[state-sync] success reason=${reason}`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (isRetryableTxError(error)) {
+        console.warn(`[state-sync] skipped retryable failure reason=${reason}: ${message}`);
+      } else {
+        console.warn(`[state-sync] failed reason=${reason}: ${message}`);
+      }
+    } finally {
+      backgroundStateRefreshPromise = null;
+    }
+  })();
+  return backgroundStateRefreshPromise;
+}
+
 async function ensureRecentlySyncedState(projectRoot: string, maxAgeMs = 5 * 60 * 1000): Promise<void> {
   if (lastStateRefreshAtUnixMs > 0 && Date.now() - lastStateRefreshAtUnixMs <= maxAgeMs) return;
   await refreshState(projectRoot);
+}
+
+async function ensureFreshHostedProvingState(projectRoot: string): Promise<void> {
+  const hostedFreshnessMs = Number.parseInt(process.env.HOSTED_PROVER_STATE_MAX_AGE_MS || '15000', 10);
+  await ensureRecentlySyncedState(projectRoot, hostedFreshnessMs);
 }
 
 async function ensureDailyMarkets(projectRoot: string): Promise<void> {
@@ -1649,24 +1988,35 @@ async function withFreshMarketStateRetry<T>(projectRoot: string, work: () => Pro
   }
 }
 
+async function withBetProofStateRetry<T>(projectRoot: string, work: () => Promise<T>): Promise<T> {
+  try {
+    return await work();
+  } catch (error) {
+    if (!isRemoteProverStateDriftError(error)) throw error;
+    await refreshState(projectRoot);
+    return await work();
+  }
+}
+
 async function withRemoteProverStateRetry<T>(
   projectRoot: string,
   buildAndProve: () => Promise<T>
 ): Promise<T> {
-  let lastError: unknown = null;
-  for (let attempt = 1; attempt <= 3; attempt += 1) {
-    try {
-      return await buildAndProve();
-    } catch (error) {
-      lastError = error;
-      if (!isRemoteProverStateDriftError(error) || attempt === 3) {
-        throw error;
-      }
-      await refreshState(projectRoot);
-      await new Promise((resolve) => setTimeout(resolve, 500 * attempt));
-    }
+  try {
+    return await buildAndProve();
+  } catch (error) {
+    if (!isRemoteProverStateDriftError(error)) throw error;
+    await refreshState(projectRoot);
+    return await buildAndProve();
   }
-  throw lastError instanceof Error ? lastError : new Error(String(lastError));
+}
+
+async function ensureHostedBetBuildState(projectRoot: string, isHosted: boolean): Promise<void> {
+  if (isHosted) {
+    await refreshState(projectRoot);
+    return;
+  }
+  await ensureRecentlySyncedState(projectRoot);
 }
 
 function serializeMerkleWitness(witness: { isLefts: Bool[]; siblings: Field[] }): SerializedMerkleWitness {
@@ -1674,6 +2024,143 @@ function serializeMerkleWitness(witness: { isLefts: Bool[]; siblings: Field[] })
     isLefts: witness.isLefts.map((value) => value.toBoolean()),
     siblings: witness.siblings.map((value) => value.toString())
   };
+}
+
+type SyncParsedEvent = {
+  type: string;
+  data: Record<string, unknown>;
+};
+
+function extractSyncParsedEvents(rawEvents: unknown[]): SyncParsedEvent[] {
+  const parsed: SyncParsedEvent[] = [];
+  for (const item of rawEvents as Array<Record<string, unknown>>) {
+    const flatType = typeof item.type === 'string' ? item.type : null;
+    const flatData = item.event && typeof item.event === 'object' ? (item.event as Record<string, unknown>).data : null;
+    if (flatType && flatData && typeof flatData === 'object' && !Array.isArray(flatData)) {
+      parsed.push({ type: flatType, data: flatData as Record<string, unknown> });
+      continue;
+    }
+    const nested = item.events;
+    if (Array.isArray(nested)) {
+      for (const nestedEvent of nested as Array<Record<string, unknown>>) {
+        const t = typeof nestedEvent.type === 'string' ? nestedEvent.type : null;
+        const d =
+          nestedEvent.event && typeof nestedEvent.event === 'object'
+            ? (nestedEvent.event as Record<string, unknown>).data
+            : nestedEvent.data;
+        if (t && d && typeof d === 'object' && !Array.isArray(d)) {
+          parsed.push({ type: t, data: d as Record<string, unknown> });
+        }
+      }
+    }
+  }
+  return parsed;
+}
+
+function asSyncField(value: unknown, fieldName: string): Field {
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'bigint') {
+    return Field(value);
+  }
+  if (typeof value === 'object' && value !== null && 'toString' in value) {
+    return Field((value as { toString(): string }).toString());
+  }
+  throw new Error(`event field ${fieldName} missing`);
+}
+
+function asSyncUInt64(value: unknown, fieldName: string): UInt64 {
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'bigint') {
+    return UInt64.from(value);
+  }
+  if (typeof value === 'object' && value !== null && 'toString' in value) {
+    return UInt64.from((value as { toString(): string }).toString());
+  }
+  throw new Error(`event field ${fieldName} missing`);
+}
+
+function asSyncBool(value: unknown, fieldName: string): Bool {
+  const normalized =
+    typeof value === 'boolean'
+      ? value
+        ? '1'
+        : '0'
+      : typeof value === 'string' || typeof value === 'number' || typeof value === 'bigint'
+      ? String(value)
+      : typeof value === 'object' && value !== null && 'toString' in value
+      ? (value as { toString(): string }).toString()
+      : null;
+  if (normalized === null) throw new Error(`event field ${fieldName} missing`);
+  return Bool(normalized === '1' || normalized.toLowerCase() === 'true');
+}
+
+function buildAuthoritativeStateFromEvents(
+  existingState: OperatorStateFile,
+  rawEvents: unknown[],
+  zkappPublicKey: string
+): OperatorStateFile {
+  const nextState: OperatorStateFile = {
+    zkappPublicKey,
+    markets: {},
+    positions: existingState.positions || {},
+    receipts: {},
+    claimedReceipts: {},
+    usedNonces: {},
+    marketMeta: existingState.marketMeta || {},
+    positionMeta: existingState.positionMeta || {},
+    receiptMeta: existingState.receiptMeta || {}
+  };
+  for (const evt of extractSyncParsedEvents(rawEvents)) {
+    try {
+      if (evt.type === 'marketCreated' || evt.type === 'marketUpdated' || evt.type === 'marketResolved') {
+        const data = evt.data;
+        const marketKey = asSyncField(data.marketKey, 'marketKey').toString();
+        const leaf = new MarketLeaf({
+          configHash: asSyncField(data.configHash, 'configHash'),
+          closeSlot: asSyncUInt64(data.closeSlot, 'closeSlot'),
+          expirySlot: asSyncUInt64(data.expirySlot, 'expirySlot'),
+          thresholdValueTenthC: asSyncUInt64(data.thresholdValueTenthC, 'thresholdValueTenthC'),
+          totalPositionBet: asSyncUInt64(data.totalPositionBet, 'totalPositionBet'),
+          totalYesPositionBet: asSyncUInt64(data.totalYesPositionBet, 'totalYesPositionBet'),
+          resolved: asSyncBool(data.resolved, 'resolved'),
+          outcome: asSyncBool(data.outcome, 'outcome'),
+          oracleStatementHash: asSyncField(data.oracleStatementHash, 'oracleStatementHash')
+        });
+        nextState.markets[marketKey] = serializeMarketLeaf(leaf);
+        if (data.oracleNonce) {
+          nextState.usedNonces[asSyncField(data.oracleNonce, 'oracleNonce').toString()] = '1';
+        }
+      } else if (evt.type === 'receiptCommitted') {
+        nextState.receipts ||= {};
+        nextState.receipts[asSyncField(evt.data.receiptKey, 'receiptKey').toString()] = asSyncField(
+          evt.data.receiptCommitment,
+          'receiptCommitment'
+        ).toString();
+      } else if (evt.type === 'receiptClaimed') {
+        nextState.claimedReceipts ||= {};
+        nextState.claimedReceipts[asSyncField(evt.data.receiptKey, 'receiptKey').toString()] = '1';
+      }
+    } catch {
+      // Ignore incompatible historical events from older contract versions.
+    }
+  }
+  nextState.usedNonces = {
+    ...(existingState.usedNonces || {}),
+    ...(nextState.usedNonces || {})
+  };
+  return nextState;
+}
+
+async function loadLiveOperatorStateForHostedTxBuild(stateFile: string): Promise<OperatorStateFile> {
+  const existingState = await loadOperatorState(stateFile);
+  const { graphql, networkId } = getNetworkConfig();
+  const network = Mina.Network({
+    networkId: networkId as never,
+    mina: graphql,
+    archive: graphql
+  });
+  Mina.setActiveInstance(network);
+  const zkapp = new FastPredictionMarketPlatform(getZkappPublicKey());
+  const rawEvents = await zkapp.fetchEvents();
+  return buildAuthoritativeStateFromEvents(existingState, rawEvents as unknown[], getZkappPublicKey().toBase58());
 }
 
 function deserializeMerkleWitness(serialized: SerializedMerkleWitness): MerkleMapWitness {
@@ -1700,20 +2187,21 @@ async function buildBrowserFeePayerMarketBetContext(params: {
   marketDate: string | null;
   feePayerPublicKey: string;
   userId: string;
+  preferLiveHostedState?: boolean;
 }): Promise<{
   intent: PendingTxIntent;
   fee: string;
   marketSummary: { totalPositionBet: string; totalYesPositionBet: string };
   buildContext: BrowserMarketBetContext;
 }> {
-  const { stateFile, marketKey, addTotalBet, addYesBet, marketDate, feePayerPublicKey, userId } = params;
+  const { stateFile, marketKey, addTotalBet, addYesBet, marketDate, feePayerPublicKey, userId, preferLiveHostedState = false } = params;
   if (addYesBet > addTotalBet) throw new Error('addYesBet must be <= addTotalBet');
 
   setActiveZekoNetwork();
   const { graphql, networkId } = getNetworkConfig();
   const { feeRaw: txFee } = await getSuggestedSequencerFee(graphql);
   const zkappAddress = getZkappPublicKey();
-  const state = await loadOperatorState(stateFile);
+  const state = preferLiveHostedState ? await loadLiveOperatorStateForHostedTxBuild(stateFile) : await loadOperatorState(stateFile);
   if (shouldAssertChainRootsInBetContext()) {
     await assertLocalMarketsRootMatchesChain(zkappAddress, state);
     await assertLocalReceiptsRootMatchesChain(zkappAddress, state);
@@ -1845,7 +2333,7 @@ async function buildLocalServerReceiptBetTx(context: BrowserMarketBetContext): P
       to: zkappAddress,
       amount: UInt64.from(betAmountNanomina)
     });
-    zkapp.placeReceiptBet(
+    await zkapp.placeReceiptBet(
       marketKey,
       oldLeaf,
       newLeaf,
@@ -1882,7 +2370,7 @@ async function buildLocalServerClaimReceiptTx(context: ClaimPayoutContext): Prom
   const zkappAddress = PublicKey.fromBase58(context.zkappPublicKey);
   const zkapp = new FastPredictionMarketPlatform(zkappAddress);
   const tx = await Mina.transaction({ sender: feePayer, fee: context.fee }, async () => {
-    zkapp.claimReceiptPayout(
+    await zkapp.claimReceiptPayout(
       Field(context.marketKey),
       deserializeMarketLeaf(context.resolvedLeaf),
       deserializeMerkleWitness(context.marketWitness),
@@ -2089,6 +2577,37 @@ function payoutNanominaForStake(totalPositionBet: bigint, totalYesPositionBet: b
   return (totalPositionBet * stake) / pool;
 }
 
+function getReceiptFundingStatus(meta: { fundingStatus?: 'submitted' | 'confirmed' | null }): 'submitted' | 'confirmed' {
+  return meta.fundingStatus === 'submitted' ? 'submitted' : 'confirmed';
+}
+
+function reconcileReceiptFundingStatuses(state: Awaited<ReturnType<typeof loadOperatorState>>): boolean {
+  state.receiptMeta = state.receiptMeta || {};
+  const receipts = state.receipts || {};
+  let dirty = false;
+  for (const [receiptKey, meta] of Object.entries(state.receiptMeta)) {
+    if (!meta) continue;
+    const onChainReceiptExists = Boolean(receipts[receiptKey]);
+    if (onChainReceiptExists) {
+      if (meta.fundingStatus !== 'confirmed') {
+        meta.fundingStatus = 'confirmed';
+        dirty = true;
+      }
+      if (!Number.isFinite(meta.fundingConfirmedAtUnixMs as number)) {
+        meta.fundingConfirmedAtUnixMs = Date.now();
+        dirty = true;
+      }
+      continue;
+    }
+    if (meta.fundingStatus === 'confirmed') {
+      meta.fundingStatus = 'submitted';
+      meta.fundingConfirmedAtUnixMs = null;
+      dirty = true;
+    }
+  }
+  return dirty;
+}
+
 function tminaToNanomina(valueTmina: bigint): bigint {
   return valueTmina * 1_000_000_000n;
 }
@@ -2269,6 +2788,9 @@ async function maybeBackfillReceiptMetaForWallet(
       ownerCommitment,
       createdAtUnixMs: Number(evt.blockHeight?.toString?.() || 0),
       fundingTxHash: txHash,
+      fundingStatus: 'confirmed',
+      fundingSubmittedAtUnixMs: Number(evt.blockHeight?.toString?.() || 0),
+      fundingConfirmedAtUnixMs: Number(evt.blockHeight?.toString?.() || 0),
       receiptCommitment: data.receiptCommitment.toString(),
       receiptSalt: '',
       side,
@@ -2349,6 +2871,35 @@ function markReceiptClaimConfirmed(state: Awaited<ReturnType<typeof loadOperator
   return true;
 }
 
+function resetSubmittedClaimForRetry(
+  target: {
+    claimStatus?: 'claimable' | 'submitted' | 'confirmed' | 'not-applicable' | null;
+    claimTxHash?: string | null;
+    claimSubmittedAtUnixMs?: number | null;
+    claimConfirmedAtUnixMs?: number | null;
+  } | null | undefined
+): boolean {
+  if (!target) return false;
+  let dirty = false;
+  if (target.claimStatus !== 'claimable') {
+    target.claimStatus = 'claimable';
+    dirty = true;
+  }
+  if (target.claimTxHash !== null) {
+    target.claimTxHash = null;
+    dirty = true;
+  }
+  if (target.claimSubmittedAtUnixMs !== null) {
+    target.claimSubmittedAtUnixMs = null;
+    dirty = true;
+  }
+  if (target.claimConfirmedAtUnixMs !== null) {
+    target.claimConfirmedAtUnixMs = null;
+    dirty = true;
+  }
+  return dirty;
+}
+
 type DerivedResolvedOutcomeMap = Map<string, 'over' | 'under'>;
 
 function getEffectiveResolvedMarketState(
@@ -2420,7 +2971,9 @@ async function reconcileSubmittedPayoutClaims(stateFile: string) {
   setActiveZekoNetwork();
   const state = await loadOperatorState(stateFile);
   let dirty = finalizeReceiptClaimStatuses(state);
+  dirty = reconcileReceiptFundingStatuses(state) || dirty;
   const derivedResolvedOutcomes: DerivedResolvedOutcomeMap = new Map();
+  const submittedTimeoutMs = getHostedClaimSubmitTimeoutMs();
   const pendingClaims = Object.entries(state.positionMeta || {}).filter(([, meta]) => {
     return Boolean(meta?.claimStatus === 'submitted' && meta?.claimTxHash);
   });
@@ -2448,9 +3001,20 @@ async function reconcileSubmittedPayoutClaims(stateFile: string) {
       }
       if (status === 'INCLUDED') {
         dirty = markPositionClaimConfirmed(state, positionKey, Date.now()) || dirty;
+      } else if (
+        status !== 'INCLUDED' &&
+        Number.isFinite(meta.claimSubmittedAtUnixMs) &&
+        now - Number(meta.claimSubmittedAtUnixMs) >= submittedTimeoutMs
+      ) {
+        dirty = resetSubmittedClaimForRetry(meta) || dirty;
       }
     } catch {
-      // Leave claim pending if status cannot be fetched yet.
+      if (
+        Number.isFinite(meta?.claimSubmittedAtUnixMs) &&
+        now - Number(meta.claimSubmittedAtUnixMs) >= submittedTimeoutMs
+      ) {
+        dirty = resetSubmittedClaimForRetry(meta) || dirty;
+      }
     }
   }
   for (const [receiptKey, meta] of pendingReceiptClaims) {
@@ -2467,9 +3031,22 @@ async function reconcileSubmittedPayoutClaims(stateFile: string) {
       if (status === 'INCLUDED') {
         derivedResolvedOutcomes.set(meta.marketKey, meta.side);
         dirty = markReceiptClaimConfirmed(state, receiptKey, Date.now()) || dirty;
+      } else if (
+        meta.claimStatus === 'submitted' &&
+        status !== 'INCLUDED' &&
+        Number.isFinite(meta.claimSubmittedAtUnixMs) &&
+        now - Number(meta.claimSubmittedAtUnixMs) >= submittedTimeoutMs
+      ) {
+        dirty = resetSubmittedClaimForRetry(meta) || dirty;
       }
     } catch {
-      // Leave claim pending if status cannot be fetched yet.
+      if (
+        meta.claimStatus === 'submitted' &&
+        Number.isFinite(meta?.claimSubmittedAtUnixMs) &&
+        now - Number(meta.claimSubmittedAtUnixMs) >= submittedTimeoutMs
+      ) {
+        dirty = resetSubmittedClaimForRetry(meta) || dirty;
+      }
     }
   }
   if (dirty) {
@@ -2539,6 +3116,10 @@ async function buildClaimPayoutContext(params: {
   const zkappAddress = getZkappPublicKey();
 
   const { state, derivedResolvedOutcomes } = await reconcileSubmittedPayoutClaims(stateFile);
+  if (shouldAssertChainRootsInBetContext()) {
+    await assertLocalMarketsRootMatchesChain(zkappAddress, state);
+    await assertLocalReceiptsRootMatchesChain(zkappAddress, state);
+  }
   const meta = state.receiptMeta?.[positionKey];
   if (!meta) throw new Error('receipt metadata missing for payout claim');
   if (meta.walletPublicKey !== feePayerPublicKey) {
@@ -2619,45 +3200,37 @@ async function requestRemoteTxProver<T>(endpoint: string, body: Record<string, u
   const token = getRemoteTxProverToken();
   if (!baseUrl) throw new Error('remote tx prover not configured: set TX_PROVER_BASE_URL');
   if (!token) throw new Error('remote tx prover not configured: set TX_PROVER_ACTION_TOKEN');
-  let lastError: unknown = null;
-  for (let attempt = 1; attempt <= 2; attempt += 1) {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 120_000);
-    try {
-      const res = await fetch(`${baseUrl}${endpoint}`, {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          'x-prover-token': token
-        },
-        body: JSON.stringify(body),
-        signal: controller.signal
-      });
-      const text = await res.text();
-      let data: any = null;
-      if (text) {
-        try {
-          data = JSON.parse(text);
-        } catch {
-          const snippet = text.slice(0, 160).replace(/\s+/g, ' ').trim();
-          throw new Error(`remote tx prover returned non-JSON response (${res.status}): ${snippet}`);
-        }
-      }
-      if (!res.ok) {
-        throw new Error((data && data.error) || `remote tx prover request ${endpoint} failed with status ${res.status}`);
-      }
-      clearTimeout(timeout);
-      return data as T;
-    } catch (error) {
-      clearTimeout(timeout);
-      lastError = error;
-      if (attempt < 2) {
-        await new Promise((resolve) => setTimeout(resolve, 750));
-        continue;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 120_000);
+  try {
+    const res = await fetch(`${baseUrl}${endpoint}`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-prover-token': token
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal
+    });
+    const text = await res.text();
+    let data: any = null;
+    if (text) {
+      try {
+        data = JSON.parse(text);
+      } catch {
+        const snippet = text.slice(0, 160).replace(/\s+/g, ' ').trim();
+        throw new Error(`remote tx prover returned non-JSON response (${res.status}): ${snippet}`);
       }
     }
+    if (!res.ok) {
+      throw new Error((data && data.error) || `remote tx prover request ${endpoint} failed with status ${res.status}`);
+    }
+    return data as T;
+  } catch (error) {
+    throw new Error(`remote tx prover unavailable: ${error instanceof Error ? error.message : String(error)}`);
+  } finally {
+    clearTimeout(timeout);
   }
-  throw new Error(`remote tx prover unavailable: ${lastError instanceof Error ? lastError.message : String(lastError)}`);
 }
 
 async function processPrivateBetBatch(params: {
@@ -2677,6 +3250,7 @@ async function processPrivateBetBatch(params: {
 }
 
 async function main(): Promise<void> {
+  loadHostedTxBanlistFromDisk();
   const __filename = fileURLToPath(import.meta.url);
   const __dirname = path.dirname(__filename);
   const projectRoot = path.resolve(__dirname, '..');
@@ -2843,6 +3417,10 @@ async function main(): Promise<void> {
       }
 
       if (req.method === 'POST' && url.pathname === '/api/tx/market-bet-context') {
+        requireHostedBrowserFetch(req, isHosted, url.pathname);
+        requireHostedTxOrigin(req, url, isHosted, url.pathname);
+        requireHostedTxSession(req, isHosted, url.pathname);
+        logHostedTxRequest(req, url.pathname, 'accept');
         const body = await readJsonBody(req);
         const marketKey = requireString(body.marketKey, 'marketKey');
         const addTotalBet = requireNumber(body.addTotalBet, 'addTotalBet');
@@ -2884,9 +3462,10 @@ async function main(): Promise<void> {
             addTotalBet: Math.floor(addTotalBet),
             addYesBet: Math.floor(addYesBet),
             marketDate,
-              feePayerPublicKey: walletPublicKey,
-              userId
-            });
+            feePayerPublicKey: walletPublicKey,
+            userId,
+            preferLiveHostedState: false
+          });
         };
         const built = useLeanHostedBetContext()
           ? await buildBetContext()
@@ -2902,26 +3481,55 @@ async function main(): Promise<void> {
         return;
       }
 
+      if (req.method === 'POST' && url.pathname === '/api/tx/session') {
+        requireHostedBrowserFetch(req, isHosted, url.pathname);
+        requireHostedTxOrigin(req, url, isHosted, url.pathname);
+        requireHostedTxNotBlocked(req, url.pathname);
+        const session = issueTxSessionToken(req);
+        logHostedTxRequest(req, url.pathname, 'issue-session', `expiresAtUnixMs=${session.expiresAtUnixMs}`);
+        writeJson(res, 200, {
+          ok: true,
+          token: session.token,
+          expiresAtUnixMs: session.expiresAtUnixMs
+        });
+        return;
+      }
+
       if (req.method === 'POST' && url.pathname === '/api/tx/market-bet') {
+        requireHostedBrowserFetch(req, isHosted, url.pathname);
+        requireHostedTxOrigin(req, url, isHosted, url.pathname);
+        requireHostedTxSession(req, isHosted, url.pathname);
         const body = await readJsonBody(req);
         const marketKey = requireString(body.marketKey, 'marketKey');
         const addTotalBet = requireNumber(body.addTotalBet, 'addTotalBet');
         const addYesBet = requireNonNegativeNumber(body.addYesBet, 'addYesBet');
         const walletPublicKey = requireString(body.walletPublicKey, 'walletPublicKey');
+        requireHostedTxNotBlocked(req, url.pathname, { walletPublicKey });
+        await recordHostedMarketBetAndMaybeBlock(req, url.pathname, walletPublicKey);
+        logHostedTxRequest(
+          req,
+          url.pathname,
+          'accept',
+          `wallet=${walletPublicKey} marketKey=${marketKey} addTotalBet=${Math.floor(addTotalBet)} addYesBet=${Math.floor(addYesBet)}`
+        );
         const marketDate = requireString(body.marketDate, 'marketDate');
         const selectedThresholdF =
           typeof body.thresholdF === 'number' && Number.isFinite(body.thresholdF) ? Math.round(body.thresholdF) : null;
         const userId = walletPublicKey;
         if (addYesBet > addTotalBet) throw new Error('addYesBet must be <= addTotalBet');
-        await ensureRecentlySyncedState(projectRoot);
+        if (!isHosted) {
+          await ensureRecentlySyncedState(projectRoot);
+        }
 
         const ensureLocalBettableMarket = async () => {
           let currentState = await loadOperatorState(defaultStatePath);
           let selectedMarket = findSelectedOnChainMarket(currentState, marketKey, marketDate);
           let createdOnDemand = false;
           if (!selectedMarket) {
+            if (isHosted) {
+              throw new Error(`market ${marketDate} is not active on-chain yet. Wait for oracle sync, then try again.`);
+            }
             await ensureDailyMarkets(projectRoot);
-            await refreshState(projectRoot);
             currentState = await loadOperatorState(defaultStatePath);
             selectedMarket = findSelectedOnChainMarket(currentState, marketKey, marketDate);
             createdOnDemand = true;
@@ -2942,44 +3550,68 @@ async function main(): Promise<void> {
         }
 
         const txResult = useRemoteTxProver()
-          ? await withRemoteProverStateRetry(projectRoot, async () => {
-              const built = await withFreshMarketStateRetry(projectRoot, async () =>
-                buildBrowserFeePayerMarketBetContext({
-                  stateFile: defaultStatePath,
-                  marketKey: String(selectedMarket.marketKey),
-                  addTotalBet: Math.floor(addTotalBet),
-                  addYesBet: Math.floor(addYesBet),
-                  marketDate,
-                  feePayerPublicKey: walletPublicKey,
-                  userId
-                })
-              );
-              const proved = await requestRemoteTxProver<{ ok: true; tx: unknown }>('/prove/market-bet', {
-                context: built.buildContext
-              });
-              return { built, tx: proved.tx };
-            })
-            : useLocalServerBetProving()
-            ? await (async () => {
-                const built = await withFreshMarketStateRetry(projectRoot, async () =>
-                  buildBrowserFeePayerMarketBetContext({
+          ? await (async () => {
+              const built = isHosted
+                ? await buildBrowserFeePayerMarketBetContext({
                     stateFile: defaultStatePath,
                     marketKey: String(selectedMarket.marketKey),
                     addTotalBet: Math.floor(addTotalBet),
                     addYesBet: Math.floor(addYesBet),
                     marketDate,
                     feePayerPublicKey: walletPublicKey,
-                    userId
+                    userId,
+                    preferLiveHostedState: false
                   })
-                );
-                return {
-                  built,
-                  tx: await buildLocalServerReceiptBetTx(built.buildContext)
-                };
-              })()
-            : (() => {
-                throw new Error('no transaction proving path configured');
-              })();
+                : await withRemoteProverStateRetry(projectRoot, async () =>
+                    await withFreshMarketStateRetry(projectRoot, async () =>
+                      buildBrowserFeePayerMarketBetContext({
+                        stateFile: defaultStatePath,
+                        marketKey: String(selectedMarket.marketKey),
+                        addTotalBet: Math.floor(addTotalBet),
+                        addYesBet: Math.floor(addYesBet),
+                        marketDate,
+                        feePayerPublicKey: walletPublicKey,
+                        userId
+                      })
+                    )
+                  );
+              const proved = await requestRemoteTxProver<{ ok: true; tx: unknown }>('/prove/market-bet', {
+                context: built.buildContext
+              });
+              return { built, tx: proved.tx };
+            })()
+          : useLocalServerBetProving()
+          ? await (async () => {
+              const built = isHosted
+                ? await buildBrowserFeePayerMarketBetContext({
+                    stateFile: defaultStatePath,
+                    marketKey: String(selectedMarket.marketKey),
+                    addTotalBet: Math.floor(addTotalBet),
+                    addYesBet: Math.floor(addYesBet),
+                    marketDate,
+                    feePayerPublicKey: walletPublicKey,
+                    userId,
+                    preferLiveHostedState: false
+                  })
+                : await withFreshMarketStateRetry(projectRoot, async () =>
+                    buildBrowserFeePayerMarketBetContext({
+                      stateFile: defaultStatePath,
+                      marketKey: String(selectedMarket.marketKey),
+                      addTotalBet: Math.floor(addTotalBet),
+                      addYesBet: Math.floor(addYesBet),
+                      marketDate,
+                      feePayerPublicKey: walletPublicKey,
+                      userId
+                    })
+                  );
+              return {
+                built,
+                tx: await buildLocalServerReceiptBetTx(built.buildContext)
+              };
+            })()
+          : (() => {
+              throw new Error('no transaction proving path configured');
+            })();
         const built = txResult.built;
         const tx = txResult.tx;
         writeJson(res, 200, {
@@ -2999,11 +3631,23 @@ async function main(): Promise<void> {
       }
 
       if (req.method === 'POST' && url.pathname === '/api/tx/claim-payout') {
+        requireHostedBrowserFetch(req, isHosted, url.pathname);
+        requireHostedTxOrigin(req, url, isHosted, url.pathname);
+        requireHostedTxSession(req, isHosted, url.pathname);
         const body = await readJsonBody(req);
         const marketKey = requireString(body.marketKey, 'marketKey');
         const positionKey = requireString(body.positionKey, 'positionKey');
         const walletPublicKey = requireString(body.walletPublicKey, 'walletPublicKey');
-        await ensureRecentlySyncedState(projectRoot);
+        requireHostedTxNotBlocked(req, url.pathname, { walletPublicKey });
+        logHostedTxRequest(
+          req,
+          url.pathname,
+          'accept',
+          `wallet=${walletPublicKey} marketKey=${marketKey} positionKey=${positionKey}`
+        );
+        if (!isHosted) {
+          await ensureRecentlySyncedState(projectRoot);
+        }
         let fee: string;
         let payoutSummary: { payoutTmina: string; marketKey: string; positionKey: string };
         let tx: unknown;
@@ -3011,20 +3655,29 @@ async function main(): Promise<void> {
         let mode: string;
 
         if (useRemoteTxProver()) {
-          const builtAndTx = await withRemoteProverStateRetry(projectRoot, async () => {
-            const built = await withFreshMarketStateRetry(projectRoot, async () =>
-              buildClaimPayoutContext({
-                stateFile: defaultStatePath,
-                marketKey,
-                positionKey,
-                feePayerPublicKey: walletPublicKey
-              })
-            );
+          const builtAndTx = await (async () => {
+            const built = isHosted
+              ? await buildClaimPayoutContext({
+                  stateFile: defaultStatePath,
+                  marketKey,
+                  positionKey,
+                  feePayerPublicKey: walletPublicKey
+                })
+              : await withRemoteProverStateRetry(projectRoot, async () =>
+                  await withFreshMarketStateRetry(projectRoot, async () =>
+                    buildClaimPayoutContext({
+                      stateFile: defaultStatePath,
+                      marketKey,
+                      positionKey,
+                      feePayerPublicKey: walletPublicKey
+                    })
+                  )
+                );
             const proved = await requestRemoteTxProver<{ ok: true; tx: unknown }>('/prove/claim-payout', {
               context: built.buildContext
             });
             return { built, tx: proved.tx };
-          });
+          })();
           tx = builtAndTx.tx;
           const built = builtAndTx.built;
           fee = built.fee;
@@ -3047,15 +3700,23 @@ async function main(): Promise<void> {
           intentId = intent.id;
           mode = 'wallet-fee-payer-remote-prover';
         } else {
-          const built = await withFreshMarketStateRetry(projectRoot, async () =>
-            buildWalletFeePayerClaimPayoutTx({
-              stateFile: defaultStatePath,
-              marketKey,
-              positionKey,
-              feePayerPublicKey: walletPublicKey,
-              userId: walletPublicKey
-            })
-          );
+          const built = isHosted
+            ? await buildWalletFeePayerClaimPayoutTx({
+                stateFile: defaultStatePath,
+                marketKey,
+                positionKey,
+                feePayerPublicKey: walletPublicKey,
+                userId: walletPublicKey
+              })
+            : await withFreshMarketStateRetry(projectRoot, async () =>
+                buildWalletFeePayerClaimPayoutTx({
+                  stateFile: defaultStatePath,
+                  marketKey,
+                  positionKey,
+                  feePayerPublicKey: walletPublicKey,
+                  userId: walletPublicKey
+                })
+              );
           tx = built.tx;
           fee = built.fee;
           payoutSummary = built.payoutSummary;
@@ -3076,6 +3737,10 @@ async function main(): Promise<void> {
       }
 
       if (req.method === 'POST' && url.pathname === '/api/tx/finalize') {
+        requireHostedBrowserFetch(req, isHosted, url.pathname);
+        requireHostedTxOrigin(req, url, isHosted, url.pathname);
+        requireHostedTxSession(req, isHosted, url.pathname);
+        logHostedTxRequest(req, url.pathname, 'accept');
         const body = await readJsonBody(req);
         const intentId = requireString(body.intentId, 'intentId');
         const txHash = requireString(body.txHash, 'txHash');
@@ -3112,12 +3777,9 @@ async function main(): Promise<void> {
           throw new Error('intent expired; rebuild transaction');
         }
         if (intent.type === 'market-bet' && intent.newLeaf) {
-          state.markets[intent.marketKey] = intent.newLeaf;
-          state.receipts = state.receipts || {};
           if (!intent.receiptCommitment) {
             throw new Error('receipt commitment missing for market bet finalize');
           }
-          state.receipts[intent.positionKey] = intent.receiptCommitment;
           state.receiptMeta = state.receiptMeta || {};
           state.receiptMeta[intent.positionKey] = {
             zkappPublicKey: state.zkappPublicKey || getZkappPublicKey().toBase58(),
@@ -3127,6 +3789,9 @@ async function main(): Promise<void> {
             ownerCommitment: ownerCommitmentFromWalletPublicKey(intent.walletPublicKey).toString(),
             createdAtUnixMs: intent.createdAtUnixMs,
             fundingTxHash: txHash,
+            fundingStatus: 'submitted',
+            fundingSubmittedAtUnixMs: Date.now(),
+            fundingConfirmedAtUnixMs: null,
             receiptCommitment: intent.receiptCommitment,
             receiptSalt: intent.receiptSalt || '',
             side: intent.addYesBet === intent.addTotalBet ? 'over' : 'under',
@@ -3144,23 +3809,25 @@ async function main(): Promise<void> {
         }
         await saveOperatorState(defaultStatePath, state);
 
-        if (intent.type === 'market-bet') {
-          const positions = await loadUserPositions(USER_POSITIONS_FILE);
-          positions[intent.userId] = positions[intent.userId] || {};
-          positions[intent.userId][intent.marketKey] = intent.userNetPositionAfter;
-          await saveUserPositions(USER_POSITIONS_FILE, positions);
-        }
-
-        if (intent.type === 'market-bet' && intent.marketDate) {
-          const dailyMarketMap = await loadDemoDailyMarkets();
-          const day = dailyMarketMap[intent.marketDate];
-          if (day) {
-            const nextTotal = (Number.isFinite(day.totalPositionBet) ? day.totalPositionBet : 0) + intent.addTotalBet;
-            const nextYes = (Number.isFinite(day.totalYesPositionBet) ? day.totalYesPositionBet : 0) + intent.addYesBet;
-            day.totalPositionBet = nextTotal;
-            day.totalYesPositionBet = nextYes;
-            dailyMarketMap[intent.marketDate] = day;
-            await saveDemoDailyMarkets(dailyMarketMap);
+        if (intent.type === 'market-bet' || intent.type === 'payout-claim') {
+          try {
+            await refreshState(projectRoot);
+            const refreshed = await loadOperatorState(defaultStatePath);
+            if (intent.type === 'market-bet') {
+              refreshed.receiptMeta = refreshed.receiptMeta || {};
+              const refreshedMeta = refreshed.receiptMeta[intent.positionKey];
+              if (refreshedMeta && refreshed.receipts?.[intent.positionKey]) {
+                refreshedMeta.fundingStatus = 'confirmed';
+                refreshedMeta.fundingConfirmedAtUnixMs = refreshedMeta.fundingConfirmedAtUnixMs || Date.now();
+              }
+            }
+            await saveOperatorState(defaultStatePath, refreshed);
+          } catch (error) {
+            lastStateRefreshAtUnixMs = 0;
+            console.warn(
+              intent.type === 'market-bet' ? '[finalize] post-bet sync failed:' : '[finalize] post-claim sync failed:',
+              error instanceof Error ? error.message : String(error)
+            );
           }
         }
         delete pendingTxIntents[intentId];
@@ -3260,6 +3927,7 @@ async function main(): Promise<void> {
               stakeTmina: meta.stakeTmina,
               createdAtUnixMs: meta.createdAtUnixMs,
               fundingTxHash: meta.fundingTxHash,
+              fundingStatus: getReceiptFundingStatus(meta),
               resolved,
               resolvedOutcome,
               won,
@@ -3553,6 +4221,9 @@ async function main(): Promise<void> {
       if (req.method === 'POST' && url.pathname === '/api/oracle/export-state') {
         const body = await readJsonBody(req);
         requireOracleAuthorization(req, body as Record<string, unknown>);
+        if (lastStateRefreshAtUnixMs === 0 || Date.now() - lastStateRefreshAtUnixMs > 30_000) {
+          await refreshStateInBackground(projectRoot, 'oracle-export');
+        }
         const state = await loadOperatorState(defaultStatePath);
         const dailyMarkets = await loadDemoDailyMarkets(process.env.DEMO_DAILY_MARKETS_FILE || DEMO_DAILY_MARKETS_FILE);
         writeJson(res, 200, {
@@ -3560,6 +4231,33 @@ async function main(): Promise<void> {
           state,
           dailyMarkets
         });
+        return;
+      }
+
+      if (req.method === 'POST' && url.pathname === '/api/oracle/acquire-chain-lease') {
+        const body = await readJsonBody(req);
+        requireOracleAuthorization(req, body as Record<string, unknown>);
+        const owner = requireString(body.owner, 'owner');
+        const kind = typeof body.kind === 'string' && body.kind.trim() ? body.kind.trim() : 'oracle-chain-actions';
+        const holdMs = Math.min(
+          Math.max(Number.parseInt(String(body.holdMs || '0'), 10) || 180_000, 5_000),
+          10 * 60_000
+        );
+        const waitMs = Math.min(
+          Math.max(Number.parseInt(String(body.waitMs || '0'), 10) || 120_000, 1_000),
+          10 * 60_000
+        );
+        await acquireChainMutationLease({ owner, kind, holdMs, waitMs });
+        writeJson(res, 200, { ok: true, owner, kind, holdMs });
+        return;
+      }
+
+      if (req.method === 'POST' && url.pathname === '/api/oracle/release-chain-lease') {
+        const body = await readJsonBody(req);
+        requireOracleAuthorization(req, body as Record<string, unknown>);
+        const owner = requireString(body.owner, 'owner');
+        releaseChainMutationLease(owner);
+        writeJson(res, 200, { ok: true, owner });
         return;
       }
 
@@ -3883,6 +4581,21 @@ async function main(): Promise<void> {
       }, nightlySettleIntervalMs);
     } else {
       console.log('[daily-settle] nightly scheduled settle disabled (DAILY_SETTLE_SCHEDULE_CHECK_MS <= 0)');
+    }
+
+    const hostedStateSyncIntervalRaw = process.env.HOSTED_STATE_SYNC_INTERVAL_MS;
+    const hostedStateSyncIntervalMs =
+      hostedStateSyncIntervalRaw !== undefined
+        ? Math.max(0, Number.parseInt(hostedStateSyncIntervalRaw, 10) || 0)
+        : 15000;
+    if (hostedStateSyncIntervalMs > 0) {
+      console.log(`[state-sync] background sync enabled every ${hostedStateSyncIntervalMs}ms`);
+      void refreshStateInBackground(projectRoot, 'startup');
+      setInterval(() => {
+        void refreshStateInBackground(projectRoot, 'interval');
+      }, hostedStateSyncIntervalMs);
+    } else {
+      console.log('[state-sync] background sync disabled (HOSTED_STATE_SYNC_INTERVAL_MS <= 0)');
     }
   });
 }
