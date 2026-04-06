@@ -1,69 +1,150 @@
 # Zeko Developer Demos
 
-A collection of practical demos for building zero-knowledge apps and agent systems on Zeko/Mina.
+A monorepo of end-to-end demos for building zero-knowledge applications on Zeko and Mina.
 
-## What this repo includes
+This repository is meant to be practical. Each demo is a working reference for a different product or protocol pattern: private markets, agent payments, order books, provenance, and privacy-preserving consumer apps.
 
-- End-to-end ZK app demos (frontend + backend + contract flows)
-- Wallet-connected transaction flows (Auro + optional MetaMask Snap paths)
-- Practical request/payment/attestation patterns for agent systems
+## What’s in this repo
 
-## Featured demos
+### `agent_coordination_protocol-financial_intelligence`
+A privacy-preserving agent marketplace and payment flow.
 
-- `agent_coordination_protocol-financial_intelligence`
-  - Privacy-preserving agent marketplace
-  - On-chain request/payment/attestation flow
-  - Credits + relayer path for better UX/privacy
-  - Verifiable performance metrics and proofs feed
+Includes:
+- request / accept / deliver / attest lifecycle
+- wallet-connected payments
+- relayer and credits paths for smoother UX
+- verifiable performance and settlement patterns
 
-- `perfect-weather_prediction_market`
-  - Private weather prediction market on Zeko
-  - Hosted market, oracle worker, and tx-prover split
-  - Wallet-signed bets and claims with zk-backed transactions
-  - zkTLS-backed weather resolution and agent integration hooks
+### `perfect-weather_prediction_market`
+A private weather prediction market on Zeko.
 
-- `proof_over_hype_ai_image_provenance`
-  - Provenance-oriented AI image workflow
-  - Verifiable metadata/claims pattern for generated media
+Includes:
+- hosted market frontend
+- oracle worker and tx-prover services
+- wallet-signed bet and claim flows
+- event-driven market state and zk-backed settlement
 
-- `proof_of_prayer`
-  - Private prayer journal and community prayer wall on Zeko
-  - Client-side encrypted prayer text with wallet and non-wallet submission paths
-  - Sponsored batch anchoring, Auro signing, moderation queue, and proof-of-prayer participation
+### `private_order_book`
+A private order book exchange demo.
 
-- `private_order_book`
-  - Private order book exchange on Zeko
-  - Note-backed trading with public-anonymous and private-dark order flow
-  - Fast off-chain matching with batched on-chain settlement anchoring
-  - Lean default runtime with advanced proof-heavy reference paths included
+Includes:
+- note-backed trading flows
+- public-anonymous and private-dark order types
+- off-chain matching with on-chain settlement anchoring
+- reference zkApp and matching infrastructure
 
-## Core docs and links
+### `private-tokenized-asset-protocol`
+A tokenized asset protocol demo for private and programmable asset flows.
 
-### Zeko + Mina
-- Zeko Docs: https://docs.zeko.io/
-- Mina Docs: https://docs.minaprotocol.com/
-- o1Labs / o1js Docs: https://docs.o1labs.org/
-- Mina zkApps overview: https://minaprotocol.com/zkapps
+Includes:
+- app and package structure for multi-part protocol development
+- supporting infra and scripts
+- examples of more complex repo organization around a Zeko app
 
-### Wallet + faucet
-- Auro Wallet: https://www.aurowallet.com/
-- Auro Wallet download: https://www.aurowallet.com/download/
-- Zeko faucet: https://faucet.zeko.io/
+### `proof_of_prayer`
+A private prayer journal and community prayer wall.
 
-### MetaMask Snap references
-- MetaMask Snaps Quickstart: https://docs.metamask.io/snaps/get-started/quickstart
-- Mina Portal Snap: https://snaps.metamask.io/snap/npm/mina-portal/
-- Mina Snap wiki: https://github.com/sotatek-dev/mina-snap/wiki
-- Mina Snap repo: https://github.com/sotatek-dev/mina-snap
-- Mina + MetaMask announcement: https://minaprotocol.com/blog/metamask-snaps-integrates-mina-protocol-enabling-metamasks-millions-of-users-to-manage-mina-transactions
+Includes:
+- client-side encrypted prayer content
+- wallet and non-wallet submission paths
+- sponsored anchoring and moderation flows
+- proof-of-participation style product patterns
 
-## Quick start (generic)
+### `proof_over_hype_ai_image_provenance`
+A provenance-oriented AI media demo.
+
+Includes:
+- image provenance and metadata flows
+- attestable claims patterns
+- example frontend and backend wiring for verifiable media UX
+
+## How to use this repo
+
+This is a monorepo of independent demos, not a single app.
+
+The normal workflow is:
+
+1. Clone the repository.
+2. Choose one demo folder.
+3. Read that demo’s local `README.md` and `docs/`.
+4. Install dependencies for that demo.
+5. Configure its environment variables.
+6. Run only that demo’s services.
+
+## Recommended prerequisites
+
+Before running most demos, have these ready:
+
+- Node.js 20+
+- `pnpm`
+- Git
+- An Auro wallet for Mina / Zeko flows
+- Access to Zeko testnet endpoints if the selected demo requires them
+
+Optional, depending on the demo:
+- Docker / Docker Compose
+- Rust toolchain
+- additional API keys or attestation / oracle credentials
+
+Not every demo needs the same setup. The demo-specific README is the source of truth.
+
+## Quick start
 
 ```bash
-git clone <repo-url>
-cd developer_demos/<demo-folder>
-npm install
+git clone https://github.com/zeko-labs/developer_demos.git
+cd developer_demos
+```
+
+Then pick a demo, for example:
+
+```bash
+cd perfect-weather_prediction_market
+pnpm install
 cp .env.example .env
-npm run build
-npm run dev
-- [Private Order Book](./private_order_book) - ShadowBook private order book demo on Zeko.
+pnpm build
+pnpm dev
+```
+
+If a demo uses multiple services, follow that demo’s local docs instead of assuming a single `dev` command is enough.
+
+## Repo structure
+
+At a high level, most demos follow some variation of:
+
+- `src/` application or service code
+- `public/` frontend assets
+- `docs/` setup notes and operational guidance
+- `scripts/` helper scripts
+- `skills/` or agent-oriented workflow instructions where relevant
+- `deploy/` or infra-specific deployment material where relevant
+
+Some demos are intentionally lightweight. Others include multiple services, external integrations, or more advanced protocol references.
+
+## Choosing a demo
+
+If you want to explore:
+
+- agent payments and attestations: `agent_coordination_protocol-financial_intelligence`
+- private prediction markets: `perfect-weather_prediction_market`
+- private trading systems: `private_order_book`
+- programmable asset flows: `private-tokenized-asset-protocol`
+- privacy-preserving consumer apps: `proof_of_prayer`
+- provenance / media verification: `proof_over_hype_ai_image_provenance`
+
+## Notes
+
+- Treat each demo as its own product surface.
+- Do not assume environment variables, ports, or services are shared across demos.
+- Some demos include experimental or reference-only components that are not required for the default local run path.
+- Demos are reference examples for developers, and are not audited. Each team is responsible for their own deployment and audit of any code from this repo that is used in production.
+
+## Troubleshooting
+
+Start with the local docs for the specific demo you are running.
+
+Good places to check first:
+- that demo’s `README.md`
+- that demo’s `docs/`
+- environment variable examples
+- wallet / network configuration
+- service-specific deployment notes
