@@ -1,0 +1,10 @@
+node_modules/
+.env
+.DS_Store
+
+data/
+
+zkapp-test/.env
+zkapp-test/node_modules/
+zkapp-test/dist/
+zkapp-test/data/

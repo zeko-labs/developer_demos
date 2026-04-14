@@ -1,0 +1,19 @@
+{
+  "name": "nava-on-zeko",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Standalone Nava-compatible execution escrow rebuilt natively for Zeko",
+  "license": "Apache-2.0",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "ethers": "^6.16.0",
+    "o1js": "^2.13.1"
+  }
+}

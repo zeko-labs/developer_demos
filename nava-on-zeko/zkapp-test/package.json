@@ -1,0 +1,26 @@
+{
+  "name": "nava-on-zeko-zkapp-test",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "check:lifecycle": "npm run build && node dist/scripts/check-lifecycle.js",
+    "deploy": "npm run build && node --env-file=.env dist/scripts/deploy.js",
+    "sign:approval": "npm run build && node --env-file=.env dist/scripts/sign-zeko-approval.js",
+    "sync:intent": "npm run build && node --env-file=.env dist/scripts/sync-intent.js",
+    "read:intent": "npm run build && node --env-file=.env dist/scripts/read-intent.js",
+    "set": "npm run build && node --env-file=.env dist/scripts/set-value.js",
+    "read": "npm run build && node --env-file=.env dist/scripts/read-state.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "mina-signer": "^3.0.7",
+    "o1js": "^1.7.0",
+    "reflect-metadata": "^0.2.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.1",
+    "typescript": "^5.6.3"
+  }
+}
