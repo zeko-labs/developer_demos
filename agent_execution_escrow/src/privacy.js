@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const PRIVACY_KEY_PATH = path.resolve(process.cwd(), 'data', 'privacy.key');
-const PRIVACY_SALT = process.env.PRIVACY_SALT || 'nava-on-zeko-default-salt-change-me';
+const PRIVACY_SALT = process.env.PRIVACY_SALT || 'agent-execution-escrow-default-salt-change-me';
 const STORE_ENCRYPTED_PAYLOADS = process.env.STORE_ENCRYPTED_PAYLOADS === 'true';
 
 let cachedKey = null;

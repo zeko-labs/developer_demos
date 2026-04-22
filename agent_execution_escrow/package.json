@@ -1,9 +1,9 @@
 {
-  "name": "nava-on-zeko",
+  "name": "agent-execution-escrow",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Standalone Nava-compatible execution escrow rebuilt natively for Zeko",
+  "description": "Standalone agent execution escrow rebuilt natively for Zeko",
   "license": "Apache-2.0",
   "scripts": {
     "start": "node src/server.js",

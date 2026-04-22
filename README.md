@@ -15,11 +15,11 @@ Includes:
 - relayer and credits paths for smoother UX
 - verifiable performance and settlement patterns
 
-### `nava-on-zeko`
-A Nava-inspired agent transaction verification demo rebuilt around Zeko-native state.
+### `agent_execution_escrow`
+A Zeko-native trust layer for agent transactions and gated execution.
 
 Includes:
-- Nava-compatible intent and approval APIs
+- agent intent and approval APIs
 - Zeko-native verifier registry and threshold signatures
 - proof-checked lifecycle state in a per-intent zkApp
 - Ethereum-oriented settlement planning with Zeko as the verification layer
@@ -134,7 +134,7 @@ Some demos are intentionally lightweight. Others include multiple services, exte
 If you want to explore:
 
 - agent payments and attestations: `agent_coordination_protocol-financial_intelligence`
-- Nava-style agent verification on Zeko: `nava-on-zeko`
+- agent execution escrow on Zeko: `agent_execution_escrow`
 - private prediction markets: `perfect-weather_prediction_market`
 - private trading systems: `private_order_book`
 - programmable asset flows: `private-tokenized-asset-protocol`

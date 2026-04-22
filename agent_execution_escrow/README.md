@@ -1,8 +1,8 @@
-# Nava On Zeko
+# Agent Execution Escrow
 
-`nava-on-zeko` is a standalone prototype that rebuilds Nava-style agent transaction verification on top of Zeko.
+`agent_execution_escrow` is a standalone prototype for Zeko-native agent transaction control.
 
-The core thesis is simple: most AI agent protocols are control-plane native. They expose SDKs, MCP servers, and hosted verification, but durable trust still lives in one backend. This project keeps a Nava-compatible interface while moving the state and lifecycle authority into a Zeko-native environment.
+The core thesis is simple: most AI agent protocols are control-plane native. They expose SDKs, MCP servers, and hosted verification, but durable trust still lives in one backend. This project keeps compatibility with Nava-style agent transaction flows while moving the state and lifecycle authority into a Zeko-native environment.
 
 ## What This Unlocks
 
@@ -25,7 +25,7 @@ Zeko is the special sauce because it can hold the trust and state layer, not jus
 
 The current build supports:
 
-- Nava-shaped transaction creation and status APIs
+- agent transaction creation and status APIs
 - Platform arbiter evaluation and proof artifact generation
 - Optional external wallet verifier challenges
 - Zeko-native verifier registry and native signing payloads
@@ -38,7 +38,7 @@ The standalone zkApp project lives in [zkapp-test](./zkapp-test).
 ## Quickstart
 
 ```bash
-cd developer_demos/nava-on-zeko
+cd developer_demos/agent_execution_escrow
 npm install
 cp .env.example .env
 npm start

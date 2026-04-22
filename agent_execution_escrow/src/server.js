@@ -195,7 +195,7 @@ function buildServiceInfo(req) {
   const anchorConfig = getAnchorConfig();
   const nativeVerifierRegistry = getZekoNativeVerifierRegistry();
   return {
-    service: 'nava-on-zeko',
+    service: 'agent-execution-escrow',
     version: NAVA_SERVICE_VERSION,
     status: 'ok',
     auditNetwork: NAVA_AUDIT_NETWORK,
@@ -244,7 +244,7 @@ function buildProtectedResourceMetadata(req) {
     bearer_methods_supported: ['header'],
     scopes_supported: ['transactions.read', 'transactions.write', 'verifier.attest'],
     permissionless: true,
-    note: 'Standalone Nava-on-Zeko runs without mandatory centralized OAuth.'
+    note: 'Standalone Agent Execution Escrow runs without mandatory centralized OAuth.'
   };
 }
 
@@ -326,7 +326,7 @@ function upsertNavaSettlementRegistryEntry(transaction, anchorSubmission = null)
       promptHash: transaction.promptHash
     }),
     memo: `nava:${String(transaction.requestHash || '').slice(2, 26)}`,
-    signer: 'nava-on-zeko',
+    signer: 'agent-execution-escrow',
     signerType: 'platform_plus_quorum',
     signatureScheme: null,
     signatureHash: null,
@@ -374,7 +374,7 @@ function buildVerifierAttestationMessage({
   expiresAt
 }) {
   const domain = new URL(baseUrl).host;
-  return `${domain} wants you to sign a verifier attestation:\n${address}\n\nSign to attest to a Nava-on-Zeko verification commitment.\n\nURI: ${baseUrl}\nVersion: 1\nChain ID: ${chainId}\nNonce: ${nonce}\nIssued At: ${issuedAt}\nExpiration Time: ${expiresAt}\nResources:\n- requestHash:${requestHash}\n- statementHash:${statementHash}\n- commitmentHash:${commitmentHash}\n- verifierId:${verifierId}\n- role:${role}\n- auditNetwork:${NAVA_AUDIT_NETWORK}`;
+  return `${domain} wants you to sign a verifier attestation:\n${address}\n\nSign to attest to an Agent Execution Escrow verification commitment.\n\nURI: ${baseUrl}\nVersion: 1\nChain ID: ${chainId}\nNonce: ${nonce}\nIssued At: ${issuedAt}\nExpiration Time: ${expiresAt}\nResources:\n- requestHash:${requestHash}\n- statementHash:${statementHash}\n- commitmentHash:${commitmentHash}\n- verifierId:${verifierId}\n- role:${role}\n- auditNetwork:${NAVA_AUDIT_NETWORK}`;
 }
 
 function verifyVerifierChallengeSignature({ challenge, signature, signedMessage = null }) {
@@ -451,7 +451,7 @@ async function anchorNavaTransaction(transaction) {
       settlementId: transaction.id,
       network: transaction.auditNetwork || NAVA_AUDIT_NETWORK,
       status: 'preparing',
-      sponsor: 'nava-on-zeko',
+      sponsor: 'agent-execution-escrow',
       queueType: 'inline',
       anchorPayload: null,
       proofArtifact,
@@ -652,14 +652,14 @@ async function handleRequest(req, res) {
     return sendHtml(
       res,
       200,
-      `<!doctype html><html><body><h1>Nava On Zeko</h1><p>Zeko-native execution escrow with Ethereum settlement intent.</p><p>Use <code>GET /</code> with <code>accept: application/json</code> for the service metadata.</p></body></html>`
+      `<!doctype html><html><body><h1>Agent Execution Escrow</h1><p>Zeko-native execution escrow with Ethereum settlement intent.</p><p>Use <code>GET /</code> with <code>accept: application/json</code> for the service metadata.</p></body></html>`
     );
   }
 
   if (req.method === 'GET' && urlPath === '/health') {
     return sendJson(res, 200, {
       status: 'ok',
-      service: 'nava-on-zeko',
+      service: 'agent-execution-escrow',
       auditNetwork: NAVA_AUDIT_NETWORK,
       now: new Date().toISOString()
     });
@@ -1094,5 +1094,5 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, HOST, () => {
-  console.log(`[nava-on-zeko] listening on http://${HOST}:${PORT}`);
+  console.log(`[agent-execution-escrow] listening on http://${HOST}:${PORT}`);
 });

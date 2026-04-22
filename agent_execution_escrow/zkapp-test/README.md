@@ -2,7 +2,7 @@
 
 Standalone Zeko testnet zkApp workspace for both the minimal deploy smoke test and the first Nava-shaped intent lifecycle primitive.
 
-This folder is standalone inside the Nava-on-Zeko project:
+This folder is standalone inside the Agent Execution Escrow demo:
 
 - [zkapp-test](./)
 
@@ -11,7 +11,7 @@ This folder is standalone inside the Nava-on-Zeko project:
 There are now two flows in this folder:
 
 1. `TestValueZkApp`: the minimal two-field deploy and update smoke test
-2. `NavaIntentZkApp`: a per-intent lifecycle contract for Nava-on-Zeko
+2. `NavaIntentZkApp`: a per-intent lifecycle contract for the Agent Execution Escrow flow
 
 `NavaIntentZkApp` stores:
 

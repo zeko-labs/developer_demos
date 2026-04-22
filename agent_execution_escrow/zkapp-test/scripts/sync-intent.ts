@@ -326,7 +326,7 @@ async function sendSignedPrefundPayment({
       amount: Number(amount),
       fee: Number(fee),
       nonce: Number(nonce),
-      memo: 'nava-on-zeko-intent'
+      memo: 'agent-execution-escrow-intent'
     },
     deployerPrivateKey
   );
