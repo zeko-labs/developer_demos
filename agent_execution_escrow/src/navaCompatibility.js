@@ -8,7 +8,7 @@ import {
 
 export const NAVA_DEFAULT_CHAIN_ID = 11155111;
 export const NAVA_AUDIT_NETWORK = 'zeko:testnet';
-export const NAVA_SERVICE_VERSION = 'nava-on-zeko-v2';
+export const NAVA_SERVICE_VERSION = 'agent-execution-escrow-v1';
 export const NAVA_SETTLEMENT_PLAN = 'ethereum';
 export const NAVA_ZEKO_STATUS_CODES = Object.freeze({
   PENDING: 0,

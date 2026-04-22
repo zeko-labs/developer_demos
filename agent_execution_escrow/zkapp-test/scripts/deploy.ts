@@ -221,7 +221,7 @@ async function sendSignedPrefundPayment({
       amount: Number(amount),
       fee: Number(fee),
       nonce: Number(nonce),
-      memo: 'nava-on-zeko-zkapp-test'
+      memo: 'agent-execution-escrow-zkapp-test'
     },
     deployerPrivateKey
   );
