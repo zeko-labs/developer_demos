@@ -1,0 +1,1293 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Zeko AI Runtime API",
+    "version": "0.3.0",
+    "description": "Builder-facing coordinator surface for the Zeko AI Runtime: native inference receipts, compatibility shims, MCP access, and async status polling."
+  },
+  "servers": [
+    {
+      "url": "http://127.0.0.1:5180",
+      "description": "Local coordinator"
+    }
+  ],
+  "security": [
+    {
+      "ApiKeyAuth": []
+    },
+    {
+      "BearerAuth": []
+    }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Unauthenticated coordinator liveness and runtime summary",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Coordinator health summary",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/me": {
+      "get": {
+        "summary": "Inspect the authenticated operator or builder principal",
+        "responses": {
+          "200": {
+            "description": "Authenticated principal plus builder usage and quota state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthMeResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/operators/routing": {
+      "get": {
+        "summary": "Discover the selected operator route for every sponsor lane",
+        "responses": {
+          "200": {
+            "description": "Lane routing snapshot",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutingSnapshot"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/models": {
+      "get": {
+        "summary": "List available inference models",
+        "responses": {
+          "200": {
+            "description": "Model list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModelsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/infer": {
+      "post": {
+        "summary": "Create an off-chain inference receipt artifact without live Zeko submission",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InferenceRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Persisted inference receipt",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InferenceRecord"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/request-status/{token}": {
+      "get": {
+        "summary": "Poll a builder-visible inference status token instead of reading the raw inference record",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Builder-visible status snapshot",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/private-lane/config": {
+      "get": {
+        "summary": "Fetch the sealed-input X25519 public key for private prompt submission",
+        "responses": {
+          "200": {
+            "description": "Private-lane config",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrivateLaneConfig"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/infer/private": {
+      "post": {
+        "summary": "Create an inference from a sealed private-input envelope without persisting plaintext prompt fields",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrivateInferenceRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Persisted inference receipt",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InferenceRecord"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/infer/private/live": {
+      "post": {
+        "summary": "Create and live-submit a private inference through the default v2 settlement lane",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrivateInferenceRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Live inference response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveInferenceResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/compat/reference/models": {
+      "get": {
+        "summary": "List models in the compatibility response shape",
+        "responses": {
+          "200": {
+            "description": "Compatibility model list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompatModelsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/compat/reference/inference": {
+      "post": {
+        "summary": "Create an inference through the compatibility shim",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompatInferenceRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Compatibility inference response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompatInferenceResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/compat/reference/inference/{id}": {
+      "get": {
+        "summary": "Read one compatibility inference record",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Compatibility inference response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompatInferenceResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/compat/reference/inference/{id}/status": {
+      "get": {
+        "summary": "Read compatibility status for one inference",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Compatibility status response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompatInferenceStatusResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/compat/reference/inference/{id}/receipt": {
+      "get": {
+        "summary": "Read the compatibility settlement receipt for one inference",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Compatibility receipt response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompatReceiptResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/compat/reference/chat/completions": {
+      "post": {
+        "summary": "Create a chat-style inference through the compatibility shim",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompatChatCompletionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Chat completion response with settlement metadata",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompatChatCompletionResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/operators/isolation/audit": {
+      "get": {
+        "summary": "Inspect lane isolation, shared fallback usage, and policy-vs-route mismatches",
+        "responses": {
+          "200": {
+            "description": "Operator isolation audit snapshot",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorIsolationAudit"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mcp": {
+      "post": {
+        "summary": "Thin MCP wrapper over the native coordinator routes",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/McpRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "JSON-RPC response from the coordinator MCP wrapper",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/McpResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "ApiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-api-key"
+      },
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    },
+    "schemas": {
+      "HealthResponse": {
+        "type": "object",
+        "required": ["ok", "app", "models", "inferences"],
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "app": {
+            "type": "string"
+          },
+          "models": {
+            "type": "integer"
+          },
+          "inferences": {
+            "type": "integer"
+          }
+        },
+        "additionalProperties": true
+      },
+      "AuthMeResponse": {
+        "type": "object",
+        "required": ["authenticated", "principal"],
+        "properties": {
+          "authenticated": {
+            "type": "boolean"
+          },
+          "principal": {
+            "type": ["object", "null"],
+            "additionalProperties": true
+          },
+          "usage": {
+            "type": ["object", "null"],
+            "additionalProperties": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RoutingSnapshot": {
+        "type": "object",
+        "required": ["generatedAt", "localOperatorId", "routes", "note"],
+        "properties": {
+          "generatedAt": {
+            "type": "string"
+          },
+          "localOperatorId": {
+            "type": "string"
+          },
+          "routes": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "note": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      },
+      "OperatorIsolationAudit": {
+        "type": "object",
+        "required": ["generatedAt", "localOperatorId", "policy", "sponsorLanes", "summary", "routes", "issues", "note"],
+        "properties": {
+          "generatedAt": {
+            "type": "string"
+          },
+          "localOperatorId": {
+            "type": "string"
+          },
+          "policy": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "sponsorLanes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "summary": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "routes": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "issues": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "note": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PrivateLaneConfig": {
+        "type": "object",
+        "required": ["mode", "curve", "context", "publicKeyPem", "fingerprint"],
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": ["sealed-input"]
+          },
+          "curve": {
+            "type": "string",
+            "enum": ["x25519"]
+          },
+          "context": {
+            "type": "string"
+          },
+          "publicKeyPem": {
+            "type": "string"
+          },
+          "fingerprint": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Model": {
+        "type": "object",
+        "required": ["id", "name", "version", "settlementModeDefault", "verificationMethod", "transportMode", "createdAt"],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "settlementModeDefault": {
+            "type": "string"
+          },
+          "verificationMethod": {
+            "type": "string"
+          },
+          "transportMode": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      },
+      "ModelsResponse": {
+        "type": "object",
+        "required": ["models"],
+        "properties": {
+          "models": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Model"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "InferenceRequest": {
+        "type": "object",
+        "required": ["modelId", "prompt"],
+        "properties": {
+          "modelId": {
+            "type": "string"
+          },
+          "prompt": {
+            "type": "string"
+          },
+          "inputs": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "settlementMode": {
+            "type": "string",
+            "enum": ["SETTLE_INDIVIDUAL", "SETTLE_BATCH", "SETTLE_INDIVIDUAL_WITH_METADATA"]
+          },
+          "publishToDa": {
+            "type": "boolean"
+          },
+          "clientEncryptionPublicKeyPem": {
+            "type": "string"
+          },
+          "statusToken": {
+            "type": "string"
+          },
+          "callbackUrl": {
+            "type": "string"
+          },
+          "callbackMode": {
+            "type": "string",
+            "enum": ["terminal", "status-change"]
+          }
+        },
+        "additionalProperties": false
+      },
+      "PrivateInferenceRequest": {
+        "type": "object",
+        "required": ["modelId", "privateInputEnvelope"],
+        "properties": {
+          "modelId": {
+            "type": "string"
+          },
+          "privateInputEnvelope": {
+            "type": "object",
+            "required": ["mode", "curve", "recipientPublicKeyFingerprint", "ephemeralPublicKeyPem", "iv", "tag", "ciphertext"],
+            "properties": {
+              "mode": {
+                "type": "string",
+                "enum": ["aes-256-gcm"]
+              },
+              "curve": {
+                "type": "string",
+                "enum": ["x25519"]
+              },
+              "recipientPublicKeyFingerprint": {
+                "type": "string"
+              },
+              "ephemeralPublicKeyPem": {
+                "type": "string"
+              },
+              "iv": {
+                "type": "string"
+              },
+              "tag": {
+                "type": "string"
+              },
+              "ciphertext": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          },
+          "settlementMode": {
+            "type": "string",
+            "enum": ["SETTLE_INDIVIDUAL", "SETTLE_BATCH", "SETTLE_INDIVIDUAL_WITH_METADATA"]
+          },
+          "publishToDa": {
+            "type": "boolean"
+          },
+          "clientEncryptionPublicKeyPem": {
+            "type": "string"
+          },
+          "statusToken": {
+            "type": "string"
+          },
+          "callbackUrl": {
+            "type": "string"
+          },
+          "callbackMode": {
+            "type": "string",
+            "enum": ["terminal", "status-change"]
+          },
+          "storePlaintextPrompt": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "InferenceRequestStatus": {
+        "type": "object",
+        "required": ["token", "callbackUrl", "callbackMode", "lastStatus", "lastStatusAt", "callbackAttempts"],
+        "properties": {
+          "token": {
+            "type": "string"
+          },
+          "callbackUrl": {
+            "type": ["string", "null"]
+          },
+          "callbackMode": {
+            "type": "string",
+            "enum": ["terminal", "status-change"]
+          },
+          "lastStatus": {
+            "type": "string",
+            "enum": ["created", "submitting", "submitted", "settled", "failed"]
+          },
+          "lastStatusAt": {
+            "type": "string"
+          },
+          "lastNotifiedStatus": {
+            "type": ["string", "null"]
+          },
+          "lastCallbackAt": {
+            "type": ["string", "null"]
+          },
+          "callbackAttempts": {
+            "type": "integer"
+          },
+          "lastCallbackError": {
+            "type": ["string", "null"]
+          }
+        },
+        "additionalProperties": false
+      },
+      "InferenceRecord": {
+        "type": "object",
+        "required": [
+          "id",
+          "modelId",
+          "modelName",
+          "prompt",
+          "inputs",
+          "output",
+          "settlementMode",
+          "verificationMethod",
+          "transportMode",
+          "createdAt",
+          "requestHash",
+          "outputHash",
+          "metadataHash",
+          "receiptHash",
+          "requestStatus"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "modelId": {
+            "type": "string"
+          },
+          "modelName": {
+            "type": "string"
+          },
+          "prompt": {
+            "type": "string"
+          },
+          "inputs": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "output": {},
+          "settlementMode": {
+            "type": "string"
+          },
+          "verificationMethod": {
+            "type": "string"
+          },
+          "transportMode": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "requestHash": {
+            "type": "string"
+          },
+          "outputHash": {
+            "type": "string"
+          },
+          "metadataHash": {
+            "type": "string"
+          },
+          "receiptHash": {
+            "type": "string"
+          },
+          "requestStatus": {
+            "$ref": "#/components/schemas/InferenceRequestStatus"
+          }
+        },
+        "additionalProperties": true
+      },
+      "LiveInferenceResponse": {
+        "type": "object",
+        "required": ["inferenceId", "submitted", "requestStatus", "inference", "contractVersion"],
+        "properties": {
+          "inferenceId": {
+            "type": "string"
+          },
+          "submitted": {
+            "type": "boolean"
+          },
+          "requestStatus": {
+            "$ref": "#/components/schemas/RequestStatus"
+          },
+          "inference": {
+            "$ref": "#/components/schemas/InferenceRecord"
+          },
+          "contractVersion": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      },
+      "RequestStatus": {
+        "type": "object",
+        "required": [
+          "inferenceId",
+          "requestId",
+          "status",
+          "statusToken",
+          "statusPath",
+          "createdAt",
+          "updatedAt",
+          "liveSettlementRequested",
+          "settlement",
+          "callback",
+          "links"
+        ],
+        "properties": {
+          "inferenceId": {
+            "type": "string"
+          },
+          "requestId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["created", "submitting", "submitted", "settled", "failed"]
+          },
+          "statusToken": {
+            "type": "string"
+          },
+          "statusPath": {
+            "type": "string"
+          },
+          "statusUrl": {
+            "type": ["string", "null"]
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          },
+          "liveSettlementRequested": {
+            "type": "boolean"
+          },
+          "settlement": {
+            "type": "object",
+            "required": ["layer", "futureLayer", "contractVersion", "mode", "receiptHash", "requestHash", "outputHash"],
+            "properties": {
+              "layer": {
+                "type": "string"
+              },
+              "futureLayer": {
+                "type": "string"
+              },
+              "contractVersion": {
+                "type": "string",
+                "enum": ["v1", "v2"]
+              },
+              "mode": {
+                "type": "string"
+              },
+              "receiptHash": {
+                "type": "string"
+              },
+              "requestHash": {
+                "type": "string"
+              },
+              "outputHash": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": true
+          },
+          "callback": {
+            "type": "object",
+            "required": ["url", "mode", "callbackAttempts"],
+            "properties": {
+              "url": {
+                "type": ["string", "null"]
+              },
+              "mode": {
+                "type": "string",
+                "enum": ["terminal", "status-change"]
+              },
+              "lastNotifiedStatus": {
+                "type": ["string", "null"]
+              },
+              "lastCallbackAt": {
+                "type": ["string", "null"]
+              },
+              "callbackAttempts": {
+                "type": "integer"
+              },
+              "lastCallbackError": {
+                "type": ["string", "null"]
+              }
+            },
+            "additionalProperties": false
+          },
+          "links": {
+            "type": "object",
+            "required": ["inferencePath", "compatPath"],
+            "properties": {
+              "inferencePath": {
+                "type": "string"
+              },
+              "inferenceUrl": {
+                "type": ["string", "null"]
+              },
+              "compatPath": {
+                "type": "string"
+              },
+              "compatUrl": {
+                "type": ["string", "null"]
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": true
+      },
+      "CompatModel": {
+        "type": "object",
+        "required": ["id", "object", "created_at", "name", "version"],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "object": {
+            "type": "string",
+            "const": "model"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      },
+      "CompatModelsResponse": {
+        "type": "object",
+        "required": ["object", "data"],
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "list"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CompatModel"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "CompatInferenceRequest": {
+        "type": "object",
+        "required": ["model", "prompt"],
+        "properties": {
+          "model": {
+            "type": "string"
+          },
+          "prompt": {
+            "type": "string"
+          },
+          "input": {},
+          "live": {
+            "type": "boolean"
+          },
+          "wait_for_settlement": {
+            "type": "boolean"
+          },
+          "callback_url": {
+            "type": "string"
+          },
+          "callback_mode": {
+            "type": "string",
+            "enum": ["terminal", "status-change"]
+          }
+        },
+        "additionalProperties": true
+      },
+      "CompatInferenceResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "object",
+          "created_at",
+          "request_id",
+          "model",
+          "prompt",
+          "input",
+          "output",
+          "status",
+          "status_token",
+          "status_path",
+          "callback",
+          "settlement",
+          "privacy",
+          "compatibility"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "object": {
+            "type": "string",
+            "const": "compat.inference"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "request_id": {
+            "type": "string"
+          },
+          "model": {
+            "type": "object",
+            "required": ["id", "name"],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": true
+          },
+          "prompt": {
+            "type": "string"
+          },
+          "input": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "output": {},
+          "status": {
+            "type": "string",
+            "enum": ["created", "submitting", "submitted", "settled", "failed"]
+          },
+          "status_token": {
+            "type": "string"
+          },
+          "status_path": {
+            "type": "string"
+          },
+          "status_url": {
+            "type": ["string", "null"]
+          },
+          "callback": {
+            "$ref": "#/components/schemas/RequestStatus/properties/callback"
+          },
+          "settlement": {
+            "$ref": "#/components/schemas/RequestStatus/properties/settlement"
+          },
+          "privacy": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "compatibility": {
+            "type": "object",
+            "required": ["surface", "settlement_backend"],
+            "properties": {
+              "surface": {
+                "type": "string"
+              },
+              "settlement_backend": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": true
+      },
+      "CompatInferenceStatusResponse": {
+        "type": "object",
+        "required": ["object", "statusToken", "statusPath", "status", "settlement"],
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "compat.inference.status"
+          }
+        },
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/RequestStatus"
+          }
+        ],
+        "additionalProperties": true
+      },
+      "CompatReceiptResponse": {
+        "type": "object",
+        "required": ["object", "inference_id", "request_id", "status", "status_token", "status_path", "settlement", "links"],
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "compat.receipt"
+          },
+          "inference_id": {
+            "type": "string"
+          },
+          "request_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["created", "submitting", "submitted", "settled", "failed"]
+          },
+          "status_token": {
+            "type": "string"
+          },
+          "status_path": {
+            "type": "string"
+          },
+          "status_url": {
+            "type": ["string", "null"]
+          },
+          "settlement": {
+            "$ref": "#/components/schemas/RequestStatus/properties/settlement"
+          },
+          "links": {
+            "$ref": "#/components/schemas/RequestStatus/properties/links"
+          }
+        },
+        "additionalProperties": true
+      },
+      "CompatChatCompletionRequest": {
+        "type": "object",
+        "required": ["model", "messages"],
+        "properties": {
+          "model": {
+            "type": "string"
+          },
+          "messages": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["role", "content"],
+              "properties": {
+                "role": {
+                  "type": "string"
+                },
+                "content": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": true
+            }
+          }
+        },
+        "additionalProperties": true
+      },
+      "CompatChatCompletionResponse": {
+        "type": "object",
+        "required": ["id", "object", "created", "model", "choices", "request_id", "status", "status_token", "settlement", "inference"],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "object": {
+            "type": "string",
+            "const": "chat.completion"
+          },
+          "created": {
+            "type": "integer"
+          },
+          "model": {
+            "type": "string"
+          },
+          "choices": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["index", "message", "finish_reason"],
+              "properties": {
+                "index": {
+                  "type": "integer"
+                },
+                "message": {
+                  "type": "object",
+                  "required": ["role", "content"],
+                  "properties": {
+                    "role": {
+                      "type": "string"
+                    },
+                    "content": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "finish_reason": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "request_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "status_token": {
+            "type": "string"
+          },
+          "status_path": {
+            "type": "string"
+          },
+          "status_url": {
+            "type": ["string", "null"]
+          },
+          "settlement": {
+            "$ref": "#/components/schemas/RequestStatus/properties/settlement"
+          },
+          "inference": {
+            "$ref": "#/components/schemas/CompatInferenceResponse"
+          }
+        },
+        "additionalProperties": false
+      },
+      "McpRequest": {
+        "type": "object",
+        "required": ["jsonrpc", "id", "method"],
+        "properties": {
+          "jsonrpc": {
+            "type": "string",
+            "const": "2.0"
+          },
+          "id": {
+            "type": ["string", "integer"]
+          },
+          "method": {
+            "type": "string"
+          },
+          "params": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "additionalProperties": true
+      },
+      "McpResponse": {
+        "type": "object",
+        "required": ["jsonrpc", "id"],
+        "properties": {
+          "jsonrpc": {
+            "type": "string",
+            "const": "2.0"
+          },
+          "id": {
+            "type": ["string", "integer", "null"]
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "error": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  }
+}

@@ -1,0 +1,116 @@
+{
+  "name": "zeko-ai-builder-kit",
+  "version": "0.3.0",
+  "description": "Builder SDK, compatibility adapter, and operator tooling for the Zeko AI Runtime.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/src/sdk/index.js",
+  "types": "./dist/src/sdk/index.d.ts",
+  "files": [
+    "dist/**",
+    "LICENSE",
+    "README.md",
+    "docs/builder-api.openapi.json",
+    "docs/migration-guide.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/src/sdk/index.d.ts",
+      "import": "./dist/src/sdk/index.js",
+      "default": "./dist/src/sdk/index.js"
+    },
+    "./sdk": {
+      "types": "./dist/src/sdk/index.d.ts",
+      "import": "./dist/src/sdk/index.js",
+      "default": "./dist/src/sdk/index.js"
+    },
+    "./compat": {
+      "types": "./dist/src/compat/index.d.ts",
+      "import": "./dist/src/compat/index.js",
+      "default": "./dist/src/compat/index.js"
+    },
+    "./crypto": {
+      "types": "./dist/src/crypto-envelope.d.ts",
+      "import": "./dist/src/crypto-envelope.js",
+      "default": "./dist/src/crypto-envelope.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "typesVersions": {
+    "*": {
+      "sdk": [
+        "./dist/src/sdk/index.d.ts"
+      ],
+      "compat": [
+        "./dist/src/compat/index.d.ts"
+      ],
+      "crypto": [
+        "./dist/src/crypto-envelope.d.ts"
+      ]
+    }
+  },
+  "scripts": {
+    "build": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\" && node ./node_modules/typescript/bin/tsc -p tsconfig.json",
+    "dev": "HOST=127.0.0.1 npm run build && HOST=127.0.0.1 node dist/src/server.js",
+    "start": "node dist/src/server.js",
+    "prepack": "npm run build",
+    "release:check": "npm run build && node dist/scripts/validate-release-package.js",
+    "release:pack": "npm run release:check && npm_config_cache=.npm-cache-release npm pack",
+    "smoke:sdk": "npm run build && node dist/scripts/smoke-coordinator-sdk.js",
+    "smoke:sdk:async": "npm run build && node dist/scripts/smoke-coordinator-sdk-async.js",
+    "smoke:builder-auth": "npm run build && node dist/scripts/smoke-builder-auth.js",
+    "smoke:builder:conformance": "npm run build && node dist/scripts/smoke-builder-conformance.js",
+    "smoke:compat": "npm run build && node dist/scripts/smoke-compat.js",
+    "smoke:private": "npm run build && node dist/scripts/smoke-private-lane.js",
+    "smoke:credits:fast": "npm run build && node dist/scripts/smoke-credits-fast.js",
+    "contract:builder": "npm run build && node dist/scripts/validate-builder-contract.js",
+    "operators:audit": "npm run build && node dist/scripts/audit-operator-isolation.js",
+    "test": "npm run build && node dist/scripts/reset-builder-usage.js && node dist/scripts/validate-builder-contract.js && node dist/scripts/smoke-builder-conformance.js && node dist/scripts/smoke-compat.js && node dist/scripts/smoke-private-lane.js",
+    "smoke:encrypted": "npm run build && OPENGRADIENT_NO_LISTEN=true node scripts/smoke-encrypted.mjs",
+    "zkapp:deploy": "npm run build && node dist/scripts/deploy-zkapp-v2.js",
+    "zkapp:deploy:v1": "npm run build && node dist/scripts/deploy-zkapp.js",
+    "zkapp:deploy:v2": "npm run build && node dist/scripts/deploy-zkapp-v2.js",
+    "auth:enable": "npm run build && node dist/scripts/enable-http-auth.js",
+    "auth:issue:builder": "npm run build && node dist/scripts/issue-builder-api-key.js",
+    "operators:policy:issue": "npm run build && node dist/scripts/issue-operator-membership.js",
+    "sponsor:enable": "npm run build && node dist/scripts/enable-sponsor.js",
+    "operators:bootstrap": "npm run build && node dist/scripts/bootstrap-operators.js",
+    "operators:activate:remote": "npm run build && node dist/scripts/activate-remote-operator.js",
+    "operators:issue:local-isolation": "npm run build && node dist/scripts/issue-local-runtime-isolation.js",
+    "operators:package:remote": "npm run build && node dist/scripts/package-remote-operator.js",
+    "operators:promote:orb": "npm run build && node dist/scripts/promote-remote-orb.js",
+    "operators:lockdown:remote": "npm run build && node dist/scripts/lockdown-remote-custody.js",
+    "smoke:live": "npm run build && node dist/scripts/submit-live-receipt-v2.js",
+    "smoke:live:v1": "npm run build && node dist/scripts/submit-live-receipt.js",
+    "smoke:live:v2": "npm run build && node dist/scripts/submit-live-receipt-v2.js",
+    "smoke:agent-live": "npm run build && node dist/scripts/smoke-agent-live.js",
+    "smoke:operator:failover": "npm run build && node dist/scripts/smoke-operator-failover.js",
+    "smoke:credits:failover-live": "npm run build && node dist/scripts/smoke-credits-failover-live.js",
+    "smoke:credits": "npm run build && node dist/scripts/smoke-credits-v2.js",
+    "smoke:credits:spend": "npm run build && node dist/scripts/smoke-credits-spend-v2.js",
+    "smoke:credits:operator": "npm run build && node dist/scripts/smoke-credits-operator-v2.js",
+    "smoke:credits:deposit-monitor": "npm run build && node dist/scripts/smoke-credits-deposit-monitor-v2.js",
+    "smoke:credits:checkpoint-batch": "npm run build && node dist/scripts/smoke-credits-checkpoint-batch-v2.js",
+    "bench:v2": "npm run build && node dist/scripts/benchmark-v2.js all",
+    "bench:v2:request": "npm run build && node dist/scripts/benchmark-v2.js request",
+    "bench:v2:registry": "npm run build && node dist/scripts/benchmark-v2.js registry",
+    "bench:v2:credits-update": "npm run build && node dist/scripts/benchmark-v2.js credits-update",
+    "bench:v2:credits-spend": "npm run build && node dist/scripts/benchmark-v2.js credits-spend"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.19.2",
+    "o1js": "^1.7.0",
+    "reflect-metadata": "^0.2.2"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "typescript": "^5.6.3"
+  }
+}
