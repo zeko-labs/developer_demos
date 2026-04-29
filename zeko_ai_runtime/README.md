@@ -47,6 +47,19 @@ Packaging and migration references:
 - [docs/blog-zeko-native-ai-stack.md](docs/blog-zeko-native-ai-stack.md)
 - [docs/blog-introducing-zeko-ai-runtime.md](docs/blog-introducing-zeko-ai-runtime.md)
 
+## Agent Skills
+
+This repo now documents the runtime-specific agent skills it actually supports:
+
+- [skills/README.md](skills/README.md)
+- [skills/native-inference-builder.md](skills/native-inference-builder.md)
+- [skills/private-inference-builder.md](skills/private-inference-builder.md)
+- [skills/credits-balance-operator.md](skills/credits-balance-operator.md)
+- [skills/lane-operator-failover.md](skills/lane-operator-failover.md)
+- [skills/compatibility-adapter.md](skills/compatibility-adapter.md)
+
+These are intentionally runtime-scoped. Higher-level coordination belongs in ACP, approval and escrow belong in Nava, and broader trust or identity layers belong in SantaClawz.
+
 ## Why This Is Distinct
 
 - private inputs are sealed locally and outputs can be encrypted to the client before storage
@@ -60,6 +73,7 @@ Packaging and migration references:
 - [src/server.ts](src/server.ts)
 - [src/compat/client.ts](src/compat/client.ts)
 - [src/zk/agentContractV2.ts](src/zk/agentContractV2.ts)
+- [skills/README.md](skills/README.md)
 - [docs/zeko-ai-runtime.md](docs/zeko-ai-runtime.md)
 - [docs/ai-protocol-breakpoints.md](docs/ai-protocol-breakpoints.md)
 - [docs/migration-guide.md](docs/migration-guide.md)
