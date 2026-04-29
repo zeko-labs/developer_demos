@@ -129,9 +129,11 @@ If you are new to the repo, start with these:
 - `docs/blog-private-tokenized-asset-protocol.md`
 - `docs/flagship-runbook.md`
 - `docs/provider-strategy.md`
+- `docs/zk-audit-and-compliance-app.md`
 - `docs/spec/README.md`
 - `docs/status-and-next-steps.md`
 - `docs/external-zktls-adaptations.md`
+- `docs/agent-skills.md`
 - `docs/launch/`
 
 ## Current State
