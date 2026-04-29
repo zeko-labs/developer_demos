@@ -35,6 +35,17 @@ The current build supports:
 
 The standalone zkApp project lives in [zkapp-test](./zkapp-test).
 
+## Agent Skills
+
+This demo includes local skill docs for agents or contributors working on the main subsystems:
+
+- `agent-intent-api`: API-compatible intent ingestion, status, and execution flow
+- `zeko-native-verifier-quorum`: registered verifier keys, signing payloads, and threshold approval
+- `intent-zkapp-lifecycle`: per-intent zkApp sync and proof-checked lifecycle transitions
+- `private-intent-artifacts`: prompt hashing, payload sealing, and compact proof artifacts
+
+Start with [skills/README.md](./skills/README.md).
+
 ## Quickstart
 
 ```bash
@@ -135,6 +146,7 @@ The zkApp enforces:
 ## Project Notes
 
 - Runtime state is local-only and ignored for git by default
+- Repo-local agent skill docs live in [skills/README.md](./skills/README.md)
 - The Nava critique and breakpoint analysis is in [NAVA_BREAKPOINTS.md](./NAVA_BREAKPOINTS.md)
 - The Zeko zkApp workspace is documented in [zkapp-test/README.md](./zkapp-test/README.md)
 - The project is licensed under Apache-2.0 in [LICENSE](./LICENSE)
