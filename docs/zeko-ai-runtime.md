@@ -23,6 +23,20 @@ It now also includes a stronger trust-minimization path:
 - a retained `v1` compatibility lane for builders who still want the older single-signer receipt shape
 - a tiny coordinator SDK with lane discovery, optional API-key or bearer auth, and retry-aware coordinator calls for builders
 
+## Runtime Skill Layer
+
+This repo should document runtime-facing agent skills, not every higher-level product behavior.
+
+That means the skills here focus on:
+
+- native inference submission and receipt handling
+- private inference with sealed inputs
+- credits metering and fast-path spending
+- lane routing, isolation, and failover operations
+- compatibility adapters that preserve legacy client shapes
+
+The documented skill set lives under [../skills/README.md](../skills/README.md). It is intentionally distinct from the coordination, escrow, and broader trust layers that belong in ACP, Nava, and SantaClawz.
+
 ## What Was Preserved
 
 - Fast-path AI execution stays off-chain.
