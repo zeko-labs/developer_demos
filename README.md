@@ -67,6 +67,7 @@ Includes:
 - sealed private inputs and client-encrypted outputs
 - membership-first operator routing and failover
 - fast credits and compatibility adapters for existing AI protocol surfaces
+- documented runtime-oriented agent skills for builders and operators
 
 ### `proof_over_hype_ai_image_provenance`
 A provenance-oriented AI media demo.
