@@ -59,6 +59,15 @@ Includes:
 - sponsored anchoring and moderation flows
 - proof-of-participation style product patterns
 
+### `zeko_ai_runtime`
+A Zeko-native verifiable AI runtime for builders.
+
+Includes:
+- fast off-chain inference plus attestable receipts
+- sealed private inputs and client-encrypted outputs
+- membership-first operator routing and failover
+- fast credits and compatibility adapters for existing AI protocol surfaces
+
 ### `proof_over_hype_ai_image_provenance`
 A provenance-oriented AI media demo.
 
