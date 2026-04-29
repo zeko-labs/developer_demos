@@ -75,6 +75,7 @@ These are intentionally runtime-scoped. Higher-level coordination belongs in ACP
 - [src/zk/agentContractV2.ts](src/zk/agentContractV2.ts)
 - [skills/README.md](skills/README.md)
 - [docs/zeko-ai-runtime.md](docs/zeko-ai-runtime.md)
+- [docs/opengradient-breakpoints.md](docs/opengradient-breakpoints.md)
 - [docs/ai-protocol-breakpoints.md](docs/ai-protocol-breakpoints.md)
 - [docs/migration-guide.md](docs/migration-guide.md)
 - [docs/blog-zeko-native-ai-stack.md](docs/blog-zeko-native-ai-stack.md)

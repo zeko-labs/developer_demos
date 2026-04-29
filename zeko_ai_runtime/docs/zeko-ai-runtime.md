@@ -54,6 +54,7 @@ Official sources reviewed:
 - <https://docs.opengradient.ai/learn/architecture/>
 - <https://docs.opengradient.ai/learn/onchain_inference/llm_execution.html>
 - <https://docs.opengradient.ai/learn/onchain_inference/da.html>
+- [opengradient-breakpoints.md](opengradient-breakpoints.md)
 - [ai-protocol-breakpoints.md](ai-protocol-breakpoints.md)
 
 The main product ideas inferred from those materials are:
