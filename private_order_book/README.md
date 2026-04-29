@@ -76,6 +76,16 @@ That remote proof agent fetches the next pending proof job snapshot, builds the 
 - [Full-mode production gaps](./docs/full-mode-production-gaps.md)
 - [On-chain order book reference path](./docs/onchain-orderbook-reference.md)
 
+## Agent Skills
+
+This repo also ships reusable agent skills in `agent-skills/`:
+
+- `zeko-non-magic-tx`: wallet-signed Zeko / Auro zkApp transaction handling
+- `shared-liquidity-sdk`: many frontends, one liquidity engine, explicit `frontendId` routing
+- `trading-ui-composer`: dense trading UI composition and execution-safe interaction design
+- `prod-runbook-debugger`: live protocol triage, restart order, and status-driven debugging
+- `zeko-da-privacy`: commitment-first DA publishing and encrypted payload privacy
+
 ## System Model
 
 - client:

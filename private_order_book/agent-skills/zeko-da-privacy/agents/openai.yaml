@@ -1,0 +1,4 @@
+interface:
+  display_name: "Zeko DA Privacy"
+  short_description: "Integrate Zeko DA with encrypted payload privacy."
+  default_prompt: "Use $zeko-da-privacy to wire commitment-first DA publishing with encrypted payloads and a clear privacy model."

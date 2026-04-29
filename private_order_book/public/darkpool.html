@@ -140,6 +140,110 @@
         border-radius: 12px;
         overflow: hidden;
       }
+      .welcome-overlay {
+        position: fixed;
+        inset: 0;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        background: rgba(6, 9, 15, 0.72);
+        backdrop-filter: blur(4px);
+        z-index: 40;
+      }
+      .welcome-overlay.is-open {
+        display: flex;
+      }
+      .welcome-card {
+        width: min(520px, 100%);
+        background: linear-gradient(180deg, rgba(6, 17, 32, 0.98), rgba(7, 21, 37, 0.98));
+        border: 1px solid #294560;
+        border-radius: 16px;
+        box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+        padding: 18px 18px 16px;
+      }
+      .welcome-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        gap: 12px;
+        margin-bottom: 10px;
+      }
+      .welcome-title {
+        font-size: 18px;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+      }
+      .welcome-close {
+        width: auto;
+        padding: 4px 8px;
+        border: 1px solid #33516d;
+        border-radius: 999px;
+        background: transparent;
+        color: #9eb8cf;
+        cursor: pointer;
+      }
+      .welcome-copy {
+        color: #b2c6d8;
+        font-size: 13px;
+        line-height: 1.5;
+        margin-bottom: 12px;
+      }
+      .welcome-steps {
+        display: grid;
+        gap: 8px;
+        margin: 0 0 14px;
+        padding: 0;
+        list-style: none;
+      }
+      .welcome-step {
+        display: grid;
+        grid-template-columns: 26px 1fr;
+        gap: 10px;
+        align-items: start;
+        padding: 9px 10px;
+        border: 1px solid #1f3348;
+        border-radius: 12px;
+        background: rgba(10, 20, 31, 0.84);
+      }
+      .welcome-step-num {
+        width: 26px;
+        height: 26px;
+        border-radius: 999px;
+        background: rgba(78, 199, 255, 0.16);
+        color: #8fdcff;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .welcome-step strong {
+        display: block;
+        margin-bottom: 2px;
+        color: #e1eefb;
+        font-size: 13px;
+      }
+      .welcome-step span {
+        color: #98afc4;
+        font-size: 12px;
+        line-height: 1.45;
+      }
+      .welcome-footnote {
+        color: #86a0b8;
+        font-size: 12px;
+        line-height: 1.45;
+        margin-bottom: 14px;
+      }
+      .welcome-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+      }
+      .welcome-actions button {
+        width: auto;
+        padding: 9px 14px;
+      }
       .card .hd {
         padding: 10px 12px;
         border-bottom: 1px solid var(--line);
@@ -1325,6 +1429,37 @@
       aria-hidden="true"
     />
     <div class="bg-overlay" aria-hidden="true"></div>
+    <div id="welcomeOverlay" class="welcome-overlay" role="dialog" aria-modal="true" aria-labelledby="welcomeTitle">
+      <div class="welcome-card">
+        <div class="welcome-head">
+          <div id="welcomeTitle" class="welcome-title">How ShadowBook Trading Works</div>
+          <button type="button" class="welcome-close" id="welcomeDismissBtn" aria-label="Close">X</button>
+        </div>
+        <div class="welcome-copy">
+          ShadowBook trading uses private notes rather than wallet balances directly. Here’s the quickest path:
+        </div>
+        <ol class="welcome-steps">
+          <li class="welcome-step">
+            <div class="welcome-step-num">1</div>
+            <div><strong>Connect wallet</strong><span>Link your Auro wallet to enable private trading.</span></div>
+          </li>
+          <li class="welcome-step">
+            <div class="welcome-step-num">2</div>
+            <div><strong>Visit the Funding page</strong><span>Sync your on-chain balances and mint private note collateral to trade.</span></div>
+          </li>
+          <li class="welcome-step">
+            <div class="welcome-step-num">3</div>
+            <div><strong>Go to the Trading page</strong><span>Place market or limit orders, spending your private note collateral to trade.</span></div>
+          </li>
+        </ol>
+        <div class="welcome-footnote">
+          Public orders show price and size without exposing your wallet. Private dark orders stay off-book before execution.
+        </div>
+        <div class="welcome-actions">
+          <button type="button" class="ghost" id="welcomeGotItBtn">Got it</button>
+        </div>
+      </div>
+    </div>
     <div class="brandbar">
       <div class="brand">
         <img
@@ -1766,6 +1901,7 @@
       let requireOnchainDepositTx = true;
       let vaultDepositAddress = '';
       let walletConnected = false;
+      const welcomeStorageKey = 'shadowbook:first-visit-dismissed:v3';
       let chartApi = null;
       let candleSeries = null;
       let volumeSeries = null;
@@ -2640,6 +2776,25 @@
         btn.classList.add('connected');
         btn.disabled = false;
         btn.title = w || '';
+      }
+
+      function dismissWelcomeOverlay() {
+        const overlay = document.getElementById('welcomeOverlay');
+        if (!overlay) return;
+        overlay.classList.remove('is-open');
+        try {
+          window.localStorage.setItem(welcomeStorageKey, '1');
+        } catch {}
+      }
+
+      function maybeShowWelcomeOverlay() {
+        const overlay = document.getElementById('welcomeOverlay');
+        if (!overlay) return;
+        let dismissed = false;
+        try {
+          dismissed = window.localStorage.getItem(welcomeStorageKey) === '1';
+        } catch {}
+        if (!dismissed) overlay.classList.add('is-open');
       }
 
       async function connectWallet() {
@@ -4426,6 +4581,8 @@
       }
       document.getElementById('tabTrading').onclick = () => activateTab('trading');
       document.getElementById('tabFunding').onclick = () => activateTab('funding');
+      document.getElementById('welcomeDismissBtn').onclick = dismissWelcomeOverlay;
+      document.getElementById('welcomeGotItBtn').onclick = dismissWelcomeOverlay;
 
       (async () => {
         try {
@@ -4433,6 +4590,7 @@
           window.addEventListener('resize', syncHeaderOffset);
           requestAnimationFrame(syncHeaderOffset);
           activateTab('trading');
+          maybeShowWelcomeOverlay();
           syncFrontendIdFromUi();
           const status = await sdk.getStatus();
           realFundsMode = Boolean(status?.server?.realFundsMode);
