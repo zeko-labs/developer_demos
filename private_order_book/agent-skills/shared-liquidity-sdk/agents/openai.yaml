@@ -1,0 +1,4 @@
+interface:
+  display_name: "Shared Liquidity SDK"
+  short_description: "Build multi-frontend SDK routing one liquidity core."
+  default_prompt: "Use $shared-liquidity-sdk to implement a shared-liquidity API and SDK architecture with frontend fee attribution."
