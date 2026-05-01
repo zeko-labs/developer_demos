@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/approval.schema.json",
+  "type": "object",
+  "required": ["version", "missionId", "missionHash", "approver", "approvedTools", "approvedScopes", "approvedRails", "missionSnapshot", "expiresAt", "approvalId", "approvalHash", "authorityJws"],
+  "properties": {
+    "version": { "const": "mission-approval-v1" },
+    "missionId": { "type": "string" },
+    "missionHash": { "type": "string" },
+    "approver": { "type": "object" },
+    "approvedTools": { "type": "array", "items": { "type": "string" } },
+    "approvedScopes": { "type": "array", "items": { "type": "string" } },
+    "approvedRails": { "type": "array", "items": { "type": "string" } },
+    "missionSnapshot": { "type": "object" },
+    "expiresAt": { "type": "string" },
+    "approvalId": { "type": "string" },
+    "approvalHash": { "type": "string" },
+    "authorityJws": { "type": "string" },
+    "zekoAnchor": { "type": "object" }
+  }
+}

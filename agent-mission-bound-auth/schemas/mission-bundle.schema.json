@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/mission-bundle.schema.json",
+  "type": "object",
+  "required": ["version", "exportedAt", "approval", "bundleHash"],
+  "properties": {
+    "version": { "const": "zk-mission-bundle-v1" },
+    "exportedAt": { "type": "string" },
+    "agentPassport": { "$ref": "./agent-passport.schema.json" },
+    "mission": { "$ref": "./mission.schema.json" },
+    "approval": { "$ref": "./approval.schema.json" },
+    "auth": { "type": ["object", "null"] },
+    "payment": { "type": ["object", "null"] },
+    "receipt": { "type": ["object", "null"] },
+    "zeko": { "type": ["object", "null"] },
+    "bundleHash": { "type": "string" }
+  }
+}

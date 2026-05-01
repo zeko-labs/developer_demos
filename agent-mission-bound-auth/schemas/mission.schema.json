@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/mission.schema.json",
+  "type": "object",
+  "required": ["version", "agentId", "task", "datasetId", "operation", "allowedTools", "allowedScopes", "constraints", "checkpoints", "expiresAt", "missionId", "missionHash"],
+  "properties": {
+    "version": { "const": "mission-bound-agent-auth-v1" },
+    "agentId": { "type": "string" },
+    "task": { "type": "string" },
+    "datasetId": { "type": "string" },
+    "operation": { "type": "string" },
+    "allowedTools": { "type": "array", "items": { "type": "string" } },
+    "allowedScopes": { "type": "array", "items": { "type": "string" } },
+    "constraints": { "type": "object" },
+    "checkpoints": { "type": "array", "items": { "type": "string" } },
+    "expiresAt": { "type": "string" },
+    "missionId": { "type": "string" },
+    "missionHash": { "type": "string" }
+  }
+}

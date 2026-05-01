@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Agent Mission-Bound Auth</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="mark">ZK</div>
+          <div>
+            <h1>Protocol Harness</h1>
+            <p>mission-bound agent auth</p>
+          </div>
+        </div>
+
+        <section class="panel compact">
+          <div class="panel-title">Agent</div>
+          <div id="agentStatus" class="status pending">No proof</div>
+          <button id="issueProof" class="primary">Issue ZK OAuth Proof</button>
+        </section>
+
+        <section class="panel compact auth0-panel">
+          <div class="panel-title">Auth0 Sandbox</div>
+          <div id="auth0Status" class="status pending">Checking config</div>
+          <button id="auth0Login" class="secondary">Log In With Auth0</button>
+          <button id="auth0Logout" class="ghost" hidden>Log Out</button>
+          <div id="auth0Profile" class="profile-mini"></div>
+        </section>
+
+        <section class="panel compact">
+          <div class="panel-title">x402 Rail</div>
+          <div id="rails" class="rails"></div>
+        </section>
+      </aside>
+
+      <section class="workspace">
+        <header class="topbar">
+          <div>
+            <h2>Reference Domain App</h2>
+            <p>Tutorial harness for mission approval, checkpoint enforcement, x402, and Zeko receipts.</p>
+          </div>
+          <div id="health" class="health">checking</div>
+        </header>
+
+        <section class="query-grid">
+          <form id="computeForm" class="panel form-panel">
+            <label>
+              Demo dataset
+              <select id="dataset"></select>
+            </label>
+            <label>
+              Operation
+              <select id="operation">
+                <option value="risk-summary">Risk summary</option>
+                <option value="signal-count">Signal count</option>
+              </select>
+            </label>
+            <label class="wide">
+              Mission task
+              <textarea id="query" rows="5">Find the main operational or scientific risk in this private dataset.</textarea>
+            </label>
+            <button class="primary wide" type="submit">Run Protocol Flow</button>
+          </form>
+
+          <section class="panel receipt-panel">
+            <div class="panel-title">x402 Offer</div>
+            <pre id="offer">Waiting for mission-bound request.</pre>
+          </section>
+        </section>
+
+        <section class="panel result-panel">
+          <div class="panel-title">Result</div>
+          <div id="result" class="empty">No mission-bound receipt yet.</div>
+        </section>
+      </section>
+    </main>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
