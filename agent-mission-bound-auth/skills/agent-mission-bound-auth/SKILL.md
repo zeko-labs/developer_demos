@@ -1,6 +1,6 @@
 ---
 name: agent-mission-bound-auth
-description: Build, review, or extend Agent Mission-Bound Auth demos and protocol integrations. Use when working on autonomous-agent authorization with enterprise OAuth/OIDC or SAML SSO entrypoints, mission-scoped approvals, ZK authorization commitments, private-compute receipts, x402 payment context, optional Zeko anchoring, Auth0 or Okta sandbox verification, or PR packaging into zeko-labs developer demos.
+description: Build, review, or extend Agent Mission-Bound Auth demos and protocol integrations. Use when working on autonomous-agent authorization with enterprise OAuth/OIDC or SAML SSO entrypoints, mission-scoped approvals, ZK authorization commitments, private-compute receipts, x402 payment context, Zeko anchoring, Auth0 or Okta sandbox verification, or PR packaging into zeko-labs developer demos.
 ---
 
 # Agent Mission-Bound Auth
@@ -13,7 +13,7 @@ Frame the protocol as:
 
 > Agent Mission-Bound Auth: Cryptographically Verified and Enforced Autonomous Agent Workflows
 
-Prefer "Auth for autonomous agents" over "OAuth for autonomous agents." OAuth/OIDC and SAML SSO are enterprise entrypoints; the protocol extends into mission approvals, private-compute commitments, receipt enforcement, payment linkage, and optional Zeko anchoring.
+Prefer "Auth for autonomous agents" over "OAuth for autonomous agents." OAuth/OIDC and SAML SSO are enterprise entrypoints; the protocol extends into mission approvals, private-compute commitments, receipt enforcement, payment linkage, and Zeko anchoring.
 
 When writing explainers, focus on the four gaps:
 
@@ -34,7 +34,7 @@ Preserve this flow:
 4. Issue or verify mission approvals that bind task, tools, datasets, rails, budget, expiry, and checkpoints.
 5. Verify checkpoints before payment, private compute, external side effects, and receipt finalization.
 6. Emit receipts that link `authCommitment`, `policyHash`, `datasetCommitment`, `outputHash`, and `paymentContextDigest`.
-7. Optionally anchor approval roots, receipt roots, or revocation roots on Zeko.
+7. Anchor approval roots, receipt roots, or revocation roots on Zeko.
 
 Do not reduce the protocol to a login button. Login establishes identity; the mission and receipt artifacts establish enforceable authorization.
 
@@ -117,7 +117,7 @@ Never commit `.env.local`, private deployer keys, generated zkApp keys, `node_mo
 
 ## Repo Packaging
 
-For the canonical repo, keep the protocol source, docs, SDK, schemas, harness, and optional zkApp scripts together.
+For the canonical repo, keep the protocol source, docs, SDK, schemas, harness, and Zeko zkApp scripts together.
 
 For `zeko-labs/developer_demos`, copy the canonical repo into:
 
@@ -132,4 +132,4 @@ Use the destination repo's conventions:
 - Stage only `agent-mission-bound-auth/` for the PR.
 - Watch for case-sensitive filename collisions in the larger demo repo and keep unrelated changes unstaged.
 
-PR summary should say that this is a protocol-first sidecar/tutorial with Auth0, Okta, generic OIDC, mission approvals, private-compute receipts, x402 payment context, and optional Zeko anchoring.
+PR summary should say that this is a protocol-first sidecar/tutorial with Auth0, Okta, generic OIDC, mission approvals, private-compute receipts, x402 payment context, and Zeko anchoring.

@@ -2,7 +2,7 @@
 
 Protocol sidecar for delegated and autonomous agents.
 
-It binds enterprise identity to a specific mission, signs the approval, enforces checkpoints before side effects, links x402 payment context, and emits portable receipts that can be independently verified and optionally anchored on Zeko.
+It binds enterprise identity to a specific mission, signs the approval, enforces checkpoints before side effects, links x402 payment context, and emits portable receipts that can be independently verified and anchored on Zeko.
 
 The included private-compute UI is only a local tutorial harness. The protocol is the product.
 
@@ -24,8 +24,8 @@ packages/sdk           client and offline verification helpers
 apps/harness           local tutorial sidecar and private-compute example
 apps/external-starter  minimal external app that verifies mission checkpoints
 schemas                portable object schemas
-scripts                smoke, conformance, OAuth, and optional Zeko scripts
-zkapp                  optional Zeko zkApp source
+scripts                smoke, conformance, OAuth, and Zeko anchoring scripts
+zkapp                  Zeko zkApp source
 ```
 
 ## Run Locally
@@ -164,7 +164,7 @@ For each customer IdP, add this callback URL:
 https://auth-sidecar.example.com/api/oauth/callback
 ```
 
-No production Zeko operator is required for basic use. Zeko anchoring is optional and can be run later with the scripts in `scripts/`.
+No production Zeko operator is required for the local tutorial flow. Production deployments anchor mission approvals and receipt roots on Zeko with the scripts in `scripts/`.
 
 ## Live Zeko Testnet App
 
