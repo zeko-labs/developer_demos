@@ -180,6 +180,11 @@ No production Zeko operator is required for basic use. Zeko anchoring is optiona
 - [OAuth provider setup](./docs/oauth-sandbox.md)
 - [Security notes](./docs/security.md)
 
+## Codex Skill
+
+The repeatable build and review playbook is packaged as a local Codex skill:
+[skills/agent-mission-bound-auth/SKILL.md](./skills/agent-mission-bound-auth/SKILL.md)
+
 ## License
 
 Apache-2.0. See [LICENSE](./LICENSE).
