@@ -1,0 +1,10 @@
+{
+  "note": "Run npm run test:conformance to generate and validate fresh sample artifacts. This file documents the expected artifact names.",
+  "artifacts": [
+    "agentPassport",
+    "mission",
+    "approval",
+    "checkpointRequest",
+    "bundle"
+  ]
+}

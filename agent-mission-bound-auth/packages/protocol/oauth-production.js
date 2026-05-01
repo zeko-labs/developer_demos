@@ -1,0 +1,149 @@
+import { createHash, createPublicKey, verify as verifySignature } from "node:crypto";
+import { hmacSha256Hex, sha256Hex } from "./digest.js";
+
+function base64urlDecode(value) {
+  return Buffer.from(value, "base64url");
+}
+
+function parseJwt(token) {
+  const parts = String(token ?? "").split(".");
+  if (parts.length !== 3) {
+    throw new Error("JWT must have header, payload, and signature parts.");
+  }
+
+  return {
+    header: JSON.parse(base64urlDecode(parts[0]).toString("utf8")),
+    payload: JSON.parse(base64urlDecode(parts[1]).toString("utf8")),
+    signingInput: `${parts[0]}.${parts[1]}`,
+    signature: base64urlDecode(parts[2])
+  };
+}
+
+function jwkToKey(jwk) {
+  return createPublicKey({ key: jwk, format: "jwk" });
+}
+
+function algorithmToNodeVerify(alg) {
+  if (alg === "RS256") return "RSA-SHA256";
+  if (alg === "RS384") return "RSA-SHA384";
+  if (alg === "RS512") return "RSA-SHA512";
+  throw new Error(`Unsupported JWT alg: ${alg}`);
+}
+
+export async function fetchJwks(jwksUrl) {
+  const res = await fetch(jwksUrl);
+  if (!res.ok) {
+    throw new Error(`JWKS fetch failed with ${res.status}.`);
+  }
+  const body = await res.json();
+  if (!Array.isArray(body.keys)) {
+    throw new Error("JWKS response must include keys[].");
+  }
+  return body;
+}
+
+export async function verifyJwtWithJwks(token, options) {
+  const parsed = parseJwt(token);
+  const jwks = options.jwks ?? await fetchJwks(options.jwksUrl);
+  const key = jwks.keys.find((candidate) => candidate.kid === parsed.header.kid);
+  if (!key) {
+    throw new Error(`No JWKS key found for kid ${parsed.header.kid}.`);
+  }
+
+  const valid = verifySignature(
+    algorithmToNodeVerify(parsed.header.alg),
+    Buffer.from(parsed.signingInput),
+    jwkToKey(key),
+    parsed.signature
+  );
+  if (!valid) {
+    throw new Error("JWT signature is invalid.");
+  }
+
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  if (options.issuer && parsed.payload.iss !== options.issuer) {
+    throw new Error("JWT issuer mismatch.");
+  }
+  const audiences = Array.isArray(parsed.payload.aud) ? parsed.payload.aud : [parsed.payload.aud];
+  if (options.audience && !audiences.includes(options.audience)) {
+    throw new Error("JWT audience mismatch.");
+  }
+  if (typeof parsed.payload.exp === "number" && parsed.payload.exp <= nowSeconds) {
+    throw new Error("JWT is expired.");
+  }
+  if (typeof parsed.payload.nbf === "number" && parsed.payload.nbf > nowSeconds) {
+    throw new Error("JWT is not active yet.");
+  }
+
+  return parsed.payload;
+}
+
+function splitScopes(value) {
+  if (Array.isArray(value)) return value.flatMap(splitScopes);
+  if (typeof value === "string") return value.split(/[,\s]+/).filter(Boolean);
+  return [];
+}
+
+function unique(values) {
+  return Array.from(new Set(values.filter(Boolean))).sort();
+}
+
+export function normalizeOAuthClaims(claims, provider = "generic-oidc") {
+  const rawScopes = unique([
+    ...splitScopes(claims.scope),
+    ...splitScopes(claims.scp),
+    ...splitScopes(claims.permissions),
+    ...splitScopes(claims["https://private-compute.example/scopes"])
+  ]);
+  const org =
+    claims.org_id ??
+    claims.organization ??
+    claims.tid ??
+    claims.tenant_id ??
+    claims["https://private-compute.example/org"] ??
+    "unknown-org";
+  const maxSpendUsd =
+    claims.max_spend_usd ??
+    claims.maxSpendUsd ??
+    claims["https://private-compute.example/max_spend_usd"] ??
+    "0.00";
+
+  return {
+    version: "normalized-oauth-claims-v1",
+    provider,
+    issuer: claims.iss,
+    subject: claims.sub,
+    audience: claims.aud,
+    agentId: claims.azp ?? claims.client_id ?? claims.sub,
+    organization: String(org),
+    scopes: rawScopes,
+    computeScopes: rawScopes.filter((scope) => scope.startsWith("compute:")),
+    datasetScopes: rawScopes.filter((scope) => scope.startsWith("dataset:")),
+    railScopes: rawScopes.filter((scope) => scope.startsWith("rail:")),
+    budget: {
+      maxSpendUsd: String(maxSpendUsd)
+    },
+    issuedAt: claims.iat ? new Date(Number(claims.iat) * 1000).toISOString() : null,
+    expiresAt: claims.exp ? new Date(Number(claims.exp) * 1000).toISOString() : null,
+    tokenHash: sha256Hex({
+      iss: claims.iss,
+      sub: claims.sub,
+      aud: claims.aud,
+      exp: claims.exp,
+      iat: claims.iat
+    })
+  };
+}
+
+export function buildAuthCommitment(normalizedClaims, salt, issuerSecret = "local-demo-issuer-secret") {
+  const commitmentBody = {
+    normalizedClaims,
+    salt
+  };
+  return {
+    authCommitment: sha256Hex(commitmentBody),
+    scopeCommitment: sha256Hex({ scopes: normalizedClaims.scopes, salt }),
+    issuerProofDigest: hmacSha256Hex(issuerSecret, commitmentBody),
+    commitmentBody
+  };
+}

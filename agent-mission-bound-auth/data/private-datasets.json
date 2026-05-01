@@ -1,0 +1,38 @@
+[
+  {
+    "id": "clinical-failures-q1",
+    "owner": "Northstar Bio",
+    "title": "Private Clinical Trial Failures Q1",
+    "classification": "regulated",
+    "allowedScopes": ["compute:clinical", "dataset:clinical-failures-q1"],
+    "records": [
+      "Cohort A showed strong early biomarker movement but failed the week eight endpoint because the response reverted after dosage tapering.",
+      "Patients with elevated baseline enzyme markers had a higher adverse-event rate, making the compound unsuitable for broad first-line use.",
+      "The strongest negative result was interaction with the second-line standard of care, which created a non-linear toxicity profile."
+    ]
+  },
+  {
+    "id": "materials-dead-ends",
+    "owner": "Luqman Materials Lab",
+    "title": "Materials Dead Ends",
+    "classification": "trade-secret",
+    "allowedScopes": ["compute:materials", "dataset:materials-dead-ends"],
+    "records": [
+      "The ceramic blend maintained tensile strength under dry heat but degraded rapidly under alternating humidity cycles.",
+      "A low-cost binder reduced curing time by forty percent while increasing brittleness beyond acceptable manufacturing tolerance.",
+      "The most promising formulation failed after repeated thermal shock because microfractures propagated from the edge seal."
+    ]
+  },
+  {
+    "id": "enterprise-support-raw",
+    "owner": "Acme Enterprise",
+    "title": "Private Support Tickets",
+    "classification": "confidential",
+    "allowedScopes": ["compute:support", "dataset:enterprise-support-raw"],
+    "records": [
+      "Authentication failures clustered around SAML metadata rollover and expired identity-provider certificates.",
+      "High-value customers reported latency spikes in the report builder after large imports completed during business hours.",
+      "The biggest churn predictor was unresolved escalation age, not ticket count or sentiment score."
+    ]
+  }
+]

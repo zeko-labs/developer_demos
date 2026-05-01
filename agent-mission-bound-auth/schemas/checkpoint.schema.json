@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/checkpoint.schema.json",
+  "type": "object",
+  "required": ["checkpoint", "approval", "context"],
+  "properties": {
+    "checkpoint": { "type": "string" },
+    "approval": { "$ref": "./approval.schema.json" },
+    "context": { "type": "object" }
+  }
+}

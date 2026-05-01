@@ -1,0 +1,42 @@
+{
+  "name": "agent-mission-bound-auth",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Mission-bound authorization protocol for delegated and autonomous agents with x402 payments and Zeko anchoring.",
+  "exports": {
+    "./protocol": "./packages/protocol/index.js",
+    "./protocol/*": "./packages/protocol/*.js",
+    "./sdk": "./packages/sdk/index.js",
+    "./sdk/*": "./packages/sdk/*.js"
+  },
+  "scripts": {
+    "start": "node apps/harness/server.js",
+    "dev": "node apps/harness/server.js",
+    "test": "node scripts/smoke.mjs",
+    "smoke": "node scripts/smoke.mjs",
+    "zeko:live-check": "node scripts/zeko-live-check.mjs",
+    "zkapp:build": "../zeko-x402/node_modules/.bin/tsc -p tsconfig.zkapp.json",
+    "production:doctor": "node scripts/production-doctor.mjs",
+    "zkapp:deploy": "npm run zkapp:build && node scripts/deploy-private-compute-zkapp.mjs",
+    "zkapp:get-state": "npm run zkapp:build && node scripts/get-private-compute-zkapp-state.mjs",
+    "zkapp:anchor-approval": "npm run zkapp:build && node scripts/anchor-mission-approval.mjs",
+    "zkapp:anchor-receipt": "npm run zkapp:build && node scripts/anchor-private-compute-receipt.mjs",
+    "smoke:live-approval-anchor": "npm run zkapp:build && node scripts/live-approval-anchor-smoke.mjs",
+    "smoke:live-anchor": "npm run zkapp:build && node scripts/live-anchor-smoke.mjs",
+    "smoke:protocol": "node scripts/protocol-smoke.mjs",
+    "test:conformance": "node scripts/conformance.mjs",
+    "test:conformance:remote": "CONFORMANCE_BASE_URL=${CONFORMANCE_BASE_URL:-http://127.0.0.1:8787} node scripts/conformance.mjs",
+    "test:oauth-sandbox": "node scripts/oauth-sandbox-smoke.mjs",
+    "oauth:sandbox-doctor": "node scripts/oauth-sandbox-doctor.mjs",
+    "oauth:auth0-doctor": "OAUTH_PROVIDER=auth0 node scripts/oauth-sandbox-doctor.mjs",
+    "start:external-starter": "node apps/external-starter/server.js",
+    "demo:reviewer": "node scripts/reviewer-demo.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@auth0/auth0-spa-js": "^2.19.2"
+  }
+}
