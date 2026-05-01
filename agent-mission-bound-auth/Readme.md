@@ -179,3 +179,7 @@ No production Zeko operator is required for basic use. Zeko anchoring is optiona
 - [Integration guide](./docs/integration-guide.md)
 - [OAuth provider setup](./docs/oauth-sandbox.md)
 - [Security notes](./docs/security.md)
+
+## License
+
+Apache-2.0. See [LICENSE](./LICENSE).
