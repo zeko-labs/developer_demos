@@ -34,7 +34,7 @@ Preserve this flow:
 4. Issue or verify mission approvals that bind task, tools, datasets, rails, budget, expiry, and checkpoints.
 5. Verify checkpoints before payment, private compute, external side effects, and receipt finalization.
 6. Emit receipts that link `authCommitment`, `policyHash`, `datasetCommitment`, `outputHash`, and `paymentContextDigest`.
-7. Anchor approval roots, receipt roots, or revocation roots on Zeko.
+7. Anchor approval roots or receipt roots on Zeko for production audit trails.
 
 Do not reduce the protocol to a login button. Login establishes identity; the mission and receipt artifacts establish enforceable authorization.
 
@@ -117,7 +117,7 @@ Never commit `.env.local`, private deployer keys, generated zkApp keys, `node_mo
 
 ## Repo Packaging
 
-For the canonical repo, keep the protocol source, docs, SDK, schemas, harness, and Zeko zkApp scripts together.
+For the canonical repo, keep the protocol source, docs, SDK, schemas, harness, and Zeko anchoring scripts together.
 
 For `zeko-labs/developer_demos`, copy the canonical repo into:
 
