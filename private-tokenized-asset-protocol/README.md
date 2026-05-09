@@ -1,4 +1,4 @@
-# Tokenized Asset Protocol (Pilot Scaffold)
+# Tokenized Asset Protocol
 
 Tokenized Asset Protocol (TAP) is a self-hosted control plane for private, permissioned tokenized assets.
 
@@ -52,7 +52,7 @@ flowchart LR
   L --> B
 ```
 
-## What’s In The Repo
+## What Is Included
 
 ### Apps
 
@@ -79,9 +79,21 @@ flowchart LR
 - bank onboarding and pilot collateral
 - launch docs and architecture writeups
 
-## Run The Flagship Pilot
+## Quick Start
 
-The quickest way to understand TAP is to run the dual-asset flagship pilot.
+Install dependencies:
+
+```bash
+pnpm install
+```
+
+Validate the bank RWA integration profile:
+
+```bash
+pnpm validate:bank-profile
+```
+
+Run the dual-asset flagship pilot:
 
 ```bash
 ./scripts/run_dual_asset_flagship_pack.sh
@@ -93,7 +105,7 @@ That flow proves:
 - private tokenized stock lifecycle controls
 - one shared policy, proof, approval, and settlement control plane
 
-For the broader release-oriented pack:
+For the broader release-oriented pack, run:
 
 ```bash
 ./scripts/run_enterprise_demo_pack.sh
@@ -111,30 +123,47 @@ TAP is meant to be adapted to a bank, issuer, broker, custodian, or consortium�
 The customer integration path is:
 
 1. fill out the onboarding packet
-2. map the customer’s API or HTTPS source into TAP
-3. run a customer-owned pilot transcript
-4. convert that pilot into a production integration plan
+2. fill and validate the bank RWA integration profile
+3. map the customer’s API or HTTPS source into TAP
+4. run a customer-owned pilot transcript
+5. convert that pilot into a production integration plan
 
 Start here:
 
 - `docs/bank-sandbox-onboarding-packet.md`
+- `docs/bank-rwa-integration-profile.md`
 - `docs/customer-sandbox-mapping-kit.md`
 - `docs/first-customer-integration-template.md`
 - `docs/examples/customer-owned-dual-asset-sandbox-example.md`
 
 ## Key Docs
 
-If you are new to the repo, start with these:
+For implementers:
+
+- `docs/flagship-runbook.md`
+- `docs/runbook.md`
+- `docs/api.md`
+- `docs/openapi.yaml`
+
+For bank integration teams:
+
+- `docs/bank-rwa-integration-profile.md`
+- `docs/customer-sandbox-mapping-kit.md`
+- `docs/provider-strategy.md`
+- `docs/production-readiness.md`
+
+For protocol reviewers:
+
+- `docs/spec/README.md`
+- `docs/threat-model.md`
+- `docs/external-zktls-adaptations.md`
+- `docs/zk-audit-and-compliance-app.md`
+
+For narrative and launch material:
 
 - `docs/blog-private-tokenized-asset-protocol.md`
-- `docs/flagship-runbook.md`
-- `docs/provider-strategy.md`
-- `docs/zk-audit-and-compliance-app.md`
-- `docs/spec/README.md`
-- `docs/status-and-next-steps.md`
-- `docs/external-zktls-adaptations.md`
-- `docs/agent-skills.md`
 - `docs/launch/`
+- `docs/status-and-next-steps.md`
 
 ## Current State
 
