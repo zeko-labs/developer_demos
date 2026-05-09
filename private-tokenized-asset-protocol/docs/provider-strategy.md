@@ -77,9 +77,9 @@ The intended bridge from public repo to real engagement is:
 
 Relevant docs:
 
-- [bank-sandbox-onboarding-packet.md](/Users/evankereiakes/Documents/Codex/tokenized-asset-protocol/docs/bank-sandbox-onboarding-packet.md)
-- [customer-sandbox-mapping-kit.md](/Users/evankereiakes/Documents/Codex/tokenized-asset-protocol/docs/customer-sandbox-mapping-kit.md)
-- [first-customer-integration-template.md](/Users/evankereiakes/Documents/Codex/tokenized-asset-protocol/docs/first-customer-integration-template.md)
+- [bank-sandbox-onboarding-packet.md](bank-sandbox-onboarding-packet.md)
+- [customer-sandbox-mapping-kit.md](customer-sandbox-mapping-kit.md)
+- [first-customer-integration-template.md](first-customer-integration-template.md)
 
 ## What Ships in Open Source
 

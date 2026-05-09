@@ -1,0 +1,130 @@
+{
+  "profileVersion": "2026-05-09",
+  "tenantId": "tenant-a",
+  "institution": {
+    "legalName": "Northstar Bank Sandbox",
+    "environment": "sandbox",
+    "primaryContact": "sandbox-integrations@example.com"
+  },
+  "assets": {
+    "stablecoin": {
+      "enabled": true,
+      "assetId": 1,
+      "symbol": "NSUSD",
+      "mintBurnAuthority": "issuer_demo_bank"
+    },
+    "tokenizedStock": {
+      "enabled": true,
+      "assetId": 101,
+      "symbol": "NSTK",
+      "transferRestrictionModel": "permissioned-investor"
+    }
+  },
+  "sources": [
+    {
+      "sourceId": "customer-balance",
+      "category": "balance",
+      "integrationMode": "adapter",
+      "providerLabel": "customer-bank-api",
+      "requiredFields": ["current_balance_cents", "available_balance_cents", "account_status", "currency"],
+      "adapter": {
+        "baseUrl": "https://sandbox.api.customer.example",
+        "allowedHosts": ["sandbox.api.customer.example"],
+        "authProfile": "customerBalanceAuth",
+        "mappingVersion": "balance-v1"
+      }
+    },
+    {
+      "sourceId": "customer-kyc",
+      "category": "kyc",
+      "integrationMode": "adapter",
+      "providerLabel": "customer-identity-api",
+      "requiredFields": ["kyc_status", "customer_id", "country_code"],
+      "adapter": {
+        "baseUrl": "https://sandbox.identity.customer.example",
+        "allowedHosts": ["sandbox.identity.customer.example"],
+        "authProfile": "customerKycAuth",
+        "mappingVersion": "kyc-v1"
+      }
+    },
+    {
+      "sourceId": "custody-holdings",
+      "category": "holdings",
+      "integrationMode": "adapter",
+      "providerLabel": "customer-custody-api",
+      "requiredFields": ["asset_symbol", "units", "certificate_status", "account_id"],
+      "adapter": {
+        "baseUrl": "https://sandbox.custody.customer.example",
+        "allowedHosts": ["sandbox.custody.customer.example"],
+        "authProfile": "customerHoldingsAuth",
+        "mappingVersion": "holdings-v1"
+      }
+    },
+    {
+      "sourceId": "reserve-attestation",
+      "category": "reserves",
+      "integrationMode": "zktls",
+      "providerLabel": "customer-reserve-portal",
+      "requiredFields": ["reserve_balance_cents", "currency", "as_of"],
+      "zktls": {
+        "httpsUrl": "https://reserves.customer.example/statement",
+        "expectedServerName": "reserves.customer.example",
+        "disclosedFields": ["reserve_balance_cents", "currency", "as_of"]
+      }
+    }
+  ],
+  "policies": [
+    {
+      "policyId": 1,
+      "purpose": "stablecoin mint eligibility",
+      "jurisdiction": "US",
+      "requiredSources": ["customer-balance", "customer-kyc"],
+      "rules": {
+        "minBalanceCents": 100000,
+        "acceptedKycStatuses": ["passed"]
+      }
+    },
+    {
+      "policyId": 2,
+      "purpose": "tokenized stock investor eligibility",
+      "jurisdiction": "US",
+      "requiredSources": ["customer-kyc", "custody-holdings"],
+      "rules": {
+        "requirePassedKyc": true,
+        "requireValidCertificate": true
+      }
+    }
+  ],
+  "operations": [
+    {
+      "operation": "mint",
+      "policyId": 1,
+      "approvalRequired": true
+    },
+    {
+      "operation": "burn",
+      "policyId": 1,
+      "approvalRequired": true
+    },
+    {
+      "operation": "issue",
+      "policyId": 2,
+      "approvalRequired": true
+    },
+    {
+      "operation": "allocate",
+      "policyId": 2,
+      "approvalRequired": true
+    },
+    {
+      "operation": "restrict",
+      "policyId": 2,
+      "approvalRequired": true
+    },
+    {
+      "operation": "redeem",
+      "policyId": 2,
+      "approvalRequired": true
+    }
+  ]
+}

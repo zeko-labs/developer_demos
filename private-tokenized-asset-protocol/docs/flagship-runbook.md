@@ -36,7 +36,7 @@ The point of the run is not to show a consumer UI. The point is to show that bot
 For the main flagship artifact:
 
 ```bash
-cd /Users/evankereiakes/Documents/Codex/tokenized-asset-protocol
+cd <repo-root>
 ./scripts/run_dual_asset_flagship_pack.sh
 ```
 

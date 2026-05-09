@@ -1,6 +1,6 @@
 # Status And Next Steps
 
-Last updated: 2026-03-16
+Last updated: 2026-05-09
 
 ## Current Status
 
@@ -58,6 +58,7 @@ The current public story is:
 - stock lifecycle transcript exists
 - dual-asset flagship transcript exists
 - public-pack output and flagship alias exist
+- bank RWA integration profile and readiness validator exist
 
 ## What This Means
 
@@ -106,6 +107,7 @@ Needed:
 - continue tightening the onboarding packet and partner-facing integration path
 - keep the workflow explicit:
   - collect packet
+  - fill and validate the bank RWA integration profile
   - map source to adapter or zkTLS
   - wire customer sandbox
   - generate customer-specific transcript pack

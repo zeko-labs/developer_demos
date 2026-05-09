@@ -1,6 +1,6 @@
 # External zkTLS Adaptations
 
-This repository vendors a locally adapted copy of `zeko-labs/zk-verify-poc` under [`external/zk-verify-poc`](/Users/evankereiakes/Documents/Codex/tokenized-asset-protocol/external/zk-verify-poc).
+This repository vendors a locally adapted copy of `zeko-labs/zk-verify-poc` under [`external/zk-verify-poc`](../external/zk-verify-poc).
 
 The upstream project was a strong starting point for zkTLS-backed attestation on Zeko testnet. For TAP, we extended it so it can support a more bank-oriented, operator-friendly tokenization demo.
 

@@ -17,10 +17,11 @@ That first integration should prove:
 
 ## Start Here
 
-1. Collect the intake from [bank-sandbox-onboarding-packet.md](/Users/evankereiakes/Documents/Codex/tokenized-asset-protocol/docs/bank-sandbox-onboarding-packet.md)
-2. Fill [first-customer-integration-template.md](/Users/evankereiakes/Documents/Codex/tokenized-asset-protocol/docs/first-customer-integration-template.md)
-3. Review [customer-owned-dual-asset-sandbox-example.md](/Users/evankereiakes/Documents/Codex/tokenized-asset-protocol/docs/examples/customer-owned-dual-asset-sandbox-example.md)
-4. Choose the first pilot lane
+1. Collect the intake from [bank-sandbox-onboarding-packet.md](bank-sandbox-onboarding-packet.md)
+2. Fill and validate the [bank RWA integration profile](bank-rwa-integration-profile.md)
+3. Fill [first-customer-integration-template.md](first-customer-integration-template.md)
+4. Review [customer-owned-dual-asset-sandbox-example.md](examples/customer-owned-dual-asset-sandbox-example.md)
+5. Choose the first pilot lane
 
 ## Pick The First Pilot Lane
 
@@ -93,14 +94,14 @@ For a first customer integration, we should usually deliver:
 
 Current starting points in this repo:
 
-- [bootstrap_customer_balance_template.sh](/Users/evankereiakes/Documents/Codex/tokenized-asset-protocol/scripts/bootstrap_customer_balance_template.sh)
-- [bootstrap_customer_kyc_template.sh](/Users/evankereiakes/Documents/Codex/tokenized-asset-protocol/scripts/bootstrap_customer_kyc_template.sh)
-- [bootstrap_customer_holdings_template.sh](/Users/evankereiakes/Documents/Codex/tokenized-asset-protocol/scripts/bootstrap_customer_holdings_template.sh)
-- [run_customer_balance_template.sh](/Users/evankereiakes/Documents/Codex/tokenized-asset-protocol/scripts/run_customer_balance_template.sh)
-- [run_customer_kyc_template.sh](/Users/evankereiakes/Documents/Codex/tokenized-asset-protocol/scripts/run_customer_kyc_template.sh)
-- [run_customer_holdings_template.sh](/Users/evankereiakes/Documents/Codex/tokenized-asset-protocol/scripts/run_customer_holdings_template.sh)
-- [generate_customer_dual_asset_transcript.sh](/Users/evankereiakes/Documents/Codex/tokenized-asset-protocol/scripts/generate_customer_dual_asset_transcript.sh)
-- [run_customer_dual_asset_demo_pack.sh](/Users/evankereiakes/Documents/Codex/tokenized-asset-protocol/scripts/run_customer_dual_asset_demo_pack.sh)
+- [bootstrap_customer_balance_template.sh](../scripts/bootstrap_customer_balance_template.sh)
+- [bootstrap_customer_kyc_template.sh](../scripts/bootstrap_customer_kyc_template.sh)
+- [bootstrap_customer_holdings_template.sh](../scripts/bootstrap_customer_holdings_template.sh)
+- [run_customer_balance_template.sh](../scripts/run_customer_balance_template.sh)
+- [run_customer_kyc_template.sh](../scripts/run_customer_kyc_template.sh)
+- [run_customer_holdings_template.sh](../scripts/run_customer_holdings_template.sh)
+- [generate_customer_dual_asset_transcript.sh](../scripts/generate_customer_dual_asset_transcript.sh)
+- [run_customer_dual_asset_demo_pack.sh](../scripts/run_customer_dual_asset_demo_pack.sh)
 
 ## Exit Criteria
 

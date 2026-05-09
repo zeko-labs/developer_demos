@@ -50,7 +50,7 @@ curl -s http://localhost:7001/api/v1/settlement/recent
 - With `PROOF_MODE=zk`, current scaffold supports ed25519 statement proofs and optional `zk-o1js-proof` payload verification via `ZK_O1JS_VERIFY_CMD`.
 - Reference verifier adapter command:
   - `pnpm --filter @tap/o1js-verifier build`
-  - `export ZK_O1JS_VERIFY_CMD="node /Users/evankereiakes/Documents/Codex/tokenized-asset-protocol/packages/o1js-verifier/dist/cli.js"`
+  - `export ZK_O1JS_VERIFY_CMD="node $(pwd)/packages/o1js-verifier/dist/cli.js"`
   - optional strict mode: `export ZK_O1JS_REFERENCE_MODE=strict-json`
 - Actual `o1js` runtime mode:
   - `export ZK_O1JS_VERIFIER_MODE=o1js-runtime`
@@ -59,14 +59,14 @@ curl -s http://localhost:7001/api/v1/settlement/recent
 Real o1js eligibility runtime
 
 ```bash
-cd /Users/evankereiakes/Documents/Codex/tokenized-asset-protocol
+cd <repo-root>
 pnpm --filter @tap/circuits build
 pnpm --filter @tap/o1js-verifier build
 
 export PROOF_MODE=zk
 export ZK_PROVER_BACKEND=o1js
-export ZK_O1JS_PROVE_CMD="node /Users/evankereiakes/Documents/Codex/tokenized-asset-protocol/packages/circuits/dist/prove-cli.js"
-export ZK_O1JS_VERIFY_CMD="node /Users/evankereiakes/Documents/Codex/tokenized-asset-protocol/packages/o1js-verifier/dist/cli.js"
+export ZK_O1JS_PROVE_CMD="node $(pwd)/packages/circuits/dist/prove-cli.js"
+export ZK_O1JS_VERIFY_CMD="node $(pwd)/packages/o1js-verifier/dist/cli.js"
 export ZK_O1JS_VERIFIER_MODE=o1js-runtime
 export ZK_O1JS_MODULE=o1js
 ```
@@ -74,5 +74,5 @@ export ZK_O1JS_MODULE=o1js
 With the API running under that env, use:
 
 ```bash
-/Users/evankereiakes/Documents/Codex/tokenized-asset-protocol/scripts/run_zk_o1js_runtime_demo.sh
+./scripts/run_zk_o1js_runtime_demo.sh
 ```

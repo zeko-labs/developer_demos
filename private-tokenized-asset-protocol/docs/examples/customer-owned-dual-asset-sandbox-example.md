@@ -11,10 +11,10 @@ The point of this document is not to name a specific vendor. It is to show how a
 
 Related documents:
 
-- [customer-sandbox-mapping-kit.md](/Users/evankereiakes/Documents/Codex/tokenized-asset-protocol/docs/customer-sandbox-mapping-kit.md)
-- [first-customer-integration-template.md](/Users/evankereiakes/Documents/Codex/tokenized-asset-protocol/docs/first-customer-integration-template.md)
-- [bank-sandbox-onboarding-packet.md](/Users/evankereiakes/Documents/Codex/tokenized-asset-protocol/docs/bank-sandbox-onboarding-packet.md)
-- [flagship-runbook.md](/Users/evankereiakes/Documents/Codex/tokenized-asset-protocol/docs/flagship-runbook.md)
+- [customer-sandbox-mapping-kit.md](../customer-sandbox-mapping-kit.md)
+- [first-customer-integration-template.md](../first-customer-integration-template.md)
+- [bank-sandbox-onboarding-packet.md](../bank-sandbox-onboarding-packet.md)
+- [flagship-runbook.md](../flagship-runbook.md)
 
 ## 1. Customer Profile
 
@@ -151,14 +151,14 @@ For this first engagement, TAP should deliver:
 
 Current TAP script starting points:
 
-- [bootstrap_customer_balance_template.sh](/Users/evankereiakes/Documents/Codex/tokenized-asset-protocol/scripts/bootstrap_customer_balance_template.sh)
-- [bootstrap_customer_kyc_template.sh](/Users/evankereiakes/Documents/Codex/tokenized-asset-protocol/scripts/bootstrap_customer_kyc_template.sh)
-- [bootstrap_customer_holdings_template.sh](/Users/evankereiakes/Documents/Codex/tokenized-asset-protocol/scripts/bootstrap_customer_holdings_template.sh)
-- [run_customer_balance_template.sh](/Users/evankereiakes/Documents/Codex/tokenized-asset-protocol/scripts/run_customer_balance_template.sh)
-- [run_customer_kyc_template.sh](/Users/evankereiakes/Documents/Codex/tokenized-asset-protocol/scripts/run_customer_kyc_template.sh)
-- [run_customer_holdings_template.sh](/Users/evankereiakes/Documents/Codex/tokenized-asset-protocol/scripts/run_customer_holdings_template.sh)
-- [generate_customer_dual_asset_transcript.sh](/Users/evankereiakes/Documents/Codex/tokenized-asset-protocol/scripts/generate_customer_dual_asset_transcript.sh)
-- [run_customer_dual_asset_demo_pack.sh](/Users/evankereiakes/Documents/Codex/tokenized-asset-protocol/scripts/run_customer_dual_asset_demo_pack.sh)
+- [bootstrap_customer_balance_template.sh](../../scripts/bootstrap_customer_balance_template.sh)
+- [bootstrap_customer_kyc_template.sh](../../scripts/bootstrap_customer_kyc_template.sh)
+- [bootstrap_customer_holdings_template.sh](../../scripts/bootstrap_customer_holdings_template.sh)
+- [run_customer_balance_template.sh](../../scripts/run_customer_balance_template.sh)
+- [run_customer_kyc_template.sh](../../scripts/run_customer_kyc_template.sh)
+- [run_customer_holdings_template.sh](../../scripts/run_customer_holdings_template.sh)
+- [generate_customer_dual_asset_transcript.sh](../../scripts/generate_customer_dual_asset_transcript.sh)
+- [run_customer_dual_asset_demo_pack.sh](../../scripts/run_customer_dual_asset_demo_pack.sh)
 
 ## 7. Recommended Transcript Pack
 

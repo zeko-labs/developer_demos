@@ -8,6 +8,7 @@
     "build": "pnpm -r build",
     "test": "pnpm -r test",
     "lint": "pnpm -r lint",
-    "typecheck": "pnpm -r typecheck"
+    "typecheck": "pnpm -r typecheck",
+    "validate:bank-profile": "node scripts/validate_bank_rwa_profile.mjs docs/examples/bank-rwa-integration-profile.example.json"
   }
 }
