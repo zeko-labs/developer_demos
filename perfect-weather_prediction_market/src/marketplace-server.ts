@@ -45,6 +45,7 @@ import {
   getOnChainReceiptsRoot
 } from './fast-chain-state.js';
 import {
+  backupOperatorState,
   buildClaimedReceiptsMerkleMap,
   buildMarketsMerkleMap,
   buildReceiptsMerkleMap,
@@ -1898,8 +1899,23 @@ async function runProjectCommand(projectRoot: string, args: string[]): Promise<s
 }
 
 async function refreshState(projectRoot: string): Promise<void> {
+  if (process.env.DISABLE_OPERATOR_STATE_SYNC === '1') {
+    console.warn('[state-sync] skipped because DISABLE_OPERATOR_STATE_SYNC=1');
+    return;
+  }
   await runProjectCommand(projectRoot, ['sync-state:zeko', '--', '--state-file', './data/operator-state.json']);
   lastStateRefreshAtUnixMs = Date.now();
+}
+
+function parseBooleanLike(value: unknown, fallback = false): boolean {
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'number') return value !== 0;
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (['1', 'true', 'yes', 'on'].includes(normalized)) return true;
+    if (['0', 'false', 'no', 'off'].includes(normalized)) return false;
+  }
+  return fallback;
 }
 
 async function refreshStateInBackground(projectRoot: string, reason: string): Promise<void> {
@@ -2424,6 +2440,7 @@ function normalizeOracleStateImportBody(body: Record<string, unknown>): {
   marketMeta: NonNullable<OperatorStateFile['marketMeta']>;
   usedNonces: OperatorStateFile['usedNonces'];
   dailyMarkets: Record<string, DemoDailyMarket>;
+  replaceExisting: boolean;
 } {
   const unwrapped =
     typeof body.body === 'string' && body.body.trim().length > 0
@@ -2439,7 +2456,8 @@ function normalizeOracleStateImportBody(body: Record<string, unknown>): {
     markets: (unwrapped.markets as OperatorStateFile['markets']) || {},
     marketMeta: (unwrapped.marketMeta as NonNullable<OperatorStateFile['marketMeta']>) || {},
     usedNonces: (unwrapped.usedNonces as OperatorStateFile['usedNonces']) || {},
-    dailyMarkets: (unwrapped.dailyMarkets as Record<string, DemoDailyMarket>) || {}
+    dailyMarkets: (unwrapped.dailyMarkets as Record<string, DemoDailyMarket>) || {},
+    replaceExisting: unwrapped.replaceExisting === true
   };
 }
 
@@ -3393,6 +3411,136 @@ async function main(): Promise<void> {
         return;
       }
 
+      if (req.method === 'GET' && url.pathname === '/api/root-status') {
+        let zkappPublicKey: string | null = null;
+        let zkappConfigError: string | null = null;
+        let localMarketsRoot: string | null = null;
+        let chainMarketsRoot: string | null = null;
+        let localReceiptsRoot: string | null = null;
+        let chainReceiptsRoot: string | null = null;
+        let stateMtimeIso: string | null = null;
+        let rootError: string | null = null;
+
+        try {
+          const zkapp = getZkappPublicKey();
+          zkappPublicKey = zkapp.toBase58();
+          const state = await loadOperatorState(defaultStatePath);
+          localMarketsRoot = getLocalMarketsRoot(state);
+          localReceiptsRoot = getLocalReceiptsRoot(state);
+          try {
+            const stateStat = await stat(defaultStatePath);
+            stateMtimeIso = stateStat.mtime.toISOString();
+          } catch {
+            stateMtimeIso = null;
+          }
+          try {
+            chainMarketsRoot = await getOnChainMarketsRoot(zkapp);
+            chainReceiptsRoot = await getOnChainReceiptsRoot(zkapp);
+          } catch (error) {
+            rootError = error instanceof Error ? error.message : String(error);
+          }
+        } catch (error) {
+          zkappConfigError = error instanceof Error ? error.message : String(error);
+        }
+
+        writeJson(res, 200, {
+          ok: true,
+          service: 'marketplace-root-status',
+          zkappPublicKey,
+          zkappConfigError,
+          stateFile: defaultStatePath,
+          stateMtimeIso,
+          localMarketsRoot,
+          chainMarketsRoot,
+          marketsRootMatch:
+            localMarketsRoot && chainMarketsRoot ? localMarketsRoot === chainMarketsRoot : null,
+          localReceiptsRoot,
+          chainReceiptsRoot,
+          receiptsRootMatch:
+            localReceiptsRoot && chainReceiptsRoot ? localReceiptsRoot === chainReceiptsRoot : null,
+          rootError,
+          ts: new Date().toISOString()
+        });
+        return;
+      }
+
+      if (req.method === 'GET' && url.pathname === '/api/operator/export-state') {
+        requireOracleAuthorization(req, null);
+        const state = await loadOperatorState(defaultStatePath);
+        writeJson(res, 200, {
+          ok: true,
+          stateFile: defaultStatePath,
+          state
+        });
+        return;
+      }
+
+      if (req.method === 'POST' && url.pathname === '/api/operator/import-state') {
+        const body = await readJsonBody(req);
+        requireOracleAuthorization(req, body as Record<string, unknown>);
+        const state = (body as { state?: OperatorStateFile }).state;
+        if (!state || typeof state !== 'object') {
+          throw new Error('state payload required');
+        }
+        const replaceExisting = parseBooleanLike((body as Record<string, unknown>).replaceExisting, false);
+        const existing = replaceExisting
+          ? {
+              markets: {},
+              positions: {},
+              receipts: {},
+              claimedReceipts: {},
+              usedNonces: {},
+              marketMeta: {},
+              positionMeta: {},
+              receiptMeta: {}
+            }
+          : await loadOperatorState(defaultStatePath);
+        const nextState: OperatorStateFile = {
+          zkappPublicKey:
+            typeof state.zkappPublicKey === 'string'
+              ? state.zkappPublicKey
+              : typeof existing.zkappPublicKey === 'string'
+                ? existing.zkappPublicKey
+                : undefined,
+          markets: replaceExisting ? state.markets || {} : { ...(existing.markets || {}), ...(state.markets || {}) },
+          positions:
+            replaceExisting ? state.positions || {} : { ...(existing.positions || {}), ...(state.positions || {}) },
+          receipts:
+            replaceExisting ? state.receipts || {} : { ...(existing.receipts || {}), ...(state.receipts || {}) },
+          claimedReceipts:
+            replaceExisting
+              ? state.claimedReceipts || {}
+              : { ...(existing.claimedReceipts || {}), ...(state.claimedReceipts || {}) },
+          usedNonces:
+            replaceExisting ? state.usedNonces || {} : { ...(existing.usedNonces || {}), ...(state.usedNonces || {}) },
+          marketMeta:
+            replaceExisting ? state.marketMeta || {} : { ...(existing.marketMeta || {}), ...(state.marketMeta || {}) },
+          positionMeta:
+            replaceExisting
+              ? state.positionMeta || {}
+              : { ...(existing.positionMeta || {}), ...(state.positionMeta || {}) },
+          receiptMeta:
+            replaceExisting ? state.receiptMeta || {} : { ...(existing.receiptMeta || {}), ...(state.receiptMeta || {}) }
+        };
+        const backupPath = await backupOperatorState(
+          defaultStatePath,
+          replaceExisting ? 'pre-import-replace' : 'pre-import-merge'
+        );
+        await saveOperatorState(defaultStatePath, nextState);
+        writeJson(res, 200, {
+          ok: true,
+          stateFile: defaultStatePath,
+          replaceExisting,
+          backupPath,
+          markets: Object.keys(nextState.markets || {}).length,
+          positions: Object.keys(nextState.positions || {}).length,
+          receipts: Object.keys(nextState.receipts || {}).length,
+          claimedReceipts: Object.keys(nextState.claimedReceipts || {}).length,
+          usedNonces: Object.keys(nextState.usedNonces || {}).length
+        });
+        return;
+      }
+
       if (req.method === 'GET' && url.pathname === '/api/ready') {
         const readiness = await readStartupReadyState();
         const status = readiness.ready ? 200 : 503;
@@ -4272,32 +4420,41 @@ async function main(): Promise<void> {
         }
 
         const state = await loadOperatorState(defaultStatePath);
-        state.markets = {
-          ...(state.markets || {}),
-          ...(imported.markets || {})
-        };
-        state.marketMeta = {
-          ...(state.marketMeta || {}),
-          ...(imported.marketMeta || {})
-        };
-        state.usedNonces = {
-          ...(state.usedNonces || {}),
-          ...(imported.usedNonces || {})
-        };
+        state.markets = imported.replaceExisting
+          ? { ...(imported.markets || {}) }
+          : {
+              ...(state.markets || {}),
+              ...(imported.markets || {})
+            };
+        state.marketMeta = imported.replaceExisting
+          ? { ...(imported.marketMeta || {}) }
+          : {
+              ...(state.marketMeta || {}),
+              ...(imported.marketMeta || {})
+            };
+        state.usedNonces = imported.replaceExisting
+          ? { ...(imported.usedNonces || {}) }
+          : {
+              ...(state.usedNonces || {}),
+              ...(imported.usedNonces || {})
+            };
         await saveOperatorState(defaultStatePath, state);
 
         if (existingDailyMarkets) {
           await saveDemoDailyMarkets(
-            {
-              ...existingDailyMarkets,
-              ...imported.dailyMarkets
-            },
+            imported.replaceExisting
+              ? { ...imported.dailyMarkets }
+              : {
+                  ...existingDailyMarkets,
+                  ...imported.dailyMarkets
+                },
             dailyMarketsPath
           );
         }
 
         writeJson(res, 200, {
           ok: true,
+          replaceExisting: imported.replaceExisting,
           marketsImported: Object.keys(imported.markets || {}).length,
           marketMetaImported: Object.keys(imported.marketMeta || {}).length,
           dailyMarketsImported: Object.keys(imported.dailyMarkets || {}).length,
@@ -4310,6 +4467,7 @@ async function main(): Promise<void> {
         const body = await readJsonBody(req);
         requireOracleAuthorization(req, body as Record<string, unknown>);
         const marketDate = requireString(body.marketDate, 'marketDate');
+        await refreshState(projectRoot);
         const output = await runProjectCommand(projectRoot, [
           'resolve-daily-market:zeko',
           '--',
@@ -4330,6 +4488,7 @@ async function main(): Promise<void> {
       if (req.method === 'POST' && url.pathname === '/api/oracle/ensure-daily-markets') {
         const body = await readJsonBody(req);
         requireOracleAuthorization(req, body as Record<string, unknown>);
+        await refreshState(projectRoot);
         const output = await runProjectCommand(projectRoot, [
           'ensure-daily-markets:zeko',
           '--',
@@ -4588,7 +4747,9 @@ async function main(): Promise<void> {
       hostedStateSyncIntervalRaw !== undefined
         ? Math.max(0, Number.parseInt(hostedStateSyncIntervalRaw, 10) || 0)
         : 15000;
-    if (hostedStateSyncIntervalMs > 0) {
+    if (process.env.DISABLE_OPERATOR_STATE_SYNC === '1') {
+      console.log('[state-sync] background sync disabled (DISABLE_OPERATOR_STATE_SYNC=1)');
+    } else if (hostedStateSyncIntervalMs > 0) {
       console.log(`[state-sync] background sync enabled every ${hostedStateSyncIntervalMs}ms`);
       void refreshStateInBackground(projectRoot, 'startup');
       setInterval(() => {
