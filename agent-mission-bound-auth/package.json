@@ -19,6 +19,7 @@
     "zeko:live-check": "node scripts/zeko-live-check.mjs",
     "zkapp:build": "../zeko-x402/node_modules/.bin/tsc -p tsconfig.zkapp.json",
     "production:doctor": "node scripts/production-doctor.mjs",
+    "test:production-hardening": "node scripts/production-hardening.mjs",
     "zkapp:deploy": "npm run zkapp:build && node scripts/deploy-private-compute-zkapp.mjs",
     "zkapp:get-state": "npm run zkapp:build && node scripts/get-private-compute-zkapp-state.mjs",
     "zkapp:anchor-approval": "npm run zkapp:build && node scripts/anchor-mission-approval.mjs",

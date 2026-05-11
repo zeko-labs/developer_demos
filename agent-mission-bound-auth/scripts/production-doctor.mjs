@@ -54,13 +54,20 @@ async function checkZeko() {
 }
 
 const oidc = [
+  required("MISSION_AUTH_PROFILE"),
+  required("DEMO_MODE"),
   required("PUBLIC_BASE_URL"),
   required("OIDC_ISSUER"),
   required("OIDC_AUDIENCE"),
   required("OIDC_JWKS_URL")
 ];
 const authority = [
-  required("MISSION_AUTHORITY_PRIVATE_JWK")
+  required("ZK_OAUTH_ISSUER_SECRET"),
+  required("MISSION_AUTHORITY_PRIVATE_JWK"),
+  required("MISSION_APPROVAL_BEARER_TOKEN")
+];
+const settlement = [
+  required("X402_TRUST_FACILITATOR_RECEIPTS")
 ];
 const zekoDeploy = [
   required("DEPLOYER_PRIVATE_KEY"),
@@ -78,6 +85,7 @@ const zeko = await checkZeko();
 const ok =
   oidc.every((item) => item.present) &&
   authority.every((item) => item.present) &&
+  settlement.every((item) => item.present) &&
   jwks.ok &&
   zekoDeploy.every((item) => item.present) &&
   zeko.ok &&
@@ -87,6 +95,7 @@ console.log(JSON.stringify({
   ok,
   oidc,
   authority,
+  settlement,
   jwks,
   zekoDeploy,
   zeko,
@@ -94,6 +103,7 @@ console.log(JSON.stringify({
   nextMissing: [
     ...oidc.filter((item) => !item.present).map((item) => item.name),
     ...authority.filter((item) => !item.present).map((item) => item.name),
+    ...settlement.filter((item) => !item.present).map((item) => item.name),
     ...(jwks.ok ? [] : ["valid OIDC JWKS"]),
     ...zekoDeploy.filter((item) => !item.present).map((item) => item.name),
     ...(zeko.ok ? [] : ["reachable Zeko GraphQL"]),

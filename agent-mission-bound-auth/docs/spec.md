@@ -67,6 +67,10 @@ It defines:
 
 It includes a mission snapshot so a domain app can verify the approval without querying the original server. It is signed as ES256 JWS and may include a Zeko anchor reference.
 
+Production mission authorities require an authority bearer token for passport,
+mission proposal, approval, and revocation endpoints. Local tutorial mode keeps
+those endpoints open for demonstration.
+
 ## Checkpoints
 
 Recommended checkpoints:
@@ -83,6 +87,12 @@ POST /api/mission/verify-checkpoint
 ```
 
 or verify the approval offline using the JWKS and enforce equivalent policy locally.
+
+Production checkpoint context must include a `missionExecutionId`. Compute and
+side-effect checkpoints must also include an `idempotencyKey`, `paymentId`, or
+`sideEffectId` so verifiers can reject replay. When `spendUsd` or `amountUsd` is
+present, the authority applies the mission budget counter before accepting the
+checkpoint.
 
 ## Bundle
 

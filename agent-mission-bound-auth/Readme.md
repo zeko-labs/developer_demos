@@ -15,6 +15,7 @@ The included private-compute UI is only a local tutorial harness. The protocol i
 - Portable `zk-mission-bundle-v1` exports with offline JWKS verification.
 - x402 rail metadata for Zeko, Ethereum, Base, Arc preview, and Tempo preview.
 - Zeko approval/receipt anchoring scripts for environments that want an on-chain audit root.
+- Production profile that disables demo minting, requires authority tokens, rejects mock settlement, and enforces replay/budget checks.
 
 ## Repository Layout
 
@@ -122,7 +123,9 @@ await auth.verifyCheckpoint({
     agentId: mission.agentId,
     datasetId: mission.datasetId,
     operation: mission.operation,
-    action: "email.send"
+    action: "email.send",
+    missionExecutionId: "exec-123",
+    idempotencyKey: "email-123"
   }
 });
 
@@ -139,6 +142,7 @@ npm run test:conformance
 npm run test:conformance:remote
 npm run test:oauth-sandbox
 npm run oauth:sandbox-doctor
+npm run test:production-hardening
 ```
 
 ## Deploy As A Sidecar
@@ -147,8 +151,11 @@ Set a public URL and provider secrets in the host environment:
 
 ```bash
 PUBLIC_BASE_URL=https://auth-sidecar.example.com
+MISSION_AUTH_PROFILE=production
+DEMO_MODE=false
 ZK_OAUTH_ISSUER_SECRET=...
 MISSION_AUTHORITY_PRIVATE_JWK='{"kty":"EC","crv":"P-256",...}'
+MISSION_APPROVAL_BEARER_TOKEN=...
 ```
 
 Container build:
