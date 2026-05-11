@@ -98,10 +98,26 @@ The sidecar:
 - discovers `.well-known/openid-configuration`
 - redirects with Authorization Code + PKCE
 - exchanges the code at the token endpoint
-- verifies the returned JWT against provider JWKS
+- requires an ID token and verifies it against provider JWKS
 - checks issuer, audience, expiry, and nonce
 - normalizes claims into canonical protocol claims
 - creates the auth commitment used by Agent Mission-Bound Auth
+
+Access tokens are not treated as agent identity tokens. Use them only for
+provider/resource API calls after the agent identity has been established by the
+ID token.
+
+Map verified subjects into internal agents with `AGENT_MAPPINGS_JSON`:
+
+```bash
+AGENT_MAPPINGS_JSON='[
+  {
+    "subjectKey": "okta:https://your-okta-domain.okta.com/:00u123",
+    "agentId": "agent-research-001",
+    "represents": { "type": "organization", "id": "Acme" }
+  }
+]'
+```
 
 Run:
 

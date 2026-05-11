@@ -1,8 +1,8 @@
-import { sha256Hex } from "../protocol/digest.js";
+import { id, sha256Hex } from "../protocol/digest.js";
 import { verifyJws } from "../protocol/authority-keys.js";
 
-function assertJwsMatchesBody(jws, body, jwks, label) {
-  const verified = verifyJws(jws, jwks);
+function assertJwsMatchesBody(jws, body, jwks, label, typ) {
+  const verified = verifyJws(jws, jwks, { typ });
   if (sha256Hex(verified.payload) !== sha256Hex(body)) {
     throw new Error(`${label} JWS payload does not match object body.`);
   }
@@ -11,33 +11,37 @@ function assertJwsMatchesBody(jws, body, jwks, label) {
 
 export function verifyAgentPassport(passport, jwks) {
   const {
-    passportId: _passportId,
-    passportCommitment: _passportCommitment,
+    passportId,
+    passportCommitment,
     authoritySignature: _authoritySignature,
     authorityJws,
     ...body
   } = passport;
   if (!authorityJws) throw new Error("agent passport missing authorityJws");
+  if (passportId !== id("agent", body)) throw new Error("agent passport id mismatch");
+  if (passportCommitment !== sha256Hex(body)) throw new Error("agent passport commitment mismatch");
   return {
     ok: true,
-    ...assertJwsMatchesBody(authorityJws, body, jwks, "agent passport")
+    ...assertJwsMatchesBody(authorityJws, body, jwks, "agent passport", "agent-passport+jwt")
   };
 }
 
 export function verifyApproval(approval, jwks) {
   const {
-    approvalId: _approvalId,
-    approvalHash: _approvalHash,
+    approvalId,
+    approvalHash,
     authoritySignature: _authoritySignature,
     authorityJws,
     zekoAnchor: _zekoAnchor,
     ...body
   } = approval;
   if (!authorityJws) throw new Error("approval missing authorityJws");
+  if (approvalId !== id("approval", body)) throw new Error("approval id mismatch");
+  if (approvalHash !== sha256Hex(body)) throw new Error("approval hash mismatch");
   if (Date.parse(approval.expiresAt) <= Date.now()) throw new Error("approval expired");
   return {
     ok: true,
-    ...assertJwsMatchesBody(authorityJws, body, jwks, "approval")
+    ...assertJwsMatchesBody(authorityJws, body, jwks, "approval", "mission-approval+jwt")
   };
 }
 

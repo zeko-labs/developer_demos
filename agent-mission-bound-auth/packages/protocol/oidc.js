@@ -171,16 +171,19 @@ export async function completeOidcAuthorization({ code, state }, sessions) {
   if (!tokenRes.ok) {
     throw new Error(`OIDC token exchange failed: ${tokenBody.error_description ?? tokenBody.error ?? tokenRes.status}`);
   }
+  if (tokenBody.token_type && String(tokenBody.token_type).toLowerCase() !== "bearer") {
+    throw new Error("OIDC token_type must be Bearer.");
+  }
 
-  const token = tokenBody.id_token ?? tokenBody.access_token;
-  if (!token) throw new Error("OIDC provider did not return an id_token or access_token.");
+  const token = tokenBody.id_token;
+  if (!token) throw new Error("OIDC provider did not return an id_token.");
   const jwks = await fetchJwks(session.jwksUri);
   const claims = await verifyJwtWithJwks(token, {
     issuer: session.issuer,
     audience: session.audience,
     jwks
   });
-  if (claims.nonce && claims.nonce !== session.nonce) {
+  if (claims.nonce !== session.nonce) {
     throw new Error("OIDC nonce mismatch.");
   }
 

@@ -1,13 +1,25 @@
 import { hmacSha256Hex, id, sha256Hex } from "./digest.js";
 import { signJws, verifyJws, jwks } from "./authority-keys.js";
+import { requireConfiguredValue, isProductionProfile } from "./runtime.js";
 
 const agents = new Map();
 const missions = new Map();
 const approvals = new Map();
 const enforcementLog = [];
+const replayCache = new Set();
+const checkpointProgress = new Map();
+const spendLedger = new Map();
+const CHECKPOINT_ORDER = [
+  "before_payment_offer",
+  "before_private_compute",
+  "before_external_side_effect",
+  "after_receipt"
+];
 
 function missionSecret() {
-  return process.env.MISSION_AUTHORITY_SECRET ?? process.env.ZK_OAUTH_ISSUER_SECRET ?? "local-mission-authority-secret";
+  return process.env.MISSION_AUTHORITY_SECRET ??
+    process.env.ZK_OAUTH_ISSUER_SECRET ??
+    requireConfiguredValue("MISSION_AUTHORITY_SECRET", "local-mission-authority-secret", "mission HMAC compatibility signatures");
 }
 
 export function buildAgentPassport(input = {}) {
@@ -151,17 +163,24 @@ export function verifyMissionApproval(approval, context) {
     return { ok: false, reason: "Missing mission approval." };
   }
   const {
-    approvalId: _approvalId,
-    approvalHash: _approvalHash,
+    approvalId,
+    approvalHash,
     authoritySignature,
     authorityJws,
     zekoAnchor: _zekoAnchor,
     ...body
   } = approval;
+  const bodyHash = sha256Hex(body);
+  if (approvalId !== id("approval", body)) {
+    return { ok: false, reason: "Mission approval id does not match approval body." };
+  }
+  if (approvalHash !== bodyHash) {
+    return { ok: false, reason: "Mission approval hash does not match approval body." };
+  }
   if (authorityJws) {
     try {
-      const verified = verifyJws(authorityJws, jwks());
-      if (sha256Hex(verified.payload) !== sha256Hex(body)) {
+      const verified = verifyJws(authorityJws, jwks(), { typ: "mission-approval+jwt" });
+      if (sha256Hex(verified.payload) !== bodyHash) {
         return { ok: false, reason: "Mission approval JWS payload does not match approval body." };
       }
     } catch (error) {
@@ -196,6 +215,9 @@ export function verifyMissionApproval(approval, context) {
   if (context.action && !approval.approvedTools.includes(context.action)) {
     return { ok: false, reason: `Mission approval does not allow action:${context.action}.` };
   }
+  if (context.scope && !approval.approvedScopes.includes(context.scope)) {
+    return { ok: false, reason: `Mission approval does not allow scope:${context.scope}.` };
+  }
 
   return {
     ok: true,
@@ -203,9 +225,63 @@ export function verifyMissionApproval(approval, context) {
     approval,
     missionCommitment: sha256Hex({
       missionHash: body.missionHash,
-      approvalHash: sha256Hex(body)
+      approvalHash: bodyHash
     })
   };
+}
+
+function maxSpend(approval) {
+  const value = approval.missionSnapshot?.constraints?.maxSpendUsd;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function spendAmount(context = {}) {
+  const parsed = Number(context.spendUsd ?? context.amountUsd ?? 0);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function enforceReplayAndBudget({ approval, checkpoint, context = {} }) {
+  const approvalId = approval.approvalId;
+  const executionId = context.missionExecutionId ?? context.executionId;
+  const highValueCheckpoint = checkpoint === "before_external_side_effect" || checkpoint === "before_private_compute";
+  if (isProductionProfile() && !executionId) {
+    return { ok: false, reason: "missionExecutionId is required in production profile." };
+  }
+
+  const idempotencyKey = context.idempotencyKey ?? context.paymentId ?? context.sideEffectId;
+  if (isProductionProfile() && highValueCheckpoint && !idempotencyKey) {
+    return { ok: false, reason: "idempotencyKey, paymentId, or sideEffectId is required for production side-effect checkpoints." };
+  }
+  if (idempotencyKey) {
+    const replayKey = `${approvalId}:${checkpoint}:${idempotencyKey}`;
+    if (replayCache.has(replayKey)) {
+      return { ok: false, reason: `Replay detected for checkpoint:${checkpoint}.` };
+    }
+    replayCache.add(replayKey);
+  }
+
+  if ((isProductionProfile() || context.enforceCheckpointOrder) && executionId) {
+    const orderIndex = CHECKPOINT_ORDER.indexOf(checkpoint);
+    const progressKey = `${approvalId}:${executionId}`;
+    const previous = checkpointProgress.get(progressKey) ?? -1;
+    if (orderIndex >= 0 && orderIndex < previous) {
+      return { ok: false, reason: `Checkpoint order regression from ${CHECKPOINT_ORDER[previous]} to ${checkpoint}.` };
+    }
+    if (orderIndex >= 0) checkpointProgress.set(progressKey, orderIndex);
+  }
+
+  const amount = spendAmount(context);
+  if (amount > 0) {
+    const max = maxSpend(approval);
+    const spent = spendLedger.get(approvalId) ?? 0;
+    if (max > 0 && spent + amount > max) {
+      return { ok: false, reason: `Mission budget exceeded: ${spent + amount} > ${max}.` };
+    }
+    spendLedger.set(approvalId, spent + amount);
+  }
+
+  return { ok: true };
 }
 
 export function enforceCheckpoint(input) {
@@ -244,11 +320,25 @@ export function enforceCheckpoint(input) {
     context: input.context,
     observedAt: new Date().toISOString()
   };
-  enforcementLog.push(event);
-
   if (!verified.ok) {
+    enforcementLog.push(event);
     return { ...verified, event };
   }
+  const replayBudget = enforceReplayAndBudget({
+    approval: verified.approval,
+    checkpoint: input.checkpoint,
+    context: input.context
+  });
+  if (!replayBudget.ok) {
+    const failedEvent = {
+      ...event,
+      ok: false,
+      reason: replayBudget.reason
+    };
+    enforcementLog.push(failedEvent);
+    return { ok: false, reason: replayBudget.reason, event: failedEvent };
+  }
+  enforcementLog.push(event);
 
   return {
     ok: true,

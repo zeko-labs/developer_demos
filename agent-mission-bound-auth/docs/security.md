@@ -4,10 +4,13 @@
 
 The default mission-authority key is embedded for local demonstration only.
 
-Production deployments must set:
+Production deployments must run with `MISSION_AUTH_PROFILE=production` and `DEMO_MODE=false`.
+They must set:
 
 ```text
+ZK_OAUTH_ISSUER_SECRET
 MISSION_AUTHORITY_PRIVATE_JWK
+MISSION_APPROVAL_BEARER_TOKEN
 ```
 
 from a secret manager or HSM-backed key source.
@@ -24,7 +27,13 @@ OIDC_AUDIENCE
 OIDC_JWKS_URL
 ```
 
-and verify JWTs before creating commitments or approvals.
+The OIDC callback path requires an ID token, validates JWKS signatures, issuer,
+audience, expiry, and nonce, then normalizes provider claims before creating
+commitments. Access tokens should be handled by protected resource APIs, not as
+agent identity tokens.
+
+Map provider subjects into internal agent records with `AGENT_MAPPINGS_JSON`.
+Use `provider:issuer:subject` as the stable key.
 
 ## Key Rotation
 
@@ -40,9 +49,17 @@ Mission approvals include:
 - approved tools/scopes/rails
 - approved checkpoints
 
-Checkpoint verification enforces approval expiry, agent binding, dataset binding, operation binding, rail binding, action binding, and checkpoint binding.
+Checkpoint verification enforces approval expiry, approval hash/id integrity,
+agent binding, dataset binding, operation binding, rail binding, action binding,
+scope binding, and checkpoint binding.
 
-Domain apps should include action-specific context in checkpoint verification. For high-value side effects, add a nonce or idempotency key to `context` and persist the resulting enforcement receipt.
+In production profile, checkpoint verification also requires `missionExecutionId`
+and an idempotency key for compute or side-effect checkpoints. Domain apps should
+include action-specific context in checkpoint verification and persist the
+resulting enforcement receipt.
+
+Budget counters are tracked per approval when `context.spendUsd` or
+`context.amountUsd` is supplied.
 
 ## Revocation
 
@@ -70,9 +87,14 @@ The current private-compute demo does not prove the computation itself in-circui
 ## Production Checklist
 
 - Store `MISSION_AUTHORITY_PRIVATE_JWK` in KMS/HSM-backed secret storage.
+- Set `MISSION_AUTH_PROFILE=production` and `DEMO_MODE=false`.
+- Set `ZK_OAUTH_ISSUER_SECRET` and `MISSION_APPROVAL_BEARER_TOKEN`.
 - Publish overlapping JWKS keys during rotation.
 - Set `OIDC_ISSUER`, `OIDC_AUDIENCE`, and `OIDC_JWKS_URL`.
+- Configure `AGENT_MAPPINGS_JSON` for each enterprise customer subject mapping.
 - Persist missions, approvals, revocations, enforcement receipts, and Zeko root witnesses.
 - Enforce short approval TTLs for autonomous agents.
+- Require settlement proofs or verified facilitator receipts for x402 payments.
+- Set `PRIVATE_COMPUTE_MIN_COHORT` for aggregate-only output policy.
 - Anchor approval roots and receipt roots on Zeko on a repeatable operator schedule.
 - Run remote conformance against every deployment.

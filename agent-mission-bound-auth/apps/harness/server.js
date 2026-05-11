@@ -24,6 +24,7 @@ import {
 import { buildDiscoveryDocument, buildMissionBundle } from "../../packages/protocol/protocol-bundles.js";
 import { jwks } from "../../packages/protocol/authority-keys.js";
 import { loadLocalEnv } from "../../packages/protocol/env-local.js";
+import { isDemoMode, isProductionProfile, requireAuthorityBearer } from "../../packages/protocol/runtime.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = path.join(__dirname, "public");
@@ -35,6 +36,9 @@ loadLocalEnv(ROOT_DIR);
 
 function publicBaseUrl(req) {
   if (process.env.PUBLIC_BASE_URL) return process.env.PUBLIC_BASE_URL.replace(/\/$/, "");
+  if (isProductionProfile()) {
+    throw new Error("PUBLIC_BASE_URL is required in production profile.");
+  }
   const host = req.headers.host ?? process.env.BASE_URL?.replace(/^https?:\/\//, "") ?? "127.0.0.1:8787";
   const forwardedProto = String(req.headers["x-forwarded-proto"] ?? "").split(",")[0].trim();
   const proto = forwardedProto || "http";
@@ -51,9 +55,32 @@ function sendJson(res, status, body, headers = {}) {
 
 async function readJson(req) {
   const chunks = [];
-  for await (const chunk of req) chunks.push(chunk);
+  let size = 0;
+  for await (const chunk of req) {
+    size += chunk.length;
+    if (size > Number(process.env.MAX_JSON_BODY_BYTES ?? 1_000_000)) {
+      throw new Error("request_body_too_large");
+    }
+    chunks.push(chunk);
+  }
   if (chunks.length === 0) return {};
   return JSON.parse(Buffer.concat(chunks).toString("utf8"));
+}
+
+function requireDemoEndpoint(res, name) {
+  if (isDemoMode()) return true;
+  sendJson(res, 403, {
+    error: "demo_endpoint_disabled",
+    message: `${name} is disabled in production profile.`
+  });
+  return false;
+}
+
+function requireApprovalAuthority(req, res) {
+  const auth = requireAuthorityBearer(req);
+  if (auth.ok) return true;
+  sendJson(res, auth.status, { error: "approval_authority_required", reason: auth.reason });
+  return false;
 }
 
 async function serveStatic(req, res) {
@@ -119,6 +146,7 @@ async function handleCompute(req, res) {
     agentId: auth.agentId,
     datasetId: dataset.id,
     operation,
+    missionExecutionId: body.missionExecutionId ?? job.jobId,
     railId,
     action: payment ? "private_compute.run" : "x402.payment_offer"
   };
@@ -178,6 +206,7 @@ async function handleCompute(req, res) {
       ...missionContext,
       railId: payment.railId,
       paymentId: payment.paymentId,
+      idempotencyKey: payment.paymentId,
       action: "x402.settle"
     }
   });
@@ -327,16 +356,19 @@ async function route(req, res) {
     }
 
     if (req.method === "POST" && url.pathname === "/api/agents/passport") {
+      if (!requireApprovalAuthority(req, res)) return;
       sendJson(res, 200, { agentPassport: buildAgentPassport(await readJson(req)) });
       return;
     }
 
     if (req.method === "POST" && url.pathname === "/api/missions/propose") {
+      if (!requireApprovalAuthority(req, res)) return;
       sendJson(res, 200, { mission: proposeMission(await readJson(req)) });
       return;
     }
 
     if (req.method === "POST" && url.pathname === "/api/missions/approve") {
+      if (!requireApprovalAuthority(req, res)) return;
       sendJson(res, 200, { approval: approveMission(await readJson(req)) });
       return;
     }
@@ -429,6 +461,7 @@ async function route(req, res) {
     }
 
     if (req.method === "POST" && url.pathname === "/api/oauth/zk-issue") {
+      if (!requireDemoEndpoint(res, "demo zk OAuth proof issuance")) return;
       sendJson(res, 200, { zkOAuthProof: issueZkOAuthProof(await readJson(req)) });
       return;
     }
@@ -436,6 +469,13 @@ async function route(req, res) {
     if (req.method === "POST" && url.pathname === "/api/oauth/zk-commit") {
       const body = await readJson(req);
       const token = body.token ?? req.headers.authorization?.replace(/^Bearer\s+/i, "");
+      if (isProductionProfile() && !token) {
+        sendJson(res, 400, {
+          error: "jwt_required",
+          message: "Production commitment construction requires a verified JWT."
+        });
+        return;
+      }
       const claims = token
         ? await verifyJwtWithJwks(token, {
             issuer: body.issuer ?? process.env.OIDC_ISSUER,
@@ -464,12 +504,14 @@ async function route(req, res) {
     }
 
     if (req.method === "POST" && url.pathname === "/api/oauth/revoke") {
+      if (!requireApprovalAuthority(req, res)) return;
       const body = await readJson(req);
       sendJson(res, 200, { revoked: revokeAuthCommitment(body.authCommitment, body.reason) });
       return;
     }
 
     if (req.method === "POST" && url.pathname === "/api/payments/mock-authorize") {
+      if (!requireDemoEndpoint(res, "mock x402 authorization")) return;
       const body = await readJson(req);
       sendJson(res, 200, buildMockPayment(body.requirement, body.railId, body.payer));
       return;

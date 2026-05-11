@@ -1,5 +1,6 @@
 import { createHash, createPublicKey, verify as verifySignature } from "node:crypto";
 import { hmacSha256Hex, sha256Hex } from "./digest.js";
+import { requireConfiguredValue } from "./runtime.js";
 
 function base64urlDecode(value) {
   return Buffer.from(value, "base64url");
@@ -49,6 +50,12 @@ export async function verifyJwtWithJwks(token, options) {
   if (!key) {
     throw new Error(`No JWKS key found for kid ${parsed.header.kid}.`);
   }
+  if (key.use && key.use !== "sig") {
+    throw new Error("JWKS key is not marked for signature verification.");
+  }
+  if (key.alg && key.alg !== parsed.header.alg) {
+    throw new Error("JWT alg does not match JWKS key alg.");
+  }
 
   const valid = verifySignature(
     algorithmToNodeVerify(parsed.header.alg),
@@ -61,6 +68,7 @@ export async function verifyJwtWithJwks(token, options) {
   }
 
   const nowSeconds = Math.floor(Date.now() / 1000);
+  const clockToleranceSeconds = options.clockToleranceSeconds ?? 60;
   if (options.issuer && parsed.payload.iss !== options.issuer) {
     throw new Error("JWT issuer mismatch.");
   }
@@ -68,10 +76,16 @@ export async function verifyJwtWithJwks(token, options) {
   if (options.audience && !audiences.includes(options.audience)) {
     throw new Error("JWT audience mismatch.");
   }
-  if (typeof parsed.payload.exp === "number" && parsed.payload.exp <= nowSeconds) {
+  if (!parsed.payload.sub) {
+    throw new Error("JWT subject is required.");
+  }
+  if (typeof parsed.payload.exp !== "number") {
+    throw new Error("JWT exp is required.");
+  }
+  if (parsed.payload.exp <= nowSeconds - clockToleranceSeconds) {
     throw new Error("JWT is expired.");
   }
-  if (typeof parsed.payload.nbf === "number" && parsed.payload.nbf > nowSeconds) {
+  if (typeof parsed.payload.nbf === "number" && parsed.payload.nbf > nowSeconds + clockToleranceSeconds) {
     throw new Error("JWT is not active yet.");
   }
 
@@ -108,13 +122,25 @@ export function normalizeOAuthClaims(claims, provider = "generic-oidc") {
     claims["https://private-compute.example/max_spend_usd"] ??
     "0.00";
 
+  const subjectKey = `${provider}:${claims.iss}:${claims.sub}`;
+  const agentMap = loadAgentMappings();
+  const mappedAgent = agentMap.get(subjectKey) ?? agentMap.get(`${claims.iss}:${claims.sub}`);
+
   return {
     version: "normalized-oauth-claims-v1",
     provider,
     issuer: claims.iss,
     subject: claims.sub,
+    subjectKey,
     audience: claims.aud,
-    agentId: claims.azp ?? claims.client_id ?? claims.sub,
+    agentId:
+      claims.agent_id ??
+      claims["https://private-compute.example/agent_id"] ??
+      mappedAgent?.agentId ??
+      claims.azp ??
+      claims.client_id ??
+      claims.sub,
+    represents: mappedAgent?.represents ?? null,
     organization: String(org),
     scopes: rawScopes,
     computeScopes: rawScopes.filter((scope) => scope.startsWith("compute:")),
@@ -135,7 +161,19 @@ export function normalizeOAuthClaims(claims, provider = "generic-oidc") {
   };
 }
 
-export function buildAuthCommitment(normalizedClaims, salt, issuerSecret = "local-demo-issuer-secret") {
+function loadAgentMappings() {
+  if (!process.env.AGENT_MAPPINGS_JSON) return new Map();
+  const parsed = JSON.parse(process.env.AGENT_MAPPINGS_JSON);
+  const entries = Array.isArray(parsed) ? parsed : Object.entries(parsed).map(([subjectKey, value]) => ({ subjectKey, ...value }));
+  return new Map(entries.map((entry) => [entry.subjectKey, entry]));
+}
+
+export function buildAuthCommitment(normalizedClaims, salt, issuerSecret) {
+  const secret = issuerSecret ?? requireConfiguredValue(
+    "ZK_OAUTH_ISSUER_SECRET",
+    "local-demo-issuer-secret",
+    "authorization commitments"
+  );
   const commitmentBody = {
     normalizedClaims,
     salt
@@ -143,7 +181,7 @@ export function buildAuthCommitment(normalizedClaims, salt, issuerSecret = "loca
   return {
     authCommitment: sha256Hex(commitmentBody),
     scopeCommitment: sha256Hex({ scopes: normalizedClaims.scopes, salt }),
-    issuerProofDigest: hmacSha256Hex(issuerSecret, commitmentBody),
+    issuerProofDigest: hmacSha256Hex(secret, commitmentBody),
     commitmentBody
   };
 }

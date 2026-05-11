@@ -1,5 +1,6 @@
 import { decodeJson, encodeJson, hmacSha256Hex, id, sha256Hex } from "./digest.js";
 import { enabledRails, findRail } from "./rails.js";
+import { isProductionProfile } from "./runtime.js";
 
 export const PAYMENT_REQUIRED = "PAYMENT-REQUIRED";
 export const PAYMENT = "PAYMENT";
@@ -147,6 +148,30 @@ export function buildMockPayment(requirement, railId, payer = "demo-agent-wallet
   };
 }
 
+function verifySettlementProof(option, payment) {
+  if (!isProductionProfile()) return { ok: true, mode: "demo" };
+  if (payment.authorization?.mode === "mock-facilitator" || payment.mocked) {
+    return { ok: false, reason: "Mock x402 payment authorization is disabled in production profile." };
+  }
+  const proof = payment.settlementProof ?? payment.facilitatorReceipt;
+  if (!proof) {
+    return { ok: false, reason: "Production x402 verification requires a settlement proof or facilitator receipt." };
+  }
+  if (proof.networkId && proof.networkId !== option.network) {
+    return { ok: false, reason: "Settlement proof network does not match advertised rail." };
+  }
+  if (proof.payTo && proof.payTo !== option.payTo) {
+    return { ok: false, reason: "Settlement proof payTo does not match advertised rail." };
+  }
+  if (proof.authorizationDigest && proof.authorizationDigest !== payment.authorizationDigest) {
+    return { ok: false, reason: "Settlement proof digest does not match payment authorization." };
+  }
+  if (process.env.X402_TRUST_FACILITATOR_RECEIPTS !== "true") {
+    return { ok: false, reason: "Live x402 settlement verifier is not configured." };
+  }
+  return { ok: true, mode: "trusted-facilitator-receipt", proof };
+}
+
 export function verifyPayment(requirement, payment) {
   if (!payment || typeof payment !== "object") {
     return { ok: false, reason: "Missing x402 payment payload." };
@@ -176,10 +201,15 @@ export function verifyPayment(requirement, payment) {
   if (expectedDigest !== payment.authorizationDigest) {
     return { ok: false, reason: "Payment authorization digest is invalid." };
   }
+  const settlementProof = verifySettlementProof(option, payment);
+  if (!settlementProof.ok) {
+    return settlementProof;
+  }
 
   return {
     ok: true,
     rail: findRail(payment.railId),
+    settlementProof: settlementProof.proof ?? null,
     paymentReceipt: {
       paymentId: payment.paymentId,
       requestId: payment.requestId,
@@ -190,9 +220,9 @@ export function verifyPayment(requirement, payment) {
       payer: payment.payer,
       payTo: payment.payTo,
       authorizationDigest: payment.authorizationDigest,
-      txHash: `0x${sha256Hex({ payment, settledAt: "mock-stable" }).slice(0, 64)}`,
+      txHash: settlementProof.proof?.txHash ?? `0x${sha256Hex({ payment, settledAt: "mock-stable" }).slice(0, 64)}`,
       settledAt: new Date().toISOString(),
-      mocked: true
+      mocked: !isProductionProfile()
     }
   };
 }
