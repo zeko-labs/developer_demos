@@ -2,6 +2,10 @@
 
 `agent_execution_escrow` is a standalone prototype for Zeko-native agent transaction control.
 
+## Network Profile
+
+Testnet and record-only mode remain the compatibility defaults. For mainnet, use a separate environment profile with `ZEKO_NETWORK_ID=mainnet`, official mainnet endpoints, fresh verifier/deployer/sponsor keys, and a fresh intent zkApp deployment. Do not reuse testnet sync artifacts. See [Zeko Mainnet Readiness](../docs/zeko-mainnet-readiness.md).
+
 The core thesis is simple: most AI agent protocols are control-plane native. They expose SDKs, MCP servers, and hosted verification, but durable trust still lives in one backend. This project keeps compatibility with Nava-style agent transaction flows while moving the state and lifecycle authority into a Zeko-native environment.
 
 ## What This Unlocks

@@ -2,6 +2,10 @@
 
 A standalone Zeko-native runtime for verifiable AI execution, receipts, privacy, credits, and operator routing.
 
+## Network Profile
+
+Testnet remains the default so existing builder/operator demos keep running. For mainnet, use a separate environment profile with `ZEKO_NETWORK_ID=mainnet`, official mainnet endpoints, fresh v2 zkApp deployment records, production sponsor lanes, operator memberships, builder auth, and key custody. Do not reuse testnet operator bundles or stored sponsor keys. See [Zeko Mainnet Readiness](../docs/zeko-mainnet-readiness.md).
+
 The core idea was inspired by public AI protocol work like OpenGradient, but we fundamentally rearchitected the protocol to run natively on Zeko so builders get:
 
 1. Sealed private inputs and client-encrypted outputs instead of plaintext-by-default coordinator state.

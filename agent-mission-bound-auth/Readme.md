@@ -6,6 +6,10 @@ It binds enterprise identity to a specific mission, signs the approval, enforces
 
 The included private-compute UI is only a local tutorial harness. The protocol is the product.
 
+## Network Profile
+
+This demo is testnet-first by default. For mainnet, use a separate environment profile with official mainnet endpoints, a freshly deployed private-compute zkApp, fresh deployer/beneficiary keys, and production custody controls. Do not reuse the bundled testnet zkApp address or local tutorial values on mainnet. See [Zeko Mainnet Readiness](../docs/zeko-mainnet-readiness.md).
+
 ## What It Provides
 
 - Real OIDC login through Auth0, Okta, or any configured OIDC provider.

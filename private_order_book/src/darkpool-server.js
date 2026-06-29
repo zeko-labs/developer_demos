@@ -58,6 +58,7 @@ const participantWallets = new Map();
 const WALLET_HASH_SALT = process.env.WALLET_HASH_SALT || 'shadowbook-demo-salt';
 const ZEKO_GRAPHQL = process.env.ZEKO_GRAPHQL || '';
 const ZEKO_NETWORK_ID = process.env.ZEKO_NETWORK_ID || 'testnet';
+const ZEKO_IS_MAINNET = String(ZEKO_NETWORK_ID).trim().toLowerCase() === 'mainnet';
 const ZEKO_TX_GRAPHQL_ENV = process.env.ZEKO_TX_GRAPHQL || '';
 const ZEKO_ARCHIVE_GRAPHQL = process.env.ZEKO_ARCHIVE_GRAPHQL || '';
 const ZEKO_ARCHIVE_RELAY_GRAPHQL = process.env.ZEKO_ARCHIVE_RELAY_GRAPHQL || '';
@@ -3504,6 +3505,7 @@ function requireMinaAddress(value, field) {
 }
 
 async function claimZekoTestnetFaucet(address) {
+  if (ZEKO_IS_MAINNET) throw new Error('zeko faucet is testnet-only and is disabled when ZEKO_NETWORK_ID=mainnet');
   if (!ZEKO_FAUCET_COMMAND) throw new Error('zeko faucet command is not configured');
   if (!ZEKO_FAUCET_GITHUB_TOKEN) throw new Error('zeko faucet github token is not configured');
   const target = requireMinaAddress(address, 'wallet');
@@ -3960,7 +3962,8 @@ function computeStatusSnapshot(port) {
         maxDelayMs: SETTLEMENT_BATCH_MAX_DELAY_MS
       },
       faucet: {
-        enabled: Boolean(ZEKO_FAUCET_COMMAND && ZEKO_FAUCET_GITHUB_TOKEN),
+        enabled: !ZEKO_IS_MAINNET && Boolean(ZEKO_FAUCET_COMMAND && ZEKO_FAUCET_GITHUB_TOKEN),
+        testnetOnly: true,
         commandConfigured: Boolean(ZEKO_FAUCET_COMMAND),
         githubTokenConfigured: Boolean(ZEKO_FAUCET_GITHUB_TOKEN)
       },

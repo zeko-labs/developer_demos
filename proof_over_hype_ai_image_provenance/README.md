@@ -14,6 +14,10 @@
 - Users can bypass limits by supplying their own detector API keys in the UI.
 - Optional hCaptcha support is available for public demos.
 
+## Network Profile
+
+Testnet remains the default for provenance anchoring demos. For mainnet, use a separate environment profile with `ZEKO_NETWORK_ID=mainnet`, official mainnet endpoints, a fresh provenance zkApp, production oracle/submission keys, and separate keychain/env values. Do not reuse packaged testnet artifacts. See [Zeko Mainnet Readiness](../docs/zeko-mainnet-readiness.md).
+
 **Demos**
 - `assets/demo_app.png`
 - `assets/Proof_over_Hype-demo.mov`

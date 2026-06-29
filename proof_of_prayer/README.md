@@ -2,6 +2,10 @@
 
 Proof of Prayer is a Zeko + o1js application for private, permanent, community-supported prayer.
 
+## Network Profile
+
+Testnet remains the default for hosted demos and sponsored anchoring experiments. For mainnet, use a separate environment profile with `ZEKO_NETWORK_ID=mainnet`, official mainnet endpoints, a fresh prayer batch zkApp, production sponsor/deployer keys, and reviewed moderation/sponsorship policy. Do not reuse testnet funding or faucet assumptions. See [Zeko Mainnet Readiness](../docs/zeko-mainnet-readiness.md).
+
 Users can:
 - write an encrypted private prayer in the browser
 - optionally publish an anonymized public version for the community
