@@ -8,6 +8,10 @@ A Zeko testnet prediction market demo that combines:
 - zkTLS-backed weather oracle verification
 - agent/model plug-in points for private signals and relayed execution
 
+## Network Profile
+
+Testnet remains the default so existing hosted markets keep running. For mainnet, use a separate environment profile with `ZEKO_NETWORK_ID=mainnet`, official mainnet endpoints, fresh market zkApps, production oracle/prover/operator keys, and reviewed real-value market rules. Do not reuse testnet state, faucet funding, or demo deployment artifacts. See [Zeko Mainnet Readiness](../docs/zeko-mainnet-readiness.md).
+
 ## What We Built
 
 ### Protocol layer

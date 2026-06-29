@@ -34,6 +34,7 @@ if (!deployerKey || !zkappKeyEnv) {
 }
 
 const networkId = process.env.ZEKO_NETWORK_ID ?? 'testnet';
+const networkLabel = `Zeko ${networkId}`;
 const network = Mina.Network({
   networkId: networkId as any,
   mina: graphql,
@@ -56,7 +57,7 @@ if (deployer.toPublicKey().toBase58() === zkappAddress.toBase58()) {
 const deployerPub = deployer.toPublicKey();
 const account = await fetchAccount({ publicKey: deployerPub });
 if (account.error) {
-  console.error('Deployer account not found on Zeko testnet.');
+  console.error(`Deployer account not found on ${networkLabel}.`);
   console.error(account.error);
 } else {
   console.log('Deployer balance:', account.account.balance.toString(), 'nanomina');
@@ -72,7 +73,7 @@ if (zkappExists) {
 console.log('Compiling circuits...');
 await AgentRequestContract.compile();
 
-console.log('Deploying zkApp to Zeko testnet...');
+console.log(`Deploying zkApp to ${networkLabel}...`);
 const txFee = process.env.TX_FEE ?? '200000000'; // 0.2 MINA in nanomina
 console.log('Using fee (nanomina):', txFee);
 const tx = await Mina.transaction({ sender: feePayer.toPublicKey(), fee: txFee }, async () => {

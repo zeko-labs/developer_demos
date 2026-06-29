@@ -6,6 +6,10 @@ It is designed for institutions that want to issue and manage stablecoins, token
 
 TAP is the private operating layer. Ethereum is the optional public rail.
 
+## Network Profile
+
+Testnet remains the default for Zeko integration points. For mainnet, use a separate environment profile with `ZEKO_NETWORK_ID=mainnet`, official mainnet endpoints, production issuer/custody/prover controls, and reviewed bridge settings. Do not reuse testnet zkApp, fee-payer, sponsor, or certification artifacts. See [Zeko Mainnet Readiness](../docs/zeko-mainnet-readiness.md).
+
 ## Why TAP
 
 The current public-chain tokenization model is easy to launch and easy to copy.

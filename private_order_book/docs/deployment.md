@@ -131,6 +131,8 @@ That is lean enough for demo-scale deployment while leaving a clean path to hori
 
 ## Faucet Options
 
+Faucet paths are testnet-only. For mainnet, leave `ZEKO_FAUCET_COMMAND` and `ZEKO_FAUCET_GITHUB_TOKEN` unset and fund accounts through your production custody and bridge process.
+
 For the public UI, the funding tab links users to the official Zeko faucet:
 
 - [https://faucet.zeko.io/](https://faucet.zeko.io/)

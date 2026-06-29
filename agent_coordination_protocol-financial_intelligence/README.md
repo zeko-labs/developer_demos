@@ -2,6 +2,10 @@
 
 This repo is a local-first demo of the **Agent Coordination Protocol (ACP)** on Zeko testnet.
 
+## Network Profile
+
+Testnet remains the default so existing hosted demos keep running. For mainnet, create a separate environment profile with `ZEKO_NETWORK_ID=mainnet`, official mainnet endpoints, fresh zkApp/oracle/sponsor keys, and mainnet treasury/token addresses. Do not reuse testnet artifacts or faucet-funded accounts. See [Zeko Mainnet Readiness](../docs/zeko-mainnet-readiness.md).
+
 ## What This Demo Includes
 
 - Agent marketplace with 4 example agents

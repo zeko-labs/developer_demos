@@ -107,6 +107,14 @@ Optional, depending on the demo:
 
 Not every demo needs the same setup. The demo-specific README is the source of truth.
 
+## Zeko testnet and mainnet profiles
+
+These demos default to local or Zeko testnet settings unless a demo says otherwise. That preserves existing hosted demos and avoids accidentally moving real value through reference code.
+
+For mainnet, create an explicit mainnet environment profile for the demo you are running. At minimum, review the demo's `ZEKO_NETWORK_ID`, GraphQL/archive endpoint variables, explorer URL, deployer key, sponsor/relayer key, zkApp address, and fee settings. Do not reuse testnet deployment artifacts or faucet flows on mainnet.
+
+See [Zeko Mainnet Readiness](./docs/zeko-mainnet-readiness.md) before pointing any demo at mainnet.
+
 ## Quick start
 
 ```bash
@@ -157,6 +165,7 @@ If you want to explore:
 - Do not assume environment variables, ports, or services are shared across demos.
 - Some demos include experimental or reference-only components that are not required for the default local run path.
 - Demos are reference examples for developers, and are not audited. Each team is responsible for their own deployment and audit of any code from this repo that is used in production.
+- Mainnet deployments should use fresh keys, fresh zkApp deployments, production custody practices, and a final team review/audit.
 
 ## Troubleshooting
 

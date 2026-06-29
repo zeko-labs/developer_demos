@@ -7,6 +7,10 @@ ShadowBook is a private order book / dark pool demo built on Zeko with:
 - on-chain settlement anchoring through a zkApp
 - a lean settlement zkApp as the default hosted path
 
+## Network Profile
+
+Testnet remains the default so existing hosted deployments keep running. For mainnet, use a separate environment profile with `ZEKO_NETWORK_ID=mainnet`, official mainnet endpoints, fresh settlement zkApps, real asset/token addresses, production withdrawal policy, and faucet settings disabled. See [Zeko Mainnet Readiness](../docs/zeko-mainnet-readiness.md).
+
 ## What Works
 
 - wallet sync from on-chain balances
