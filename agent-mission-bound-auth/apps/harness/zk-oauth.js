@@ -1,10 +1,11 @@
 import { hmacSha256Hex, id, randomSalt, sha256Hex } from "../../packages/protocol/digest.js";
 import { isAuthCommitmentRevoked } from "../../packages/protocol/revocations.js";
+import { isProductionProfile, requireConfiguredValue } from "../../packages/protocol/runtime.js";
 
 const ISSUER = "zk-oauth-demo.enterprise.example";
 
 function issuerSecret() {
-  return process.env.ZK_OAUTH_ISSUER_SECRET ?? "local-demo-issuer-secret";
+  return requireConfiguredValue("ZK_OAUTH_ISSUER_SECRET", "local-demo-issuer-secret", "ZK OAuth proof verification");
 }
 
 export function issueZkOAuthProof(input = {}) {
@@ -60,6 +61,9 @@ export function verifyZkOAuthProof(proof, requirement) {
   }
 
   const { proofId: _proofId, issuerProofDigest, ...proofBody } = proof;
+  if (isProductionProfile() && proofBody.issuer === ISSUER) {
+    return { ok: false, reason: "Demo ZK OAuth issuer is disabled in production profile." };
+  }
   const expected = hmacSha256Hex(issuerSecret(), proofBody);
   if (issuerProofDigest !== expected) {
     return { ok: false, reason: "ZK OAuth proof digest is invalid." };

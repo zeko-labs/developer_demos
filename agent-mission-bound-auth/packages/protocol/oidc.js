@@ -121,7 +121,7 @@ export async function buildOidcAuthorization(config, sessions) {
   sessions.set(state, {
     provider: config.provider,
     issuer: discovery.issuer,
-    audience: config.audience ?? config.clientId,
+    audience: config.clientId,
     clientId: config.clientId,
     clientSecret: config.clientSecret,
     redirectUri: config.redirectUri,

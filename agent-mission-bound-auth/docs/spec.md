@@ -80,7 +80,7 @@ Recommended checkpoints:
 - `before_external_side_effect`
 - `after_receipt`
 
-Domain apps call:
+Domain apps call the stateless verifier:
 
 ```text
 POST /api/mission/verify-checkpoint
@@ -88,11 +88,19 @@ POST /api/mission/verify-checkpoint
 
 or verify the approval offline using the JWKS and enforce equivalent policy locally.
 
-Production checkpoint context must include a `missionExecutionId`. Compute and
-side-effect checkpoints must also include an `idempotencyKey`, `paymentId`, or
-`sideEffectId` so verifiers can reject replay. When `spendUsd` or `amountUsd` is
-present, the authority applies the mission budget counter before accepting the
-checkpoint.
+Mission authorities or trusted domain services call the stateful enforcement
+endpoint:
+
+```text
+POST /api/mission/enforce-checkpoint
+```
+
+In production, stateful enforcement requires the authority bearer token and
+durable state. Its checkpoint context must include a `missionExecutionId`.
+Compute and side-effect checkpoints must also include an `idempotencyKey`,
+`paymentId`, or `sideEffectId` so the authority can reject replay. When
+`spendUsd` or `amountUsd` is present, the authority applies the mission budget
+counter before accepting the checkpoint.
 
 ## Bundle
 

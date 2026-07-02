@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import path from "node:path";
 import { hmacSha256Hex, id, sha256Hex } from "./digest.js";
 import { signJws, verifyJws, jwks } from "./authority-keys.js";
 import { requireConfiguredValue, isProductionProfile } from "./runtime.js";
@@ -15,14 +17,68 @@ const CHECKPOINT_ORDER = [
   "before_external_side_effect",
   "after_receipt"
 ];
+let loadedStatePath = null;
 
 function missionSecret() {
-  return process.env.MISSION_AUTHORITY_SECRET ??
-    process.env.ZK_OAUTH_ISSUER_SECRET ??
-    requireConfiguredValue("MISSION_AUTHORITY_SECRET", "local-mission-authority-secret", "mission HMAC compatibility signatures");
+  return requireConfiguredValue("MISSION_AUTHORITY_SECRET", "local-mission-authority-secret", "mission HMAC compatibility signatures");
+}
+
+function missionCompatibilitySignature(body) {
+  if (isProductionProfile() && !process.env.MISSION_AUTHORITY_SECRET) return null;
+  return hmacSha256Hex(missionSecret(), body);
+}
+
+function durableStateEnabled() {
+  return isProductionProfile() || Boolean(process.env.MISSION_STATE_PATH);
+}
+
+function missionStatePath() {
+  return process.env.MISSION_STATE_PATH ?? path.join(process.cwd(), "data", "mission-auth-state.json");
+}
+
+function mapFromEntries(map, entries = []) {
+  map.clear();
+  for (const [key, value] of entries) map.set(key, value);
+}
+
+function ensureStateLoaded() {
+  const key = durableStateEnabled() ? missionStatePath() : "memory";
+  if (loadedStatePath === key) return;
+  loadedStatePath = key;
+  if (!durableStateEnabled()) return;
+  if (!fs.existsSync(key)) return;
+
+  const state = JSON.parse(fs.readFileSync(key, "utf8"));
+  mapFromEntries(agents, state.agents);
+  mapFromEntries(missions, state.missions);
+  mapFromEntries(approvals, state.approvals);
+  enforcementLog.splice(0, enforcementLog.length, ...(state.enforcementLog ?? []));
+  replayCache.clear();
+  for (const value of state.replayCache ?? []) replayCache.add(value);
+  mapFromEntries(checkpointProgress, state.checkpointProgress);
+  mapFromEntries(spendLedger, state.spendLedger);
+}
+
+function persistState() {
+  if (!durableStateEnabled()) return;
+  const file = missionStatePath();
+  const state = {
+    version: "mission-auth-state-v1",
+    savedAt: new Date().toISOString(),
+    agents: Array.from(agents.entries()),
+    missions: Array.from(missions.entries()),
+    approvals: Array.from(approvals.entries()),
+    enforcementLog,
+    replayCache: Array.from(replayCache.values()),
+    checkpointProgress: Array.from(checkpointProgress.entries()),
+    spendLedger: Array.from(spendLedger.entries())
+  };
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, JSON.stringify(state, null, 2));
 }
 
 export function buildAgentPassport(input = {}) {
+  ensureStateLoaded();
   const agentId = input.agentId ?? "agent-research-ops-001";
   const domain = input.domain ?? "agents.local";
   const passport = {
@@ -55,18 +111,21 @@ export function buildAgentPassport(input = {}) {
     ...passport,
     passportId: id("agent", passport),
     passportCommitment: sha256Hex(passport),
-    authoritySignature: hmacSha256Hex(missionSecret(), passport),
+    authoritySignature: missionCompatibilitySignature(passport),
     authorityJws: signJws(passport, { typ: "agent-passport+jwt" })
   };
   agents.set(registered.agentId, registered);
+  persistState();
   return registered;
 }
 
 export function getAgentPassport(agentId) {
+  ensureStateLoaded();
   return agents.get(agentId) ?? buildAgentPassport({ agentId });
 }
 
 export function proposeMission(input) {
+  ensureStateLoaded();
   const now = new Date();
   const expiresAt = new Date(now.getTime() + (input.ttlMs ?? 20 * 60 * 1000));
   const agent = getAgentPassport(input.agentId);
@@ -106,10 +165,12 @@ export function proposeMission(input) {
     status: "proposed"
   };
   missions.set(missionId, record);
+  persistState();
   return record;
 }
 
 export function approveMission(input) {
+  ensureStateLoaded();
   const mission = missions.get(input.missionId);
   if (!mission) {
     throw new Error("mission_not_found");
@@ -141,7 +202,7 @@ export function approveMission(input) {
     ...approvalBody,
     approvalId: id("approval", approvalBody),
     approvalHash: sha256Hex(approvalBody),
-    authoritySignature: hmacSha256Hex(missionSecret(), approvalBody),
+    authoritySignature: missionCompatibilitySignature(approvalBody),
     authorityJws: signJws(approvalBody, { typ: "mission-approval+jwt" }),
     zekoAnchor: {
       primitive: "mission-approval-commitment-v1",
@@ -155,10 +216,12 @@ export function approveMission(input) {
 
   approvals.set(approval.approvalId, approval);
   missions.set(mission.missionId, { ...mission, status: "approved", approvalId: approval.approvalId });
+  persistState();
   return approval;
 }
 
 export function verifyMissionApproval(approval, context) {
+  ensureStateLoaded();
   if (!approval || typeof approval !== "object") {
     return { ok: false, reason: "Missing mission approval." };
   }
@@ -187,6 +250,9 @@ export function verifyMissionApproval(approval, context) {
       return { ok: false, reason: error instanceof Error ? error.message : "Mission approval JWS is invalid." };
     }
   } else {
+    if (isProductionProfile()) {
+      return { ok: false, reason: "Mission approval JWS is required in production profile." };
+    }
     const expectedSignature = hmacSha256Hex(missionSecret(), body);
     if (authoritySignature !== expectedSignature) {
       return { ok: false, reason: "Mission approval signature is invalid." };
@@ -284,29 +350,25 @@ function enforceReplayAndBudget({ approval, checkpoint, context = {} }) {
   return { ok: true };
 }
 
-export function enforceCheckpoint(input) {
-  if (!input.approval?.missionSnapshot?.checkpoints?.includes(input.checkpoint)) {
-    return {
-      ok: false,
-      reason: `Mission approval does not allow checkpoint:${input.checkpoint}.`,
-      event: {
-        checkpointId: id("checkpoint", {
-          checkpoint: input.checkpoint,
-          at: Date.now(),
-          missionId: input.approval?.missionId,
-          context: input.context
-        }),
-        checkpoint: input.checkpoint,
-        ok: false,
-        reason: `Mission approval does not allow checkpoint:${input.checkpoint}.`,
-        missionId: input.approval?.missionId ?? null,
-        context: input.context,
-        observedAt: new Date().toISOString()
-      }
-    };
-  }
-  const verified = verifyMissionApproval(input.approval, input.context);
-  const event = {
+function failedCheckpointEvent(input, reason) {
+  return {
+    checkpointId: id("checkpoint", {
+      checkpoint: input.checkpoint,
+      at: Date.now(),
+      missionId: input.approval?.missionId,
+      context: input.context
+    }),
+    checkpoint: input.checkpoint,
+    ok: false,
+    reason,
+    missionId: input.approval?.missionId ?? null,
+    context: input.context,
+    observedAt: new Date().toISOString()
+  };
+}
+
+function successfulCheckpointEvent(input, verified) {
+  return {
     checkpointId: id("checkpoint", {
       checkpoint: input.checkpoint,
       at: Date.now(),
@@ -320,55 +382,87 @@ export function enforceCheckpoint(input) {
     context: input.context,
     observedAt: new Date().toISOString()
   };
+}
+
+function enforcementReceipt(input, event, verified) {
+  return {
+    primitive: "mission-checkpoint-receipt-v1",
+    checkpoint: input.checkpoint,
+    missionId: verified.mission.missionId,
+    approvalId: verified.approval.approvalId,
+    actionHash: sha256Hex(input.context),
+    receiptHash: sha256Hex(event)
+  };
+}
+
+export function verifyCheckpoint(input) {
+  if (!input.approval?.missionSnapshot?.checkpoints?.includes(input.checkpoint)) {
+    const reason = `Mission approval does not allow checkpoint:${input.checkpoint}.`;
+    return {
+      ok: false,
+      reason,
+      event: failedCheckpointEvent(input, reason)
+    };
+  }
+  const verified = verifyMissionApproval(input.approval, input.context);
+  const event = successfulCheckpointEvent(input, verified);
   if (!verified.ok) {
-    enforcementLog.push(event);
     return { ...verified, event };
   }
-  const replayBudget = enforceReplayAndBudget({
-    approval: verified.approval,
-    checkpoint: input.checkpoint,
-    context: input.context
-  });
-  if (!replayBudget.ok) {
-    const failedEvent = {
-      ...event,
-      ok: false,
-      reason: replayBudget.reason
-    };
-    enforcementLog.push(failedEvent);
-    return { ok: false, reason: replayBudget.reason, event: failedEvent };
-  }
-  enforcementLog.push(event);
-
   return {
     ok: true,
     event,
     mission: verified.mission,
     approval: verified.approval,
     missionCommitment: verified.missionCommitment,
-    enforcementReceipt: {
-      primitive: "mission-checkpoint-receipt-v1",
-      checkpoint: input.checkpoint,
-      missionId: verified.mission.missionId,
-      approvalId: verified.approval.approvalId,
-      actionHash: sha256Hex(input.context),
-      receiptHash: sha256Hex(event)
-    }
+    enforcementReceipt: enforcementReceipt(input, event, verified)
   };
 }
 
+export function enforceCheckpoint(input) {
+  const checked = verifyCheckpoint(input);
+  if (!checked.ok) {
+    enforcementLog.push(checked.event);
+    persistState();
+    return checked;
+  }
+  const replayBudget = enforceReplayAndBudget({
+    approval: checked.approval,
+    checkpoint: input.checkpoint,
+    context: input.context
+  });
+  if (!replayBudget.ok) {
+    const failedEvent = {
+      ...checked.event,
+      ok: false,
+      reason: replayBudget.reason
+    };
+    enforcementLog.push(failedEvent);
+    persistState();
+    return { ok: false, reason: replayBudget.reason, event: failedEvent };
+  }
+  enforcementLog.push(checked.event);
+  persistState();
+
+  return checked;
+}
+
 export function listMissions() {
+  ensureStateLoaded();
   return Array.from(missions.values());
 }
 
 export function listEnforcementLog() {
+  ensureStateLoaded();
   return [...enforcementLog];
 }
 
 export function getMission(missionId) {
+  ensureStateLoaded();
   return missions.get(missionId) ?? null;
 }
 
 export function getApproval(approvalId) {
+  ensureStateLoaded();
   return approvals.get(approvalId) ?? null;
 }

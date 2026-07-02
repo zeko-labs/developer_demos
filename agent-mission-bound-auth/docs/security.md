@@ -28,12 +28,18 @@ OIDC_JWKS_URL
 ```
 
 The OIDC callback path requires an ID token, validates JWKS signatures, issuer,
-audience, expiry, and nonce, then normalizes provider claims before creating
-commitments. Access tokens should be handled by protected resource APIs, not as
-agent identity tokens.
+client-id audience, expiry, and nonce, then normalizes provider claims before
+creating commitments. Access tokens should be handled by protected resource
+APIs, not as agent identity tokens.
+
+Production commitment construction pins verification to configured provider
+trust roots. Request-supplied issuer, audience, and JWKS URLs are ignored in
+production because they would let a caller bring their own signing authority.
 
 Map provider subjects into internal agent records with `AGENT_MAPPINGS_JSON`.
 Use `provider:issuer:subject` as the stable key.
+In production, unmapped subjects are rejected and server-side mappings take
+precedence over token-supplied agent identifiers.
 
 ## Key Rotation
 
@@ -53,17 +59,25 @@ Checkpoint verification enforces approval expiry, approval hash/id integrity,
 agent binding, dataset binding, operation binding, rail binding, action binding,
 scope binding, and checkpoint binding.
 
-In production profile, checkpoint verification also requires `missionExecutionId`
-and an idempotency key for compute or side-effect checkpoints. Domain apps should
-include action-specific context in checkpoint verification and persist the
-resulting enforcement receipt.
+`/api/mission/verify-checkpoint` is stateless. It verifies the approval and
+returns the receipt shape without mutating replay, budget, ordering, or log
+state.
+
+`/api/mission/enforce-checkpoint` is stateful. In production profile it requires
+`MISSION_APPROVAL_BEARER_TOKEN`, `missionExecutionId`, and an idempotency key for
+compute or side-effect checkpoints. Domain apps should include action-specific
+context in checkpoint verification and persist the resulting enforcement
+receipt.
 
 Budget counters are tracked per approval when `context.spendUsd` or
-`context.amountUsd` is supplied.
+`context.amountUsd` is supplied. In production, mission/enforcement state is
+persisted to `MISSION_STATE_PATH`.
 
 ## Revocation
 
-The implementation includes an off-chain revocation registry for auth commitments. Production should pair this with either:
+The implementation includes an off-chain revocation registry for auth
+commitments. In production it persists to `REVOCATION_STATE_PATH`. Production
+should pair this with either:
 
 - short-lived approvals, or
 - an anchored revocation/root model.
@@ -77,6 +91,15 @@ Live Zeko anchoring exists for:
 
 The current private-compute demo does not prove the computation itself in-circuit. It anchors commitments to the approval, data, policy, output, payment context, and receipt.
 
+## Payment Settlement
+
+Production x402 verification rejects mock facilitator payments. The current
+production path requires signed facilitator receipts with
+`X402_TRUST_FACILITATOR_RECEIPTS=true`, `X402_FACILITATOR_ISSUER`, and
+`X402_FACILITATOR_JWKS_JSON`. The signed receipt must bind request id, payment
+id, rail, network, amount, asset, payer, payee, authorization digest, and a
+transaction hash or settlement id.
+
 ## What Is Not Yet Production-Hardened
 
 - hosted facilitator settlement for every payment rail
@@ -89,12 +112,13 @@ The current private-compute demo does not prove the computation itself in-circui
 - Store `MISSION_AUTHORITY_PRIVATE_JWK` in KMS/HSM-backed secret storage.
 - Set `MISSION_AUTH_PROFILE=production` and `DEMO_MODE=false`.
 - Set `ZK_OAUTH_ISSUER_SECRET` and `MISSION_APPROVAL_BEARER_TOKEN`.
+- Set `MISSION_STATE_PATH` and `REVOCATION_STATE_PATH`.
 - Publish overlapping JWKS keys during rotation.
 - Set `OIDC_ISSUER`, `OIDC_AUDIENCE`, and `OIDC_JWKS_URL`.
 - Configure `AGENT_MAPPINGS_JSON` for each enterprise customer subject mapping.
 - Persist missions, approvals, revocations, enforcement receipts, and Zeko root witnesses.
 - Enforce short approval TTLs for autonomous agents.
-- Require settlement proofs or verified facilitator receipts for x402 payments.
+- Require signed facilitator receipts or live chain verification for x402 payments.
 - Set `PRIVATE_COMPUTE_MIN_COHORT` for aggregate-only output policy.
 - Anchor approval roots and receipt roots on Zeko on a repeatable operator schedule.
 - Run remote conformance against every deployment.

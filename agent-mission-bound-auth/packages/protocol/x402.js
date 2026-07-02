@@ -1,6 +1,7 @@
 import { decodeJson, encodeJson, hmacSha256Hex, id, sha256Hex } from "./digest.js";
 import { enabledRails, findRail } from "./rails.js";
 import { isProductionProfile } from "./runtime.js";
+import { verifyJws } from "./authority-keys.js";
 
 export const PAYMENT_REQUIRED = "PAYMENT-REQUIRED";
 export const PAYMENT = "PAYMENT";
@@ -19,8 +20,35 @@ function buildAuthorizationDigest(payload) {
 }
 
 function stripAuthorizationDigest(payload) {
-  const { authorizationDigest: _authorizationDigest, ...rest } = payload;
+  const {
+    authorizationDigest: _authorizationDigest,
+    settlementProof: _settlementProof,
+    facilitatorReceipt: _facilitatorReceipt,
+    ...rest
+  } = payload;
   return rest;
+}
+
+function facilitatorJwks() {
+  const raw = process.env.X402_FACILITATOR_JWKS_JSON;
+  if (!raw) throw new Error("X402_FACILITATOR_JWKS_JSON is required for trusted facilitator receipts.");
+  const parsed = JSON.parse(raw);
+  if (!Array.isArray(parsed.keys)) throw new Error("X402_FACILITATOR_JWKS_JSON must contain keys[].");
+  return parsed;
+}
+
+function assertEqual(actual, expected, reason) {
+  if (actual !== expected) return { ok: false, reason };
+  return { ok: true };
+}
+
+function sameAsset(expected, actual) {
+  if (actual === undefined || actual === null) return false;
+  try {
+    return sha256Hex(expected) === sha256Hex(actual);
+  } catch {
+    return false;
+  }
 }
 
 function buildPaymentRequired(input) {
@@ -169,7 +197,47 @@ function verifySettlementProof(option, payment) {
   if (process.env.X402_TRUST_FACILITATOR_RECEIPTS !== "true") {
     return { ok: false, reason: "Live x402 settlement verifier is not configured." };
   }
-  return { ok: true, mode: "trusted-facilitator-receipt", proof };
+  if (!process.env.X402_FACILITATOR_ISSUER) {
+    return { ok: false, reason: "X402_FACILITATOR_ISSUER is required for trusted facilitator receipts." };
+  }
+
+  const receiptJws = proof.jws ?? proof.receiptJws;
+  if (!receiptJws) {
+    return { ok: false, reason: "Trusted facilitator receipts must include a signed receipt JWS." };
+  }
+
+  let receipt;
+  try {
+    receipt = verifyJws(receiptJws, facilitatorJwks(), { typ: "x402-facilitator-receipt+jwt" }).payload;
+  } catch (error) {
+    return { ok: false, reason: error instanceof Error ? error.message : "Facilitator receipt JWS is invalid." };
+  }
+
+  const expectedAudience = process.env.X402_FACILITATOR_AUDIENCE ?? "agent-mission-bound-auth";
+  const checks = [
+    assertEqual(receipt.iss, process.env.X402_FACILITATOR_ISSUER, "Facilitator receipt issuer mismatch."),
+    assertEqual(receipt.aud, expectedAudience, "Facilitator receipt audience mismatch."),
+    assertEqual(receipt.requestId, payment.requestId, "Facilitator receipt requestId mismatch."),
+    assertEqual(receipt.paymentId, payment.paymentId, "Facilitator receipt paymentId mismatch."),
+    assertEqual(receipt.railId, payment.railId, "Facilitator receipt railId mismatch."),
+    assertEqual(receipt.settlementRail, payment.settlementRail, "Facilitator receipt settlement rail mismatch."),
+    assertEqual(receipt.networkId, option.network, "Facilitator receipt network mismatch."),
+    assertEqual(receipt.amount, option.amount, "Facilitator receipt amount mismatch."),
+    assertEqual(receipt.assetHash, sha256Hex(option.asset), "Facilitator receipt asset mismatch."),
+    assertEqual(receipt.payer, payment.payer, "Facilitator receipt payer mismatch."),
+    assertEqual(receipt.payTo, option.payTo, "Facilitator receipt payTo mismatch."),
+    assertEqual(receipt.authorizationDigest, payment.authorizationDigest, "Facilitator receipt authorization digest mismatch.")
+  ];
+  const failed = checks.find((check) => !check.ok);
+  if (failed) return failed;
+  if (typeof receipt.exp !== "number" || receipt.exp <= Math.floor(Date.now() / 1000)) {
+    return { ok: false, reason: "Facilitator receipt is expired or missing exp." };
+  }
+  if (!receipt.txHash && !receipt.settlementId) {
+    return { ok: false, reason: "Facilitator receipt must include txHash or settlementId." };
+  }
+
+  return { ok: true, mode: "trusted-facilitator-receipt", proof: receipt };
 }
 
 export function verifyPayment(requirement, payment) {
@@ -182,6 +250,7 @@ export function verifyPayment(requirement, payment) {
     item.settlementRail === payment.settlementRail &&
     item.network === payment.networkId &&
     item.amount === payment.amount &&
+    sameAsset(item.asset, payment.asset) &&
     item.payTo === payment.payTo
   ));
 

@@ -11,6 +11,27 @@ function required(name) {
   };
 }
 
+function validJsonJwks(name) {
+  const value = process.env[name];
+  if (!value) return { name, present: false, ok: false, reason: "missing" };
+  try {
+    const parsed = JSON.parse(value);
+    return {
+      name,
+      present: true,
+      ok: Array.isArray(parsed.keys) && parsed.keys.length > 0,
+      keyCount: Array.isArray(parsed.keys) ? parsed.keys.length : 0
+    };
+  } catch (error) {
+    return {
+      name,
+      present: true,
+      ok: false,
+      reason: error instanceof Error ? error.message : String(error)
+    };
+  }
+}
+
 async function checkJwks() {
   const url = process.env.OIDC_JWKS_URL;
   if (!url) {
@@ -64,10 +85,20 @@ const oidc = [
 const authority = [
   required("ZK_OAUTH_ISSUER_SECRET"),
   required("MISSION_AUTHORITY_PRIVATE_JWK"),
-  required("MISSION_APPROVAL_BEARER_TOKEN")
+  required("MISSION_APPROVAL_BEARER_TOKEN"),
+  required("MISSION_STATE_PATH"),
+  required("REVOCATION_STATE_PATH")
 ];
 const settlement = [
-  required("X402_TRUST_FACILITATOR_RECEIPTS")
+  {
+    name: "X402_TRUST_FACILITATOR_RECEIPTS",
+    present: Boolean(process.env.X402_TRUST_FACILITATOR_RECEIPTS),
+    value: process.env.X402_TRUST_FACILITATOR_RECEIPTS ? "set" : "missing",
+    ok: process.env.X402_TRUST_FACILITATOR_RECEIPTS === "true"
+  },
+  required("X402_FACILITATOR_ISSUER"),
+  required("X402_FACILITATOR_AUDIENCE"),
+  validJsonJwks("X402_FACILITATOR_JWKS_JSON")
 ];
 const zekoDeploy = [
   required("DEPLOYER_PRIVATE_KEY"),
@@ -85,7 +116,7 @@ const zeko = await checkZeko();
 const ok =
   oidc.every((item) => item.present) &&
   authority.every((item) => item.present) &&
-  settlement.every((item) => item.present) &&
+  settlement.every((item) => item.ok ?? item.present) &&
   jwks.ok &&
   zekoDeploy.every((item) => item.present) &&
   zeko.ok &&
@@ -103,7 +134,7 @@ console.log(JSON.stringify({
   nextMissing: [
     ...oidc.filter((item) => !item.present).map((item) => item.name),
     ...authority.filter((item) => !item.present).map((item) => item.name),
-    ...settlement.filter((item) => !item.present).map((item) => item.name),
+    ...settlement.filter((item) => !(item.ok ?? item.present)).map((item) => item.name),
     ...(jwks.ok ? [] : ["valid OIDC JWKS"]),
     ...zekoDeploy.filter((item) => !item.present).map((item) => item.name),
     ...(zeko.ok ? [] : ["reachable Zeko GraphQL"]),

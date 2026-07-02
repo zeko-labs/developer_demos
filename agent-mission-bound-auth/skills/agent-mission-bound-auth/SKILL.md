@@ -40,8 +40,9 @@ Do not reduce the protocol to a login button. Login establishes identity; the mi
 
 For production posture, set `MISSION_AUTH_PROFILE=production` and `DEMO_MODE=false`.
 This disables demo minting, requires authority bearer tokens for passport/mission
-mutation endpoints, rejects mock x402 settlement, and requires configured signing
-and commitment secrets.
+mutation and stateful enforcement endpoints, rejects mock x402 settlement,
+requires signed facilitator receipts or live chain verification, and requires
+configured signing, commitment, and durable state settings.
 
 ## Provider Integration Rules
 
@@ -50,10 +51,11 @@ For Auth0 and Okta:
 - Use Authorization Code + PKCE for browser-facing flows.
 - Require an ID token for agent identity.
 - Verify JWTs against the provider JWKS.
-- Check issuer, audience, expiry, nonce/state, and token type.
+- Check issuer, client-id audience for ID tokens, expiry, nonce/state, and token type.
 - Normalize provider claims before computing commitments.
 - Keep secrets in `.env.local` or host environment only.
 - Map provider subjects to internal agents with `AGENT_MAPPINGS_JSON` using `provider:issuer:subject`.
+- In production, reject unmapped subjects and never accept request-supplied issuer, audience, or JWKS URLs as trust roots.
 
 For Okta:
 

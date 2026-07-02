@@ -11,11 +11,11 @@ The included private-compute UI is only a local tutorial harness. The protocol i
 - Real OIDC login through Auth0, Okta, or any configured OIDC provider.
 - Agent passports that say who the agent is, who it represents, and who vouches for it.
 - Mission-bound approvals with signed snapshots of task, tools, scopes, rails, budget, and expiry.
-- Checkpoint enforcement before payment, compute, settlement, or external side effects.
+- Stateless checkpoint verification for external apps and bearer-gated checkpoint enforcement for mission-authority state.
 - Portable `zk-mission-bundle-v1` exports with offline JWKS verification.
 - x402 rail metadata for Zeko, Ethereum, Base, Arc preview, and Tempo preview.
 - Zeko approval/receipt anchoring scripts for environments that want an on-chain audit root.
-- Production profile that disables demo minting, requires authority tokens, rejects mock settlement, and enforces replay/budget checks.
+- Production profile that disables demo minting, pins OIDC trust roots, requires authority tokens, rejects mock settlement, and enforces durable replay/budget checks.
 
 ## Repository Layout
 
@@ -92,8 +92,11 @@ POST /api/agents/passport
 POST /api/missions/propose
 POST /api/missions/approve
 POST /api/mission/verify-checkpoint
+POST /api/mission/enforce-checkpoint
 POST /api/mission/export-bundle
 ```
+
+`verify-checkpoint` is stateless and safe for external apps that need to decide whether an action is allowed. `enforce-checkpoint` mutates replay, ordering, budget, and enforcement-log state; in production it requires `MISSION_APPROVAL_BEARER_TOKEN`.
 
 ## SDK Usage
 
@@ -156,7 +159,14 @@ DEMO_MODE=false
 ZK_OAUTH_ISSUER_SECRET=...
 MISSION_AUTHORITY_PRIVATE_JWK='{"kty":"EC","crv":"P-256",...}'
 MISSION_APPROVAL_BEARER_TOKEN=...
+MISSION_STATE_PATH=/var/lib/agent-mission-bound-auth/mission-state.json
+REVOCATION_STATE_PATH=/var/lib/agent-mission-bound-auth/revocation-state.json
+X402_TRUST_FACILITATOR_RECEIPTS=true
+X402_FACILITATOR_ISSUER=https://facilitator.example
+X402_FACILITATOR_JWKS_JSON='{"keys":[...]}'
 ```
+
+Production `/api/oauth/zk-commit` verifies JWTs only against configured provider trust roots. Request-supplied issuer, audience, or JWKS URLs are ignored in production.
 
 Container build:
 
