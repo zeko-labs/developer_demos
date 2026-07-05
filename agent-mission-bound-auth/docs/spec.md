@@ -61,6 +61,28 @@ It defines:
 - required checkpoints
 - expiry
 
+## Capability
+
+`mission-bound-capability-v1` is the hardened authority object used by
+portable receipts and settlement. It explicitly binds:
+
+- `capabilityId`
+- `jti`
+- `nullifierSeed`
+- represented principal hash
+- agent/runtime id
+- holder key commitment
+- mission id hash
+- allowed domains/actions
+- data scopes
+- payment rails
+- max spend
+- expiry
+- settlement release condition
+
+The capability hash is the authority commitment downstream receipts and
+registry anchors reference.
+
 ## Approval
 
 `mission-approval-v1` binds an approver to a mission.
@@ -130,6 +152,20 @@ Production deployments should anchor both:
 Before action: approval commitment
 After action: execution receipt commitment
 ```
+
+## Portable Verification
+
+Portable verifiers can independently check:
+
+- capability hash and nullifier construction
+- boundary event holder-proof binding
+- trace hash chain continuity
+- receipt hash, policy hash, payment context, and settlement state
+- registry anchor payload digest and receipt linkage
+
+See [receipt format](./receipt-format.md), [boundary events](./boundary-events.md),
+[registry/nullifiers](./registry-nullifiers.md), and
+[public verifier CLI](./verifier-cli.md).
 
 ## Non-Goals
 

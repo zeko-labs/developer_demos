@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/receipt.schema.json",
+  "type": "object",
+  "required": ["schema", "receiptId", "receiptHash", "mission", "policy", "holder", "trace", "payment", "proof", "nullifier", "settlementState"],
+  "properties": {
+    "schema": { "const": "mission-bound-auth-receipt-v1" },
+    "receiptId": { "type": "string" },
+    "receiptHash": { "type": "string" },
+    "mission": { "type": "object" },
+    "policy": { "type": "object" },
+    "holder": { "type": "object" },
+    "trace": { "type": "object" },
+    "payment": { "type": "object" },
+    "proof": { "type": "object" },
+    "nullifier": { "type": "string" },
+    "registryRoot": { "type": ["string", "null"] },
+    "settlementState": { "type": "string" },
+    "anchor": { "type": ["object", "null"] },
+    "exportedAt": { "type": "string" }
+  }
+}

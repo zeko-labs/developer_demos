@@ -128,6 +128,7 @@ Never commit `.env.local`, private deployer keys, generated zkApp keys, `node_mo
 ## Repo Packaging
 
 For the canonical repo, keep the protocol source, docs, SDK, schemas, harness, and Zeko anchoring scripts together.
+The canonical repo uses Business Source License 1.1 plus commercial production terms; do not relabel it as Apache-2.0.
 
 For `zeko-labs/developer_demos`, copy the canonical repo into:
 
@@ -137,7 +138,7 @@ agent-mission-bound-auth/
 
 Use the destination repo's conventions:
 
-- Keep Apache-2.0 license metadata.
+- Preserve the canonical `LICENSE`, `LICENSE-APACHE-2.0`, and `COMMERCIAL.md` files inside the demo subdirectory unless the destination maintainers explicitly request a different wrapper.
 - Preserve the existing `Readme.md` casing if the destination already uses it.
 - Stage only `agent-mission-bound-auth/` for the PR.
 - Watch for case-sensitive filename collisions in the larger demo repo and keep unrelated changes unstaged.

@@ -1,6 +1,7 @@
 # Agent Mission-Bound Auth
 
-Protocol sidecar for delegated and autonomous agents.
+Protocol sidecar and source-available reference implementation for delegated
+and autonomous agents.
 
 It binds enterprise identity to a specific mission, signs the approval, enforces checkpoints before side effects, links x402 payment context, and emits portable receipts that can be independently verified and anchored on Zeko.
 
@@ -13,8 +14,10 @@ The included private-compute UI is only a local tutorial harness. The protocol i
 - Mission-bound approvals with signed snapshots of task, tools, scopes, rails, budget, and expiry.
 - Stateless checkpoint verification for external apps and bearer-gated checkpoint enforcement for mission-authority state.
 - Portable `zk-mission-bundle-v1` exports with offline JWKS verification.
+- Portable `mission-bound-auth-receipt-v1` exports with trace, payment, policy, nullifier, and anchor linkage.
+- Public `mba` verifier CLI for receipts, traces, anchors, and settlement state.
 - x402 rail metadata for Zeko, Ethereum, Base, Arc preview, and Tempo preview.
-- Zeko approval/receipt anchoring scripts for environments that want an on-chain audit root.
+- Zeko approval/receipt anchoring scripts for production on-chain audit roots.
 - Production profile that disables demo minting, pins OIDC trust roots, requires authority tokens, rejects mock settlement, and enforces durable replay/budget checks.
 
 ## Repository Layout
@@ -142,6 +145,7 @@ verifyMissionBundle(bundle, jwks);
 npm test
 npm run smoke:protocol
 npm run test:conformance
+npm run test:protocol-bindings
 npm run test:conformance:remote
 npm run test:oauth-sandbox
 npm run oauth:sandbox-doctor
@@ -193,6 +197,12 @@ No production Zeko operator is required for the local tutorial flow. Production 
 ## Docs
 
 - [Protocol spec](./docs/spec.md)
+- [Generalized ZK architecture](./docs/generalized-zk-architecture.md)
+- [Threat model](./docs/threat-model.md)
+- [Portable receipt format](./docs/receipt-format.md)
+- [Boundary event vocabulary](./docs/boundary-events.md)
+- [Registry and nullifiers](./docs/registry-nullifiers.md)
+- [Public verifier CLI](./docs/verifier-cli.md)
 - [Integration guide](./docs/integration-guide.md)
 - [OAuth provider setup](./docs/oauth-sandbox.md)
 - [Security notes](./docs/security.md)
@@ -204,4 +214,9 @@ The repeatable build and review playbook is packaged as a local Codex skill:
 
 ## License
 
-Apache-2.0. See [LICENSE](./LICENSE).
+Business Source License 1.1 with a commercial production use path. See
+[LICENSE](./LICENSE) and [COMMERCIAL.md](./COMMERCIAL.md).
+
+The Change License is Apache-2.0 on the Change Date stated in
+[LICENSE](./LICENSE); the Apache-2.0 text is preserved in
+[LICENSE-APACHE-2.0](./LICENSE-APACHE-2.0).
