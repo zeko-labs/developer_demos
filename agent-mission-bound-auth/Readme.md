@@ -1,6 +1,7 @@
 # Agent Mission-Bound Auth
 
-Protocol sidecar for delegated and autonomous agents.
+Protocol sidecar and source-available reference implementation for delegated
+and autonomous agents.
 
 It binds enterprise identity to a specific mission, signs the approval, enforces checkpoints before side effects, links x402 payment context, and emits portable receipts that can be independently verified and anchored on Zeko.
 
@@ -15,11 +16,13 @@ This demo is testnet-first by default. For mainnet, use a separate environment p
 - Real OIDC login through Auth0, Okta, or any configured OIDC provider.
 - Agent passports that say who the agent is, who it represents, and who vouches for it.
 - Mission-bound approvals with signed snapshots of task, tools, scopes, rails, budget, and expiry.
-- Checkpoint enforcement before payment, compute, settlement, or external side effects.
+- Stateless checkpoint verification for external apps and bearer-gated checkpoint enforcement for mission-authority state.
 - Portable `zk-mission-bundle-v1` exports with offline JWKS verification.
+- Portable `mission-bound-auth-receipt-v1` exports with trace, payment, policy, nullifier, and anchor linkage.
+- Public `mba` verifier CLI for receipts, traces, anchors, and settlement state.
 - x402 rail metadata for Zeko, Ethereum, Base, Arc preview, and Tempo preview.
-- Zeko approval/receipt anchoring scripts for environments that want an on-chain audit root.
-- Production profile that disables demo minting, requires authority tokens, rejects mock settlement, and enforces replay/budget checks.
+- Zeko approval/receipt anchoring scripts for production on-chain audit roots.
+- Production profile that disables demo minting, pins OIDC trust roots, requires authority tokens, rejects mock settlement, and enforces durable replay/budget checks.
 
 ## Repository Layout
 
@@ -96,8 +99,11 @@ POST /api/agents/passport
 POST /api/missions/propose
 POST /api/missions/approve
 POST /api/mission/verify-checkpoint
+POST /api/mission/enforce-checkpoint
 POST /api/mission/export-bundle
 ```
+
+`verify-checkpoint` is stateless and safe for external apps that need to decide whether an action is allowed. `enforce-checkpoint` mutates replay, ordering, budget, and enforcement-log state; in production it requires `MISSION_APPROVAL_BEARER_TOKEN`.
 
 ## SDK Usage
 
@@ -143,6 +149,7 @@ verifyMissionBundle(bundle, jwks);
 npm test
 npm run smoke:protocol
 npm run test:conformance
+npm run test:protocol-bindings
 npm run test:conformance:remote
 npm run test:oauth-sandbox
 npm run oauth:sandbox-doctor
@@ -160,7 +167,14 @@ DEMO_MODE=false
 ZK_OAUTH_ISSUER_SECRET=...
 MISSION_AUTHORITY_PRIVATE_JWK='{"kty":"EC","crv":"P-256",...}'
 MISSION_APPROVAL_BEARER_TOKEN=...
+MISSION_STATE_PATH=/var/lib/agent-mission-bound-auth/mission-state.json
+REVOCATION_STATE_PATH=/var/lib/agent-mission-bound-auth/revocation-state.json
+X402_TRUST_FACILITATOR_RECEIPTS=true
+X402_FACILITATOR_ISSUER=https://facilitator.example
+X402_FACILITATOR_JWKS_JSON='{"keys":[...]}'
 ```
+
+Production `/api/oauth/zk-commit` verifies JWTs only against configured provider trust roots. Request-supplied issuer, audience, or JWKS URLs are ignored in production.
 
 Container build:
 
@@ -187,6 +201,12 @@ No production Zeko operator is required for the local tutorial flow. Production 
 ## Docs
 
 - [Protocol spec](./docs/spec.md)
+- [Generalized ZK architecture](./docs/generalized-zk-architecture.md)
+- [Threat model](./docs/threat-model.md)
+- [Portable receipt format](./docs/receipt-format.md)
+- [Boundary event vocabulary](./docs/boundary-events.md)
+- [Registry and nullifiers](./docs/registry-nullifiers.md)
+- [Public verifier CLI](./docs/verifier-cli.md)
 - [Integration guide](./docs/integration-guide.md)
 - [OAuth provider setup](./docs/oauth-sandbox.md)
 - [Security notes](./docs/security.md)
@@ -198,4 +218,9 @@ The repeatable build and review playbook is packaged as a local Codex skill:
 
 ## License
 
-Apache-2.0. See [LICENSE](./LICENSE).
+Business Source License 1.1 with a commercial production use path. See
+[LICENSE](./LICENSE) and [COMMERCIAL.md](./COMMERCIAL.md).
+
+The Change License is Apache-2.0 on the Change Date stated in
+[LICENSE](./LICENSE); the Apache-2.0 text is preserved in
+[LICENSE-APACHE-2.0](./LICENSE-APACHE-2.0).

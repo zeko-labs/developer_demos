@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/capability.schema.json",
+  "type": "object",
+  "required": ["version", "capabilityId", "capabilityHash", "issuer", "audience", "principalHash", "agentId", "holderKeyCommitment", "missionIdHash", "allowedActions", "paymentRails", "expiresAt", "jti", "nullifierSeed", "settlementReleaseCondition", "nullifier"],
+  "properties": {
+    "version": { "const": "mission-bound-capability-v1" },
+    "capabilityId": { "type": "string" },
+    "capabilityHash": { "type": "string" },
+    "issuer": { "type": "string" },
+    "audience": { "type": "string" },
+    "principalHash": { "type": "string" },
+    "agentId": { "type": "string" },
+    "runtimeId": { "type": "string" },
+    "holderKeyCommitment": { "type": "string" },
+    "missionIdHash": { "type": "string" },
+    "allowedDomains": { "type": "array", "items": { "type": "string" } },
+    "allowedActions": { "type": "array", "items": { "type": "string" } },
+    "dataScopes": { "type": "array", "items": { "type": "string" } },
+    "paymentRails": { "type": "array", "items": { "type": "string" } },
+    "maxSpendUsd": { "type": "string" },
+    "expiresAt": { "type": "string" },
+    "jti": { "type": "string" },
+    "nullifierSeed": { "type": "string" },
+    "settlementReleaseCondition": { "type": "string" },
+    "nullifier": { "type": "string" }
+  }
+}

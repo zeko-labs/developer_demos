@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/boundary-event.schema.json",
+  "type": "object",
+  "required": ["version", "missionIdHash", "capabilityHash", "policyHash", "eventType", "action", "actionHash", "targetDomainHash", "resourceHash", "paymentContextDigest", "previousEventHash", "observedAt", "holderProof", "eventId", "eventHash"],
+  "properties": {
+    "version": { "const": "mission-bound-boundary-event-v1" },
+    "missionIdHash": { "type": "string" },
+    "capabilityHash": { "type": "string" },
+    "policyHash": { "type": "string" },
+    "eventType": { "type": "string" },
+    "action": { "type": "string" },
+    "actionHash": { "type": "string" },
+    "targetDomainHash": { "type": "string" },
+    "resourceHash": { "type": "string" },
+    "paymentContextDigest": { "type": "string" },
+    "sideEffectId": { "type": ["string", "null"] },
+    "idempotencyKey": { "type": ["string", "null"] },
+    "previousEventHash": { "type": "string" },
+    "observedAt": { "type": "string" },
+    "expiresAt": { "type": ["string", "null"] },
+    "holderKeyCommitment": { "type": "string" },
+    "holderProof": { "type": "object" },
+    "eventId": { "type": "string" },
+    "eventHash": { "type": "string" }
+  }
+}

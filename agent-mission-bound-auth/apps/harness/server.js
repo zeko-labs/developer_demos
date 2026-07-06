@@ -5,11 +5,11 @@ import { fileURLToPath } from "node:url";
 import { buildPaymentRequirement, buildMockPayment, decodePaymentHeader, encodeRequirement, PAYMENT, PAYMENT_REQUIRED, PAYMENT_RESPONSE, verifyPayment } from "../../packages/protocol/x402.js";
 import { buildPolicy, loadDatasets, runPrivateCompute } from "./private-compute.js";
 import { issueZkOAuthProof, verifyZkOAuthProof } from "./zk-oauth.js";
-import { id } from "../../packages/protocol/digest.js";
+import { id, randomSalt } from "../../packages/protocol/digest.js";
 import { enabledRails } from "../../packages/protocol/rails.js";
 import { buildZekoContractPlan } from "../../packages/protocol/zeko-plan.js";
 import { buildAuthCommitment, normalizeOAuthClaims, verifyJwtWithJwks } from "../../packages/protocol/oauth-production.js";
-import { buildOidcAuthorization, completeOidcAuthorization, oidcProviderConfig, oidcProviderNames } from "../../packages/protocol/oidc.js";
+import { buildOidcAuthorization, completeOidcAuthorization, discoverOidcProvider, oidcProviderConfig, oidcProviderNames } from "../../packages/protocol/oidc.js";
 import { listRevocations, revokeAuthCommitment } from "../../packages/protocol/revocations.js";
 import {
   approveMission,
@@ -19,7 +19,8 @@ import {
   getMission,
   listEnforcementLog,
   listMissions,
-  proposeMission
+  proposeMission,
+  verifyCheckpoint
 } from "../../packages/protocol/missions.js";
 import { buildDiscoveryDocument, buildMissionBundle } from "../../packages/protocol/protocol-bundles.js";
 import { jwks } from "../../packages/protocol/authority-keys.js";
@@ -81,6 +82,36 @@ function requireApprovalAuthority(req, res) {
   if (auth.ok) return true;
   sendJson(res, auth.status, { error: "approval_authority_required", reason: auth.reason });
   return false;
+}
+
+function requireEnv(name, purpose) {
+  const value = process.env[name];
+  if (!value) throw new Error(`${name} is required for ${purpose}.`);
+  return value;
+}
+
+async function productionOidcVerificationConfig(provider, baseUrl) {
+  const normalizedProvider = provider ?? "generic-oidc";
+  if (normalizedProvider === "generic-oidc" || normalizedProvider === "oidc") {
+    return {
+      provider: "generic-oidc",
+      issuer: requireEnv("OIDC_ISSUER", "production OIDC verification"),
+      audience: requireEnv("OIDC_AUDIENCE", "production OIDC verification"),
+      jwksUrl: requireEnv("OIDC_JWKS_URL", "production OIDC verification")
+    };
+  }
+
+  const config = oidcProviderConfig(normalizedProvider, baseUrl);
+  if (!config.configured) {
+    throw new Error(`${normalizedProvider} is not configured for production OIDC verification.`);
+  }
+  const discovery = await discoverOidcProvider(config);
+  return {
+    provider: config.provider,
+    issuer: discovery.issuer,
+    audience: config.clientId,
+    jwksUrl: discovery.jwksUri
+  };
 }
 
 async function serveStatic(req, res) {
@@ -374,16 +405,30 @@ async function route(req, res) {
     }
 
     if (req.method === "GET" && url.pathname === "/api/missions") {
+      if (isProductionProfile() && !requireApprovalAuthority(req, res)) return;
       sendJson(res, 200, { missions: listMissions() });
       return;
     }
 
     if (req.method === "GET" && url.pathname === "/api/enforcement-log") {
+      if (isProductionProfile() && !requireApprovalAuthority(req, res)) return;
       sendJson(res, 200, { enforcementLog: listEnforcementLog() });
       return;
     }
 
     if (req.method === "POST" && url.pathname === "/api/mission/verify-checkpoint") {
+      const body = await readJson(req);
+      const result = verifyCheckpoint({
+        checkpoint: body.checkpoint,
+        approval: body.approval,
+        context: body.context
+      });
+      sendJson(res, result.ok ? 200 : 403, result);
+      return;
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/mission/enforce-checkpoint") {
+      if (!requireApprovalAuthority(req, res)) return;
       const body = await readJson(req);
       const result = enforceCheckpoint({
         checkpoint: body.checkpoint,
@@ -413,6 +458,7 @@ async function route(req, res) {
     }
 
     if (req.method === "POST" && url.pathname === "/api/demo-domain/email/send") {
+      if (isProductionProfile() && !requireApprovalAuthority(req, res)) return;
       const body = await readJson(req);
       const check = enforceCheckpoint({
         checkpoint: "before_external_side_effect",
@@ -422,6 +468,8 @@ async function route(req, res) {
           datasetId: body.datasetId,
           operation: body.operation,
           action: "email.send",
+          missionExecutionId: body.missionExecutionId,
+          idempotencyKey: body.idempotencyKey ?? body.emailId,
           toDomain: String(body.to ?? "").split("@").pop() ?? "unknown"
         }
       });
@@ -476,17 +524,30 @@ async function route(req, res) {
         });
         return;
       }
-      const claims = token
-        ? await verifyJwtWithJwks(token, {
-            issuer: body.issuer ?? process.env.OIDC_ISSUER,
-            audience: body.audience ?? process.env.OIDC_AUDIENCE,
-            jwksUrl: body.jwksUrl ?? process.env.OIDC_JWKS_URL
-          })
-        : body.claims;
-      const normalizedClaims = normalizeOAuthClaims(claims, body.provider);
+      const provider = body.provider ?? (isProductionProfile() ? "generic-oidc" : undefined);
+      let claims;
+      let verifiedProvider = provider;
+      if (token && isProductionProfile()) {
+        const verification = await productionOidcVerificationConfig(provider, baseUrl);
+        verifiedProvider = verification.provider;
+        claims = await verifyJwtWithJwks(token, {
+          issuer: verification.issuer,
+          audience: verification.audience,
+          jwksUrl: verification.jwksUrl
+        });
+      } else if (token) {
+        claims = await verifyJwtWithJwks(token, {
+          issuer: body.issuer ?? process.env.OIDC_ISSUER,
+          audience: body.audience ?? process.env.OIDC_AUDIENCE,
+          jwksUrl: body.jwksUrl ?? process.env.OIDC_JWKS_URL
+        });
+      } else {
+        claims = body.claims;
+      }
+      const normalizedClaims = normalizeOAuthClaims(claims, verifiedProvider);
       const commitment = buildAuthCommitment(
         normalizedClaims,
-        body.salt ?? "server-side-demo-salt",
+        isProductionProfile() ? randomSalt() : body.salt ?? "server-side-demo-salt",
         process.env.ZK_OAUTH_ISSUER_SECRET
       );
       sendJson(res, 200, {
@@ -499,6 +560,7 @@ async function route(req, res) {
     }
 
     if (req.method === "GET" && url.pathname === "/api/oauth/revocations") {
+      if (isProductionProfile() && !requireApprovalAuthority(req, res)) return;
       sendJson(res, 200, { revocations: listRevocations() });
       return;
     }

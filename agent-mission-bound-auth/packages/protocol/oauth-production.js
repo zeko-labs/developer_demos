@@ -1,6 +1,6 @@
 import { createHash, createPublicKey, verify as verifySignature } from "node:crypto";
 import { hmacSha256Hex, sha256Hex } from "./digest.js";
-import { requireConfiguredValue } from "./runtime.js";
+import { isProductionProfile, requireConfiguredValue } from "./runtime.js";
 
 function base64urlDecode(value) {
   return Buffer.from(value, "base64url");
@@ -103,6 +103,9 @@ function unique(values) {
 }
 
 export function normalizeOAuthClaims(claims, provider = "generic-oidc") {
+  if (!claims?.iss || !claims?.sub) {
+    throw new Error("OIDC claims must include issuer and subject.");
+  }
   const rawScopes = unique([
     ...splitScopes(claims.scope),
     ...splitScopes(claims.scp),
@@ -125,6 +128,15 @@ export function normalizeOAuthClaims(claims, provider = "generic-oidc") {
   const subjectKey = `${provider}:${claims.iss}:${claims.sub}`;
   const agentMap = loadAgentMappings();
   const mappedAgent = agentMap.get(subjectKey) ?? agentMap.get(`${claims.iss}:${claims.sub}`);
+  if (isProductionProfile() && !mappedAgent) {
+    throw new Error(`No production agent mapping found for ${subjectKey}.`);
+  }
+  const tokenAgentId =
+    claims.agent_id ??
+    claims["https://private-compute.example/agent_id"] ??
+    claims.azp ??
+    claims.client_id ??
+    claims.sub;
 
   return {
     version: "normalized-oauth-claims-v1",
@@ -133,13 +145,7 @@ export function normalizeOAuthClaims(claims, provider = "generic-oidc") {
     subject: claims.sub,
     subjectKey,
     audience: claims.aud,
-    agentId:
-      claims.agent_id ??
-      claims["https://private-compute.example/agent_id"] ??
-      mappedAgent?.agentId ??
-      claims.azp ??
-      claims.client_id ??
-      claims.sub,
+    agentId: mappedAgent?.agentId ?? tokenAgentId,
     represents: mappedAgent?.represents ?? null,
     organization: String(org),
     scopes: rawScopes,

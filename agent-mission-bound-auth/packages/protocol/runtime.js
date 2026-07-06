@@ -1,3 +1,5 @@
+import { timingSafeEqual } from "node:crypto";
+
 export function isProductionProfile(env = process.env) {
   return env.MISSION_AUTH_PROFILE === "production" ||
     env.NODE_ENV === "production" ||
@@ -30,7 +32,10 @@ export function requireAuthorityBearer(req, envName = "MISSION_APPROVAL_BEARER_T
   if (!expected) {
     return { ok: false, status: 500, reason: `${envName} is required in production profile.` };
   }
-  if (bearerToken(req) !== expected) {
+  const supplied = bearerToken(req);
+  const suppliedBuffer = Buffer.from(supplied);
+  const expectedBuffer = Buffer.from(expected);
+  if (suppliedBuffer.length !== expectedBuffer.length || !timingSafeEqual(suppliedBuffer, expectedBuffer)) {
     return { ok: false, status: 401, reason: "approval authority token is missing or invalid." };
   }
   return { ok: true, mode: "production" };

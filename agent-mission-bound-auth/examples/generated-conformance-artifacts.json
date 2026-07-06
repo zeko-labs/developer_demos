@@ -22,11 +22,11 @@
       "method": "http-message-signatures-compatible",
       "jwksUri": "https://agents.local/.well-known/agent-jwks.json"
     },
-    "createdAt": "2026-05-01T16:34:01.518Z",
-    "passportId": "agent_ccdd818061e082f6c820e177",
-    "passportCommitment": "ccdd818061e082f6c820e177d412cf46ca4659408438a23bfc9bafc30cc80439",
-    "authoritySignature": "e892cba36d7ad3a67b8dc060e1c04ea455dea734aed1970fbc8cb80165302bf7",
-    "authorityJws": "eyJ0eXAiOiJhZ2VudC1wYXNzcG9ydCtqd3QiLCJhbGciOiJFUzI1NiIsImtpZCI6Im1pc3Npb24tYXV0aG9yaXR5LWI1YzliZTFmZTBjZSJ9.eyJ2ZXJzaW9uIjoiYWdlbnQtcGFzc3BvcnQtdjEiLCJhZ2VudElkIjoiYWdlbnQtY29uZm9ybWFuY2UtMDAxIiwiYWdlbnRJZGVudGlmaWVyIjoiYWF1dGg6YWdlbnQtY29uZm9ybWFuY2UtMDAxQGFnZW50cy5sb2NhbCIsInJlcHJlc2VudHMiOnsidHlwZSI6Im9yZ2FuaXphdGlvbiIsImlkIjoiQ29uZm9ybWFuY2UgTGFicyJ9LCJ2b3VjaGVkQnkiOlt7InR5cGUiOiJlbnRlcnByaXNlLWlkcCIsInByb3RvY29sIjoic2FtbC1vci1vaWRjIiwiaXNzdWVyIjoiemstb2F1dGgtZGVtby5lbnRlcnByaXNlLmV4YW1wbGUifSx7InR5cGUiOiJtaXNzaW9uLWF1dGhvcml0eSIsImlzc3VlciI6ImFnZW50LW1pc3Npb24tYm91bmQtYXV0aCJ9XSwia2V5QmluZGluZyI6eyJtZXRob2QiOiJodHRwLW1lc3NhZ2Utc2lnbmF0dXJlcy1jb21wYXRpYmxlIiwiandrc1VyaSI6Imh0dHBzOi8vYWdlbnRzLmxvY2FsLy53ZWxsLWtub3duL2FnZW50LWp3a3MuanNvbiJ9LCJjcmVhdGVkQXQiOiIyMDI2LTA1LTAxVDE2OjM0OjAxLjUxOFoifQ.MPR5qgDkY2Tpad3Ved3I79jVr_zbdr9Y4If-3BNYin5QF6CAaZmjXNkwT8xyzoSj9RxVNVqdB7MAK1tPIhFgrg"
+    "createdAt": "2026-05-01T16:19:07.825Z",
+    "passportId": "agent_c5bbb62f2e1850c4302a69c3",
+    "passportCommitment": "c5bbb62f2e1850c4302a69c3967ba50b77b682ec214558de04b5a80e76c4bc0b",
+    "authoritySignature": "501e0a466b871c6c508b59e8ae2b3ec5d67787348f3da45ad58825edb5be217f",
+    "authorityJws": "eyJ0eXAiOiJhZ2VudC1wYXNzcG9ydCtqd3QiLCJhbGciOiJFUzI1NiIsImtpZCI6Im1pc3Npb24tYXV0aG9yaXR5LWI1YzliZTFmZTBjZSJ9.eyJ2ZXJzaW9uIjoiYWdlbnQtcGFzc3BvcnQtdjEiLCJhZ2VudElkIjoiYWdlbnQtY29uZm9ybWFuY2UtMDAxIiwiYWdlbnRJZGVudGlmaWVyIjoiYWF1dGg6YWdlbnQtY29uZm9ybWFuY2UtMDAxQGFnZW50cy5sb2NhbCIsInJlcHJlc2VudHMiOnsidHlwZSI6Im9yZ2FuaXphdGlvbiIsImlkIjoiQ29uZm9ybWFuY2UgTGFicyJ9LCJ2b3VjaGVkQnkiOlt7InR5cGUiOiJlbnRlcnByaXNlLWlkcCIsInByb3RvY29sIjoic2FtbC1vci1vaWRjIiwiaXNzdWVyIjoiemstb2F1dGgtZGVtby5lbnRlcnByaXNlLmV4YW1wbGUifSx7InR5cGUiOiJtaXNzaW9uLWF1dGhvcml0eSIsImlzc3VlciI6ImFnZW50LW1pc3Npb24tYm91bmQtYXV0aCJ9XSwia2V5QmluZGluZyI6eyJtZXRob2QiOiJodHRwLW1lc3NhZ2Utc2lnbmF0dXJlcy1jb21wYXRpYmxlIiwiandrc1VyaSI6Imh0dHBzOi8vYWdlbnRzLmxvY2FsLy53ZWxsLWtub3duL2FnZW50LWp3a3MuanNvbiJ9LCJjcmVhdGVkQXQiOiIyMDI2LTA1LTAxVDE2OjE5OjA3LjgyNVoifQ.XEbIKMCg1vzz0D-Uz2mUzVAL2w60nqeOHO9fH7hjIyqUrPYBVU5LDX421rvErMsLXEinQYtl6HQ111NushDT8Q"
   },
   "mission": {
     "version": "mission-bound-agent-auth-v1",
@@ -67,16 +67,16 @@
       "before_external_side_effect",
       "after_receipt"
     ],
-    "createdAt": "2026-05-01T16:34:01.520Z",
-    "expiresAt": "2026-05-01T16:54:01.520Z",
-    "missionId": "mission_784adfe91a828f1fb8a197fd",
-    "missionHash": "784adfe91a828f1fb8a197fdf9bc8d01e7e214edab8537e21a9747697091e39c",
+    "createdAt": "2026-05-01T16:19:07.827Z",
+    "expiresAt": "2026-05-01T16:39:07.827Z",
+    "missionId": "mission_e73d5d335500da65b4e8bbc9",
+    "missionHash": "e73d5d335500da65b4e8bbc99df9aeb0add292f13b3e104157b64bb4f266a104",
     "status": "proposed"
   },
   "approval": {
     "version": "mission-approval-v1",
-    "missionId": "mission_784adfe91a828f1fb8a197fd",
-    "missionHash": "784adfe91a828f1fb8a197fdf9bc8d01e7e214edab8537e21a9747697091e39c",
+    "missionId": "mission_e73d5d335500da65b4e8bbc9",
+    "missionHash": "e73d5d335500da65b4e8bbc99df9aeb0add292f13b3e104157b64bb4f266a104",
     "approver": {
       "type": "enterprise-human-or-policy",
       "id": "policy@example.com",
@@ -118,15 +118,15 @@
         "after_receipt"
       ]
     },
-    "expiresAt": "2026-05-01T16:54:01.520Z",
-    "approvedAt": "2026-05-01T16:34:01.520Z",
-    "approvalId": "approval_a17ebc57a9e47ba4acea8a92",
-    "approvalHash": "a17ebc57a9e47ba4acea8a92fa8474d51ee68e0046ddaa25e0c0703401518f76",
-    "authoritySignature": "b1ecbe5cce568f36fa651b481743ac5438d400a836852813b678c5dc3e696e83",
-    "authorityJws": "eyJ0eXAiOiJtaXNzaW9uLWFwcHJvdmFsK2p3dCIsImFsZyI6IkVTMjU2Iiwia2lkIjoibWlzc2lvbi1hdXRob3JpdHktYjVjOWJlMWZlMGNlIn0.eyJ2ZXJzaW9uIjoibWlzc2lvbi1hcHByb3ZhbC12MSIsIm1pc3Npb25JZCI6Im1pc3Npb25fNzg0YWRmZTkxYTgyOGYxZmI4YTE5N2ZkIiwibWlzc2lvbkhhc2giOiI3ODRhZGZlOTFhODI4ZjFmYjhhMTk3ZmRmOWJjOGQwMWU3ZTIxNGVkYWI4NTM3ZTIxYTk3NDc2OTcwOTFlMzljIiwiYXBwcm92ZXIiOnsidHlwZSI6ImVudGVycHJpc2UtaHVtYW4tb3ItcG9saWN5IiwiaWQiOiJwb2xpY3lAZXhhbXBsZS5jb20iLCJpc3N1ZXIiOiJjb25mb3JtYW5jZS1pZHAifSwiYXBwcm92ZWRUb29scyI6WyJwcml2YXRlX2NvbXB1dGUucnVuIiwieDQwMi5wYXkiLCJ4NDAyLnNldHRsZSIsImVtYWlsLnNlbmQiLCJ6ZWtvLnJlY2VpcHQuYW5jaG9yIl0sImFwcHJvdmVkU2NvcGVzIjpbImNvbXB1dGU6Y2xpbmljYWwiLCJkYXRhc2V0OmNsaW5pY2FsLWZhaWx1cmVzLXExIl0sImFwcHJvdmVkUmFpbHMiOlsiemVrbyIsImJhc2UiXSwibWlzc2lvblNuYXBzaG90Ijp7ImFnZW50SWQiOiJhZ2VudC1jb25mb3JtYW5jZS0wMDEiLCJkYXRhc2V0SWQiOiJjbGluaWNhbC1mYWlsdXJlcy1xMSIsIm9wZXJhdGlvbiI6InJpc2stc3VtbWFyeSIsImNvbnN0cmFpbnRzIjp7InJhd0RhdGFFZ3Jlc3MiOmZhbHNlLCJhZ2dyZWdhdGVPbmx5Ijp0cnVlLCJtYXhTcGVuZFVzZCI6IjUuMDAiLCJhbGxvd2VkUmFpbHMiOlsiemVrbyIsImJhc2UiXSwicmVxdWlyZXNJbmRlcGVuZGVudFJlY2VpcHQiOnRydWV9LCJjaGVja3BvaW50cyI6WyJiZWZvcmVfcGF5bWVudF9vZmZlciIsImJlZm9yZV9wcml2YXRlX2NvbXB1dGUiLCJiZWZvcmVfZXh0ZXJuYWxfc2lkZV9lZmZlY3QiLCJhZnRlcl9yZWNlaXB0Il19LCJleHBpcmVzQXQiOiIyMDI2LTA1LTAxVDE2OjU0OjAxLjUyMFoiLCJhcHByb3ZlZEF0IjoiMjAyNi0wNS0wMVQxNjozNDowMS41MjBaIn0.S6spaZpVgzPBTBkV8AnXuDRAf3qIsng8jRmpbUy8xo1Kc2WS_qaej9unGBujvcXz62O-ekXwJqX7Hqsmsczajw",
+    "expiresAt": "2026-05-01T16:39:07.827Z",
+    "approvedAt": "2026-05-01T16:19:07.827Z",
+    "approvalId": "approval_c904d7d515591a40bc3baf79",
+    "approvalHash": "c904d7d515591a40bc3baf79cdfec8e503a1847a4cfd8000c3e3d49f96e71833",
+    "authoritySignature": "483aabcf0a327ea6c0e1aee61f286805c9ec09568c1569248e7d365b709720cf",
+    "authorityJws": "eyJ0eXAiOiJtaXNzaW9uLWFwcHJvdmFsK2p3dCIsImFsZyI6IkVTMjU2Iiwia2lkIjoibWlzc2lvbi1hdXRob3JpdHktYjVjOWJlMWZlMGNlIn0.eyJ2ZXJzaW9uIjoibWlzc2lvbi1hcHByb3ZhbC12MSIsIm1pc3Npb25JZCI6Im1pc3Npb25fZTczZDVkMzM1NTAwZGE2NWI0ZThiYmM5IiwibWlzc2lvbkhhc2giOiJlNzNkNWQzMzU1MDBkYTY1YjRlOGJiYzk5ZGY5YWViMGFkZDI5MmYxM2IzZTEwNDE1N2I2NGJiNGYyNjZhMTA0IiwiYXBwcm92ZXIiOnsidHlwZSI6ImVudGVycHJpc2UtaHVtYW4tb3ItcG9saWN5IiwiaWQiOiJwb2xpY3lAZXhhbXBsZS5jb20iLCJpc3N1ZXIiOiJjb25mb3JtYW5jZS1pZHAifSwiYXBwcm92ZWRUb29scyI6WyJwcml2YXRlX2NvbXB1dGUucnVuIiwieDQwMi5wYXkiLCJ4NDAyLnNldHRsZSIsImVtYWlsLnNlbmQiLCJ6ZWtvLnJlY2VpcHQuYW5jaG9yIl0sImFwcHJvdmVkU2NvcGVzIjpbImNvbXB1dGU6Y2xpbmljYWwiLCJkYXRhc2V0OmNsaW5pY2FsLWZhaWx1cmVzLXExIl0sImFwcHJvdmVkUmFpbHMiOlsiemVrbyIsImJhc2UiXSwibWlzc2lvblNuYXBzaG90Ijp7ImFnZW50SWQiOiJhZ2VudC1jb25mb3JtYW5jZS0wMDEiLCJkYXRhc2V0SWQiOiJjbGluaWNhbC1mYWlsdXJlcy1xMSIsIm9wZXJhdGlvbiI6InJpc2stc3VtbWFyeSIsImNvbnN0cmFpbnRzIjp7InJhd0RhdGFFZ3Jlc3MiOmZhbHNlLCJhZ2dyZWdhdGVPbmx5Ijp0cnVlLCJtYXhTcGVuZFVzZCI6IjUuMDAiLCJhbGxvd2VkUmFpbHMiOlsiemVrbyIsImJhc2UiXSwicmVxdWlyZXNJbmRlcGVuZGVudFJlY2VpcHQiOnRydWV9LCJjaGVja3BvaW50cyI6WyJiZWZvcmVfcGF5bWVudF9vZmZlciIsImJlZm9yZV9wcml2YXRlX2NvbXB1dGUiLCJiZWZvcmVfZXh0ZXJuYWxfc2lkZV9lZmZlY3QiLCJhZnRlcl9yZWNlaXB0Il19LCJleHBpcmVzQXQiOiIyMDI2LTA1LTAxVDE2OjM5OjA3LjgyN1oiLCJhcHByb3ZlZEF0IjoiMjAyNi0wNS0wMVQxNjoxOTowNy44MjdaIn0.f93pWilVEX98lqu-SIPWBBuoUpKno3xHjF3VJ2eJlxurNz70710XerEjJ_56TWsBoyvwqvwRoinClW8f6qMQiA",
     "zekoAnchor": {
       "primitive": "mission-approval-commitment-v1",
-      "commitment": "0f79223637323faa811fe501b7e477936d3aabfcc69c6506171374f776c65dd6",
+      "commitment": "e38cd235830797e033c1c4a59e7b20a61f1c6c0d18f570601f7e783480b70475",
       "status": "ready-to-anchor"
     }
   },
@@ -134,8 +134,8 @@
     "checkpoint": "before_external_side_effect",
     "approval": {
       "version": "mission-approval-v1",
-      "missionId": "mission_784adfe91a828f1fb8a197fd",
-      "missionHash": "784adfe91a828f1fb8a197fdf9bc8d01e7e214edab8537e21a9747697091e39c",
+      "missionId": "mission_e73d5d335500da65b4e8bbc9",
+      "missionHash": "e73d5d335500da65b4e8bbc99df9aeb0add292f13b3e104157b64bb4f266a104",
       "approver": {
         "type": "enterprise-human-or-policy",
         "id": "policy@example.com",
@@ -177,15 +177,15 @@
           "after_receipt"
         ]
       },
-      "expiresAt": "2026-05-01T16:54:01.520Z",
-      "approvedAt": "2026-05-01T16:34:01.520Z",
-      "approvalId": "approval_a17ebc57a9e47ba4acea8a92",
-      "approvalHash": "a17ebc57a9e47ba4acea8a92fa8474d51ee68e0046ddaa25e0c0703401518f76",
-      "authoritySignature": "b1ecbe5cce568f36fa651b481743ac5438d400a836852813b678c5dc3e696e83",
-      "authorityJws": "eyJ0eXAiOiJtaXNzaW9uLWFwcHJvdmFsK2p3dCIsImFsZyI6IkVTMjU2Iiwia2lkIjoibWlzc2lvbi1hdXRob3JpdHktYjVjOWJlMWZlMGNlIn0.eyJ2ZXJzaW9uIjoibWlzc2lvbi1hcHByb3ZhbC12MSIsIm1pc3Npb25JZCI6Im1pc3Npb25fNzg0YWRmZTkxYTgyOGYxZmI4YTE5N2ZkIiwibWlzc2lvbkhhc2giOiI3ODRhZGZlOTFhODI4ZjFmYjhhMTk3ZmRmOWJjOGQwMWU3ZTIxNGVkYWI4NTM3ZTIxYTk3NDc2OTcwOTFlMzljIiwiYXBwcm92ZXIiOnsidHlwZSI6ImVudGVycHJpc2UtaHVtYW4tb3ItcG9saWN5IiwiaWQiOiJwb2xpY3lAZXhhbXBsZS5jb20iLCJpc3N1ZXIiOiJjb25mb3JtYW5jZS1pZHAifSwiYXBwcm92ZWRUb29scyI6WyJwcml2YXRlX2NvbXB1dGUucnVuIiwieDQwMi5wYXkiLCJ4NDAyLnNldHRsZSIsImVtYWlsLnNlbmQiLCJ6ZWtvLnJlY2VpcHQuYW5jaG9yIl0sImFwcHJvdmVkU2NvcGVzIjpbImNvbXB1dGU6Y2xpbmljYWwiLCJkYXRhc2V0OmNsaW5pY2FsLWZhaWx1cmVzLXExIl0sImFwcHJvdmVkUmFpbHMiOlsiemVrbyIsImJhc2UiXSwibWlzc2lvblNuYXBzaG90Ijp7ImFnZW50SWQiOiJhZ2VudC1jb25mb3JtYW5jZS0wMDEiLCJkYXRhc2V0SWQiOiJjbGluaWNhbC1mYWlsdXJlcy1xMSIsIm9wZXJhdGlvbiI6InJpc2stc3VtbWFyeSIsImNvbnN0cmFpbnRzIjp7InJhd0RhdGFFZ3Jlc3MiOmZhbHNlLCJhZ2dyZWdhdGVPbmx5Ijp0cnVlLCJtYXhTcGVuZFVzZCI6IjUuMDAiLCJhbGxvd2VkUmFpbHMiOlsiemVrbyIsImJhc2UiXSwicmVxdWlyZXNJbmRlcGVuZGVudFJlY2VpcHQiOnRydWV9LCJjaGVja3BvaW50cyI6WyJiZWZvcmVfcGF5bWVudF9vZmZlciIsImJlZm9yZV9wcml2YXRlX2NvbXB1dGUiLCJiZWZvcmVfZXh0ZXJuYWxfc2lkZV9lZmZlY3QiLCJhZnRlcl9yZWNlaXB0Il19LCJleHBpcmVzQXQiOiIyMDI2LTA1LTAxVDE2OjU0OjAxLjUyMFoiLCJhcHByb3ZlZEF0IjoiMjAyNi0wNS0wMVQxNjozNDowMS41MjBaIn0.S6spaZpVgzPBTBkV8AnXuDRAf3qIsng8jRmpbUy8xo1Kc2WS_qaej9unGBujvcXz62O-ekXwJqX7Hqsmsczajw",
+      "expiresAt": "2026-05-01T16:39:07.827Z",
+      "approvedAt": "2026-05-01T16:19:07.827Z",
+      "approvalId": "approval_c904d7d515591a40bc3baf79",
+      "approvalHash": "c904d7d515591a40bc3baf79cdfec8e503a1847a4cfd8000c3e3d49f96e71833",
+      "authoritySignature": "483aabcf0a327ea6c0e1aee61f286805c9ec09568c1569248e7d365b709720cf",
+      "authorityJws": "eyJ0eXAiOiJtaXNzaW9uLWFwcHJvdmFsK2p3dCIsImFsZyI6IkVTMjU2Iiwia2lkIjoibWlzc2lvbi1hdXRob3JpdHktYjVjOWJlMWZlMGNlIn0.eyJ2ZXJzaW9uIjoibWlzc2lvbi1hcHByb3ZhbC12MSIsIm1pc3Npb25JZCI6Im1pc3Npb25fZTczZDVkMzM1NTAwZGE2NWI0ZThiYmM5IiwibWlzc2lvbkhhc2giOiJlNzNkNWQzMzU1MDBkYTY1YjRlOGJiYzk5ZGY5YWViMGFkZDI5MmYxM2IzZTEwNDE1N2I2NGJiNGYyNjZhMTA0IiwiYXBwcm92ZXIiOnsidHlwZSI6ImVudGVycHJpc2UtaHVtYW4tb3ItcG9saWN5IiwiaWQiOiJwb2xpY3lAZXhhbXBsZS5jb20iLCJpc3N1ZXIiOiJjb25mb3JtYW5jZS1pZHAifSwiYXBwcm92ZWRUb29scyI6WyJwcml2YXRlX2NvbXB1dGUucnVuIiwieDQwMi5wYXkiLCJ4NDAyLnNldHRsZSIsImVtYWlsLnNlbmQiLCJ6ZWtvLnJlY2VpcHQuYW5jaG9yIl0sImFwcHJvdmVkU2NvcGVzIjpbImNvbXB1dGU6Y2xpbmljYWwiLCJkYXRhc2V0OmNsaW5pY2FsLWZhaWx1cmVzLXExIl0sImFwcHJvdmVkUmFpbHMiOlsiemVrbyIsImJhc2UiXSwibWlzc2lvblNuYXBzaG90Ijp7ImFnZW50SWQiOiJhZ2VudC1jb25mb3JtYW5jZS0wMDEiLCJkYXRhc2V0SWQiOiJjbGluaWNhbC1mYWlsdXJlcy1xMSIsIm9wZXJhdGlvbiI6InJpc2stc3VtbWFyeSIsImNvbnN0cmFpbnRzIjp7InJhd0RhdGFFZ3Jlc3MiOmZhbHNlLCJhZ2dyZWdhdGVPbmx5Ijp0cnVlLCJtYXhTcGVuZFVzZCI6IjUuMDAiLCJhbGxvd2VkUmFpbHMiOlsiemVrbyIsImJhc2UiXSwicmVxdWlyZXNJbmRlcGVuZGVudFJlY2VpcHQiOnRydWV9LCJjaGVja3BvaW50cyI6WyJiZWZvcmVfcGF5bWVudF9vZmZlciIsImJlZm9yZV9wcml2YXRlX2NvbXB1dGUiLCJiZWZvcmVfZXh0ZXJuYWxfc2lkZV9lZmZlY3QiLCJhZnRlcl9yZWNlaXB0Il19LCJleHBpcmVzQXQiOiIyMDI2LTA1LTAxVDE2OjM5OjA3LjgyN1oiLCJhcHByb3ZlZEF0IjoiMjAyNi0wNS0wMVQxNjoxOTowNy44MjdaIn0.f93pWilVEX98lqu-SIPWBBuoUpKno3xHjF3VJ2eJlxurNz70710XerEjJ_56TWsBoyvwqvwRoinClW8f6qMQiA",
       "zekoAnchor": {
         "primitive": "mission-approval-commitment-v1",
-        "commitment": "0f79223637323faa811fe501b7e477936d3aabfcc69c6506171374f776c65dd6",
+        "commitment": "e38cd235830797e033c1c4a59e7b20a61f1c6c0d18f570601f7e783480b70475",
         "status": "ready-to-anchor"
       }
     },
@@ -198,7 +198,7 @@
   },
   "bundle": {
     "version": "zk-mission-bundle-v1",
-    "exportedAt": "2026-05-01T16:34:01.521Z",
+    "exportedAt": "2026-05-01T16:19:07.827Z",
     "agentPassport": {
       "version": "agent-passport-v1",
       "agentId": "agent-conformance-001",
@@ -222,11 +222,11 @@
         "method": "http-message-signatures-compatible",
         "jwksUri": "https://agents.local/.well-known/agent-jwks.json"
       },
-      "createdAt": "2026-05-01T16:34:01.518Z",
-      "passportId": "agent_ccdd818061e082f6c820e177",
-      "passportCommitment": "ccdd818061e082f6c820e177d412cf46ca4659408438a23bfc9bafc30cc80439",
-      "authoritySignature": "e892cba36d7ad3a67b8dc060e1c04ea455dea734aed1970fbc8cb80165302bf7",
-      "authorityJws": "eyJ0eXAiOiJhZ2VudC1wYXNzcG9ydCtqd3QiLCJhbGciOiJFUzI1NiIsImtpZCI6Im1pc3Npb24tYXV0aG9yaXR5LWI1YzliZTFmZTBjZSJ9.eyJ2ZXJzaW9uIjoiYWdlbnQtcGFzc3BvcnQtdjEiLCJhZ2VudElkIjoiYWdlbnQtY29uZm9ybWFuY2UtMDAxIiwiYWdlbnRJZGVudGlmaWVyIjoiYWF1dGg6YWdlbnQtY29uZm9ybWFuY2UtMDAxQGFnZW50cy5sb2NhbCIsInJlcHJlc2VudHMiOnsidHlwZSI6Im9yZ2FuaXphdGlvbiIsImlkIjoiQ29uZm9ybWFuY2UgTGFicyJ9LCJ2b3VjaGVkQnkiOlt7InR5cGUiOiJlbnRlcnByaXNlLWlkcCIsInByb3RvY29sIjoic2FtbC1vci1vaWRjIiwiaXNzdWVyIjoiemstb2F1dGgtZGVtby5lbnRlcnByaXNlLmV4YW1wbGUifSx7InR5cGUiOiJtaXNzaW9uLWF1dGhvcml0eSIsImlzc3VlciI6ImFnZW50LW1pc3Npb24tYm91bmQtYXV0aCJ9XSwia2V5QmluZGluZyI6eyJtZXRob2QiOiJodHRwLW1lc3NhZ2Utc2lnbmF0dXJlcy1jb21wYXRpYmxlIiwiandrc1VyaSI6Imh0dHBzOi8vYWdlbnRzLmxvY2FsLy53ZWxsLWtub3duL2FnZW50LWp3a3MuanNvbiJ9LCJjcmVhdGVkQXQiOiIyMDI2LTA1LTAxVDE2OjM0OjAxLjUxOFoifQ.MPR5qgDkY2Tpad3Ved3I79jVr_zbdr9Y4If-3BNYin5QF6CAaZmjXNkwT8xyzoSj9RxVNVqdB7MAK1tPIhFgrg"
+      "createdAt": "2026-05-01T16:19:07.825Z",
+      "passportId": "agent_c5bbb62f2e1850c4302a69c3",
+      "passportCommitment": "c5bbb62f2e1850c4302a69c3967ba50b77b682ec214558de04b5a80e76c4bc0b",
+      "authoritySignature": "501e0a466b871c6c508b59e8ae2b3ec5d67787348f3da45ad58825edb5be217f",
+      "authorityJws": "eyJ0eXAiOiJhZ2VudC1wYXNzcG9ydCtqd3QiLCJhbGciOiJFUzI1NiIsImtpZCI6Im1pc3Npb24tYXV0aG9yaXR5LWI1YzliZTFmZTBjZSJ9.eyJ2ZXJzaW9uIjoiYWdlbnQtcGFzc3BvcnQtdjEiLCJhZ2VudElkIjoiYWdlbnQtY29uZm9ybWFuY2UtMDAxIiwiYWdlbnRJZGVudGlmaWVyIjoiYWF1dGg6YWdlbnQtY29uZm9ybWFuY2UtMDAxQGFnZW50cy5sb2NhbCIsInJlcHJlc2VudHMiOnsidHlwZSI6Im9yZ2FuaXphdGlvbiIsImlkIjoiQ29uZm9ybWFuY2UgTGFicyJ9LCJ2b3VjaGVkQnkiOlt7InR5cGUiOiJlbnRlcnByaXNlLWlkcCIsInByb3RvY29sIjoic2FtbC1vci1vaWRjIiwiaXNzdWVyIjoiemstb2F1dGgtZGVtby5lbnRlcnByaXNlLmV4YW1wbGUifSx7InR5cGUiOiJtaXNzaW9uLWF1dGhvcml0eSIsImlzc3VlciI6ImFnZW50LW1pc3Npb24tYm91bmQtYXV0aCJ9XSwia2V5QmluZGluZyI6eyJtZXRob2QiOiJodHRwLW1lc3NhZ2Utc2lnbmF0dXJlcy1jb21wYXRpYmxlIiwiandrc1VyaSI6Imh0dHBzOi8vYWdlbnRzLmxvY2FsLy53ZWxsLWtub3duL2FnZW50LWp3a3MuanNvbiJ9LCJjcmVhdGVkQXQiOiIyMDI2LTA1LTAxVDE2OjE5OjA3LjgyNVoifQ.XEbIKMCg1vzz0D-Uz2mUzVAL2w60nqeOHO9fH7hjIyqUrPYBVU5LDX421rvErMsLXEinQYtl6HQ111NushDT8Q"
     },
     "mission": {
       "version": "mission-bound-agent-auth-v1",
@@ -267,16 +267,16 @@
         "before_external_side_effect",
         "after_receipt"
       ],
-      "createdAt": "2026-05-01T16:34:01.520Z",
-      "expiresAt": "2026-05-01T16:54:01.520Z",
-      "missionId": "mission_784adfe91a828f1fb8a197fd",
-      "missionHash": "784adfe91a828f1fb8a197fdf9bc8d01e7e214edab8537e21a9747697091e39c",
+      "createdAt": "2026-05-01T16:19:07.827Z",
+      "expiresAt": "2026-05-01T16:39:07.827Z",
+      "missionId": "mission_e73d5d335500da65b4e8bbc9",
+      "missionHash": "e73d5d335500da65b4e8bbc99df9aeb0add292f13b3e104157b64bb4f266a104",
       "status": "proposed"
     },
     "approval": {
       "version": "mission-approval-v1",
-      "missionId": "mission_784adfe91a828f1fb8a197fd",
-      "missionHash": "784adfe91a828f1fb8a197fdf9bc8d01e7e214edab8537e21a9747697091e39c",
+      "missionId": "mission_e73d5d335500da65b4e8bbc9",
+      "missionHash": "e73d5d335500da65b4e8bbc99df9aeb0add292f13b3e104157b64bb4f266a104",
       "approver": {
         "type": "enterprise-human-or-policy",
         "id": "policy@example.com",
@@ -318,15 +318,15 @@
           "after_receipt"
         ]
       },
-      "expiresAt": "2026-05-01T16:54:01.520Z",
-      "approvedAt": "2026-05-01T16:34:01.520Z",
-      "approvalId": "approval_a17ebc57a9e47ba4acea8a92",
-      "approvalHash": "a17ebc57a9e47ba4acea8a92fa8474d51ee68e0046ddaa25e0c0703401518f76",
-      "authoritySignature": "b1ecbe5cce568f36fa651b481743ac5438d400a836852813b678c5dc3e696e83",
-      "authorityJws": "eyJ0eXAiOiJtaXNzaW9uLWFwcHJvdmFsK2p3dCIsImFsZyI6IkVTMjU2Iiwia2lkIjoibWlzc2lvbi1hdXRob3JpdHktYjVjOWJlMWZlMGNlIn0.eyJ2ZXJzaW9uIjoibWlzc2lvbi1hcHByb3ZhbC12MSIsIm1pc3Npb25JZCI6Im1pc3Npb25fNzg0YWRmZTkxYTgyOGYxZmI4YTE5N2ZkIiwibWlzc2lvbkhhc2giOiI3ODRhZGZlOTFhODI4ZjFmYjhhMTk3ZmRmOWJjOGQwMWU3ZTIxNGVkYWI4NTM3ZTIxYTk3NDc2OTcwOTFlMzljIiwiYXBwcm92ZXIiOnsidHlwZSI6ImVudGVycHJpc2UtaHVtYW4tb3ItcG9saWN5IiwiaWQiOiJwb2xpY3lAZXhhbXBsZS5jb20iLCJpc3N1ZXIiOiJjb25mb3JtYW5jZS1pZHAifSwiYXBwcm92ZWRUb29scyI6WyJwcml2YXRlX2NvbXB1dGUucnVuIiwieDQwMi5wYXkiLCJ4NDAyLnNldHRsZSIsImVtYWlsLnNlbmQiLCJ6ZWtvLnJlY2VpcHQuYW5jaG9yIl0sImFwcHJvdmVkU2NvcGVzIjpbImNvbXB1dGU6Y2xpbmljYWwiLCJkYXRhc2V0OmNsaW5pY2FsLWZhaWx1cmVzLXExIl0sImFwcHJvdmVkUmFpbHMiOlsiemVrbyIsImJhc2UiXSwibWlzc2lvblNuYXBzaG90Ijp7ImFnZW50SWQiOiJhZ2VudC1jb25mb3JtYW5jZS0wMDEiLCJkYXRhc2V0SWQiOiJjbGluaWNhbC1mYWlsdXJlcy1xMSIsIm9wZXJhdGlvbiI6InJpc2stc3VtbWFyeSIsImNvbnN0cmFpbnRzIjp7InJhd0RhdGFFZ3Jlc3MiOmZhbHNlLCJhZ2dyZWdhdGVPbmx5Ijp0cnVlLCJtYXhTcGVuZFVzZCI6IjUuMDAiLCJhbGxvd2VkUmFpbHMiOlsiemVrbyIsImJhc2UiXSwicmVxdWlyZXNJbmRlcGVuZGVudFJlY2VpcHQiOnRydWV9LCJjaGVja3BvaW50cyI6WyJiZWZvcmVfcGF5bWVudF9vZmZlciIsImJlZm9yZV9wcml2YXRlX2NvbXB1dGUiLCJiZWZvcmVfZXh0ZXJuYWxfc2lkZV9lZmZlY3QiLCJhZnRlcl9yZWNlaXB0Il19LCJleHBpcmVzQXQiOiIyMDI2LTA1LTAxVDE2OjU0OjAxLjUyMFoiLCJhcHByb3ZlZEF0IjoiMjAyNi0wNS0wMVQxNjozNDowMS41MjBaIn0.S6spaZpVgzPBTBkV8AnXuDRAf3qIsng8jRmpbUy8xo1Kc2WS_qaej9unGBujvcXz62O-ekXwJqX7Hqsmsczajw",
+      "expiresAt": "2026-05-01T16:39:07.827Z",
+      "approvedAt": "2026-05-01T16:19:07.827Z",
+      "approvalId": "approval_c904d7d515591a40bc3baf79",
+      "approvalHash": "c904d7d515591a40bc3baf79cdfec8e503a1847a4cfd8000c3e3d49f96e71833",
+      "authoritySignature": "483aabcf0a327ea6c0e1aee61f286805c9ec09568c1569248e7d365b709720cf",
+      "authorityJws": "eyJ0eXAiOiJtaXNzaW9uLWFwcHJvdmFsK2p3dCIsImFsZyI6IkVTMjU2Iiwia2lkIjoibWlzc2lvbi1hdXRob3JpdHktYjVjOWJlMWZlMGNlIn0.eyJ2ZXJzaW9uIjoibWlzc2lvbi1hcHByb3ZhbC12MSIsIm1pc3Npb25JZCI6Im1pc3Npb25fZTczZDVkMzM1NTAwZGE2NWI0ZThiYmM5IiwibWlzc2lvbkhhc2giOiJlNzNkNWQzMzU1MDBkYTY1YjRlOGJiYzk5ZGY5YWViMGFkZDI5MmYxM2IzZTEwNDE1N2I2NGJiNGYyNjZhMTA0IiwiYXBwcm92ZXIiOnsidHlwZSI6ImVudGVycHJpc2UtaHVtYW4tb3ItcG9saWN5IiwiaWQiOiJwb2xpY3lAZXhhbXBsZS5jb20iLCJpc3N1ZXIiOiJjb25mb3JtYW5jZS1pZHAifSwiYXBwcm92ZWRUb29scyI6WyJwcml2YXRlX2NvbXB1dGUucnVuIiwieDQwMi5wYXkiLCJ4NDAyLnNldHRsZSIsImVtYWlsLnNlbmQiLCJ6ZWtvLnJlY2VpcHQuYW5jaG9yIl0sImFwcHJvdmVkU2NvcGVzIjpbImNvbXB1dGU6Y2xpbmljYWwiLCJkYXRhc2V0OmNsaW5pY2FsLWZhaWx1cmVzLXExIl0sImFwcHJvdmVkUmFpbHMiOlsiemVrbyIsImJhc2UiXSwibWlzc2lvblNuYXBzaG90Ijp7ImFnZW50SWQiOiJhZ2VudC1jb25mb3JtYW5jZS0wMDEiLCJkYXRhc2V0SWQiOiJjbGluaWNhbC1mYWlsdXJlcy1xMSIsIm9wZXJhdGlvbiI6InJpc2stc3VtbWFyeSIsImNvbnN0cmFpbnRzIjp7InJhd0RhdGFFZ3Jlc3MiOmZhbHNlLCJhZ2dyZWdhdGVPbmx5Ijp0cnVlLCJtYXhTcGVuZFVzZCI6IjUuMDAiLCJhbGxvd2VkUmFpbHMiOlsiemVrbyIsImJhc2UiXSwicmVxdWlyZXNJbmRlcGVuZGVudFJlY2VpcHQiOnRydWV9LCJjaGVja3BvaW50cyI6WyJiZWZvcmVfcGF5bWVudF9vZmZlciIsImJlZm9yZV9wcml2YXRlX2NvbXB1dGUiLCJiZWZvcmVfZXh0ZXJuYWxfc2lkZV9lZmZlY3QiLCJhZnRlcl9yZWNlaXB0Il19LCJleHBpcmVzQXQiOiIyMDI2LTA1LTAxVDE2OjM5OjA3LjgyN1oiLCJhcHByb3ZlZEF0IjoiMjAyNi0wNS0wMVQxNjoxOTowNy44MjdaIn0.f93pWilVEX98lqu-SIPWBBuoUpKno3xHjF3VJ2eJlxurNz70710XerEjJ_56TWsBoyvwqvwRoinClW8f6qMQiA",
       "zekoAnchor": {
         "primitive": "mission-approval-commitment-v1",
-        "commitment": "0f79223637323faa811fe501b7e477936d3aabfcc69c6506171374f776c65dd6",
+        "commitment": "e38cd235830797e033c1c4a59e7b20a61f1c6c0d18f570601f7e783480b70475",
         "status": "ready-to-anchor"
       }
     },
@@ -339,6 +339,6 @@
     "zeko": {
       "zkappAddress": "B62qpBXMbrKVJwcS9wQN7SpFb6jkrXn2xrntCoM6D461qL2sYZarPHi"
     },
-    "bundleHash": "3b318da2a9c3b458079d39c52663093c09b2e911d7105ea1840adaf3e374be6f"
+    "bundleHash": "fa7121d7da93c249592189c056ad98cdf84de93444dfd45ba6f5db9c74e9e504"
   }
 }

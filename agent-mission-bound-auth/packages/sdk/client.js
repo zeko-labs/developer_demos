@@ -66,6 +66,14 @@ export class ZkMissionAuthClient {
     });
   }
 
+  enforceCheckpoint(input, bearerToken) {
+    return this.json("/api/mission/enforce-checkpoint", {
+      method: "POST",
+      headers: bearerToken ? { authorization: `Bearer ${bearerToken}` } : {},
+      body: JSON.stringify(input)
+    });
+  }
+
   exportBundle(input) {
     return this.json("/api/mission/export-bundle", {
       method: "POST",

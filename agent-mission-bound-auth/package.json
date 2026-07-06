@@ -2,9 +2,12 @@
   "name": "agent-mission-bound-auth",
   "version": "0.1.0",
   "private": true,
-  "license": "Apache-2.0",
+  "license": "BUSL-1.1",
   "type": "module",
   "description": "Mission-bound authorization protocol for delegated and autonomous agents with x402 payments and Zeko anchoring.",
+  "bin": {
+    "mba": "./scripts/mba.mjs"
+  },
   "exports": {
     "./protocol": "./packages/protocol/index.js",
     "./protocol/*": "./packages/protocol/*.js",
@@ -20,6 +23,8 @@
     "zkapp:build": "../zeko-x402/node_modules/.bin/tsc -p tsconfig.zkapp.json",
     "production:doctor": "node scripts/production-doctor.mjs",
     "test:production-hardening": "node scripts/production-hardening.mjs",
+    "test:protocol-bindings": "node scripts/protocol-binding-tests.mjs",
+    "mba": "node scripts/mba.mjs",
     "zkapp:deploy": "npm run zkapp:build && node scripts/deploy-private-compute-zkapp.mjs",
     "zkapp:get-state": "npm run zkapp:build && node scripts/get-private-compute-zkapp-state.mjs",
     "zkapp:anchor-approval": "npm run zkapp:build && node scripts/anchor-mission-approval.mjs",

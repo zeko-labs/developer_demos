@@ -45,11 +45,25 @@ const check = await auth.verifyCheckpoint({
     agentId: mission.agentId,
     datasetId: mission.datasetId,
     operation: mission.operation,
-    action: "your_app.side_effect"
+    action: "your_app.side_effect",
+    missionExecutionId: "exec-123",
+    idempotencyKey: "your-app-action-123"
   }
 });
 
 if (!check.ok) throw new Error("not authorized");
+```
+
+`verifyCheckpoint` is stateless. If your service is authorized to mutate mission
+authority replay, ordering, budget, and enforcement-log state, call
+`enforceCheckpoint` with the production bearer token instead:
+
+```js
+await auth.enforceCheckpoint({
+  checkpoint: "before_external_side_effect",
+  approval,
+  context: check.event.context
+}, process.env.MISSION_APPROVAL_BEARER_TOKEN);
 ```
 
 ## 4. Export A Portable Bundle

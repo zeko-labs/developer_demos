@@ -99,7 +99,7 @@ The sidecar:
 - redirects with Authorization Code + PKCE
 - exchanges the code at the token endpoint
 - requires an ID token and verifies it against provider JWKS
-- checks issuer, audience, expiry, and nonce
+- checks issuer, client-id audience, expiry, and nonce
 - normalizes claims into canonical protocol claims
 - creates the auth commitment used by Agent Mission-Bound Auth
 
@@ -118,6 +118,11 @@ AGENT_MAPPINGS_JSON='[
   }
 ]'
 ```
+
+Production profile is fail-closed for agent mapping: if a verified
+`provider:issuer:subject` does not map to an internal agent, the sidecar rejects
+the token. Production commitment construction also uses configured provider
+trust roots only; callers cannot supply their own issuer, audience, or JWKS URL.
 
 Run:
 
