@@ -30,15 +30,26 @@ function stripAuthorizationDigest(payload) {
 }
 
 let cachedFacilitatorJwks = null;
+let cachedFacilitatorJwksRaw = null;
 
 function facilitatorJwks() {
-  if (cachedFacilitatorJwks) return cachedFacilitatorJwks;
   const raw = process.env.X402_FACILITATOR_JWKS_JSON;
   if (!raw) throw new Error("X402_FACILITATOR_JWKS_JSON is required for trusted facilitator receipts.");
+  if (cachedFacilitatorJwks && cachedFacilitatorJwksRaw === raw) return cachedFacilitatorJwks;
   const parsed = JSON.parse(raw);
   if (!Array.isArray(parsed.keys)) throw new Error("X402_FACILITATOR_JWKS_JSON must contain keys[].");
   cachedFacilitatorJwks = parsed;
+  cachedFacilitatorJwksRaw = raw;
   return parsed;
+}
+
+function facilitatorClockToleranceSeconds() {
+  const raw = process.env.X402_FACILITATOR_CLOCK_TOLERANCE_SECONDS ?? "60";
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed) || parsed < 0 || parsed > 300) {
+    return { ok: false, reason: "X402_FACILITATOR_CLOCK_TOLERANCE_SECONDS must be a finite value between 0 and 300." };
+  }
+  return { ok: true, seconds: parsed };
 }
 
 function assertEqual(actual, expected, reason) {
@@ -234,8 +245,9 @@ function verifySettlementProof(option, payment) {
   ];
   const failed = checks.find((check) => !check.ok);
   if (failed) return failed;
-  const clockToleranceSeconds = Number(process.env.X402_FACILITATOR_CLOCK_TOLERANCE_SECONDS ?? 60);
-  if (typeof receipt.exp !== "number" || receipt.exp <= Math.floor(Date.now() / 1000) - clockToleranceSeconds) {
+  const clockTolerance = facilitatorClockToleranceSeconds();
+  if (!clockTolerance.ok) return clockTolerance;
+  if (typeof receipt.exp !== "number" || receipt.exp <= Math.floor(Date.now() / 1000) - clockTolerance.seconds) {
     return { ok: false, reason: "Facilitator receipt is expired or missing exp." };
   }
   if (!receipt.txHash && !receipt.settlementId) {

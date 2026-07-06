@@ -3,6 +3,7 @@ import path from "node:path";
 import { hmacSha256Hex, id, sha256Hex } from "./digest.js";
 import { signJws, verifyJws, jwks } from "./authority-keys.js";
 import { requireConfiguredValue, isProductionProfile } from "./runtime.js";
+import { writeJsonAtomic } from "./storage.js";
 
 const agents = new Map();
 const missions = new Map();
@@ -73,10 +74,7 @@ function persistState() {
     checkpointProgress: Array.from(checkpointProgress.entries()),
     spendLedger: Array.from(spendLedger.entries())
   };
-  fs.mkdirSync(path.dirname(file), { recursive: true });
-  const tempFile = `${file}.tmp`;
-  fs.writeFileSync(tempFile, JSON.stringify(state, null, 2));
-  fs.renameSync(tempFile, file);
+  writeJsonAtomic(file, state);
 }
 
 export function buildAgentPassport(input = {}) {

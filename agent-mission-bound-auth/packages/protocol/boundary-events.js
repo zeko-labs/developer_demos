@@ -47,6 +47,10 @@ function publicJwkFromHolderInput(input = {}) {
   return createPublicKey(privateKey).export({ format: "jwk" });
 }
 
+function isEd25519Jwk(publicJwk) {
+  return publicJwk?.kty === "OKP" && publicJwk?.crv === "Ed25519" && typeof publicJwk?.x === "string";
+}
+
 function holderKeyCommitmentFromInput(input = {}) {
   if (input.holderKeyCommitment) return input.holderKeyCommitment;
   const publicJwk = publicJwkFromHolderInput(input.holder ?? {});
@@ -56,10 +60,16 @@ function holderKeyCommitmentFromInput(input = {}) {
 export function buildHolderProof(eventBody, input = {}) {
   const messageHash = holderChallengeHash(eventBody);
   const scheme = input.scheme ?? DIGEST_HOLDER_PROOF_SCHEME;
+  if (scheme !== DIGEST_HOLDER_PROOF_SCHEME && scheme !== ED25519_HOLDER_PROOF_SCHEME) {
+    throw new Error(`Unsupported holder proof scheme:${scheme}.`);
+  }
   if (scheme === ED25519_HOLDER_PROOF_SCHEME) {
     const publicJwk = publicJwkFromHolderInput(input);
     if (!publicJwk) {
       throw new Error("ed25519-holder-proof-v1 requires publicJwk or privateKey.");
+    }
+    if (!isEd25519Jwk(publicJwk)) {
+      throw new Error("ed25519-holder-proof-v1 requires an Ed25519 public JWK.");
     }
     const privateKey = keyObjectFromPrivateInput(input);
     const signature = input.signature ?? (privateKey
@@ -136,6 +146,9 @@ function verifyDigestHolderProof(holderProof, options = {}) {
 function verifyEd25519HolderProof(event, holderProof) {
   if (!holderProof.publicJwk) {
     return { valid: false, reason: "Ed25519 holder proof missing publicJwk." };
+  }
+  if (!isEd25519Jwk(holderProof.publicJwk)) {
+    return { valid: false, reason: "Ed25519 holder proof requires an Ed25519 public JWK." };
   }
   const keyThumbprint = sha256Hex(holderProof.publicJwk);
   if (holderProof.keyThumbprint !== keyThumbprint) {

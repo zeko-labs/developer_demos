@@ -232,6 +232,25 @@ const ed25519Event = buildBoundaryEvent({
   }
 });
 assert.equal(verifyBoundaryEvent(ed25519Event, { requireStrongHolderProof: true }).valid, true);
+const wrongCurveEvent = clone(ed25519Event);
+wrongCurveEvent.holderProof.publicJwk = { ...wrongCurveEvent.holderProof.publicJwk, crv: "X25519" };
+wrongCurveEvent.holderProof.keyThumbprint = sha256Hex(wrongCurveEvent.holderProof.publicJwk);
+wrongCurveEvent.holderKeyCommitment = wrongCurveEvent.holderProof.keyThumbprint;
+const wrongCurveReplay = recomputeEventEnvelope(wrongCurveEvent);
+assert.equal(verifyBoundaryEvent(wrongCurveReplay, { requireStrongHolderProof: true }).valid, false);
+assert.match(verifyBoundaryEvent(wrongCurveReplay, { requireStrongHolderProof: true }).reason, /Ed25519 public JWK/);
+assert.throws(
+  () => buildBoundaryEvent({
+    missionIdHash,
+    capabilityHash: capability.capabilityHash,
+    policyHash: policy.policyHash,
+    action: "private_compute.run",
+    targetDomain: "compute.example",
+    resource: "clinical-failures-q1",
+    holder: { scheme: "unsupported-holder-proof-v1" }
+  }),
+  /Unsupported holder proof scheme/
+);
 assert.equal(verifyTraceChain([ed25519Event], {
   requireStrongHolderProof: true,
   missionIdHash: ed25519Capability.missionIdHash,
@@ -343,6 +362,8 @@ console.log(JSON.stringify({
     "anchor-statement",
     "production-anchor-required",
     "ed25519-holder-proof",
+    "rejects-wrong-ed25519-curve",
+    "rejects-unsupported-holder-proof",
     "production-rejects-digest-holder-proof"
   ],
   receiptPath,

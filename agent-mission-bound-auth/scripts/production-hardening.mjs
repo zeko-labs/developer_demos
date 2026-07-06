@@ -374,6 +374,23 @@ try {
   });
   assert.equal(signedPaymentCheck.ok, true);
 
+  process.env.X402_FACILITATOR_CLOCK_TOLERANCE_SECONDS = "not-a-number";
+  const invalidToleranceCheck = verifyPayment({
+    requestId: signedPayment.requestId,
+    accepts: [option]
+  }, {
+    ...signedPayment,
+    facilitatorReceipt: {
+      networkId: option.network,
+      payTo: option.payTo,
+      authorizationDigest: signedPayment.authorizationDigest,
+      jws: signedReceipt
+    }
+  });
+  assert.equal(invalidToleranceCheck.ok, false);
+  assert.match(invalidToleranceCheck.reason, /CLOCK_TOLERANCE/);
+  delete process.env.X402_FACILITATOR_CLOCK_TOLERANCE_SECONDS;
+
   const unsignedReceiptCheck = verifyPayment({
     requestId: signedPayment.requestId,
     accepts: [option]

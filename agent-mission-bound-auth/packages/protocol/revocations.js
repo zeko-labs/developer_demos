@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { isProductionProfile } from "./runtime.js";
+import { writeJsonAtomic } from "./storage.js";
 
 const revokedAuthCommitments = new Map();
 let loadedRevocationPath = null;
@@ -31,14 +32,11 @@ function ensureRevocationsLoaded() {
 function persistRevocations() {
   if (!durableRevocationsEnabled()) return;
   const file = revocationStatePath();
-  fs.mkdirSync(path.dirname(file), { recursive: true });
-  const tempFile = `${file}.tmp`;
-  fs.writeFileSync(tempFile, JSON.stringify({
+  writeJsonAtomic(file, {
     version: "revocation-state-v1",
     savedAt: new Date().toISOString(),
     revocations: Array.from(revokedAuthCommitments.values())
-  }, null, 2));
-  fs.renameSync(tempFile, file);
+  });
 }
 
 export function revokeAuthCommitment(authCommitment, reason = "revoked") {
