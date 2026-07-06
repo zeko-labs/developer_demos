@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
+import { generateKeyPairSync } from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -12,9 +13,11 @@ import {
   sha256Hex,
   verifyAnchorPayload,
   verifyBoundaryEvent,
+  verifyCapability,
   verifyReceipt,
   verifySettlementState,
   id,
+  ED25519_HOLDER_PROOF_SCHEME,
   verifyTraceChain
 } from "../packages/protocol/index.js";
 
@@ -167,9 +170,118 @@ const expiredEvent = buildBoundaryEvent({
 assert.equal(verifyBoundaryEvent(expiredEvent).valid, false);
 assert.match(verifyBoundaryEvent(expiredEvent).reason, /expired/);
 
+const invalidExpiryCapability = {
+  ...capability,
+  expiresAt: "not-a-date"
+};
+const invalidExpiryCapabilityBody = (() => {
+  const { capabilityId: _capabilityId, capabilityHash: _capabilityHash, nullifier: _nullifier, ...body } = invalidExpiryCapability;
+  return body;
+})();
+invalidExpiryCapability.capabilityHash = sha256Hex(invalidExpiryCapabilityBody);
+invalidExpiryCapability.capabilityId = id("capability", invalidExpiryCapabilityBody);
+invalidExpiryCapability.nullifier = sha256Hex({
+  capabilityId: invalidExpiryCapability.capabilityId,
+  capabilityHash: invalidExpiryCapability.capabilityHash,
+  missionIdHash: invalidExpiryCapability.missionIdHash,
+  nullifierSeed: invalidExpiryCapability.nullifierSeed,
+  settlementReleaseCondition: invalidExpiryCapability.settlementReleaseCondition
+});
+assert.equal(verifyCapability(invalidExpiryCapability).valid, false);
+
+const invalidExpiryEvent = buildBoundaryEvent({
+  missionIdHash,
+  capabilityHash: capability.capabilityHash,
+  policyHash: policy.policyHash,
+  action: "private_compute.run",
+  targetDomain: "compute.example",
+  resource: "clinical-failures-q1",
+  expiresAt: "not-a-date",
+  holderKeyCommitment: capability.holderKeyCommitment
+});
+assert.equal(verifyBoundaryEvent(invalidExpiryEvent).valid, false);
+
+const ed25519Keys = generateKeyPairSync("ed25519");
+const ed25519PublicJwk = ed25519Keys.publicKey.export({ format: "jwk" });
+const ed25519Capability = buildMissionCapability({
+  issuer: "binding-test",
+  audience: "binding-verifier",
+  principal: "org:binding-labs",
+  agentId: "agent-binding-ed25519",
+  holderPublicKey: ed25519PublicJwk,
+  missionId: "mission-binding-ed25519",
+  allowedDomains: ["compute.example"],
+  allowedActions: policy.allowedActions,
+  dataScopes: policy.dataScopes,
+  paymentRails: policy.paymentRails,
+  expiresAt: policy.expiresAt,
+  nullifierSeed: "binding-ed25519-nullifier-seed"
+});
+const ed25519Event = buildBoundaryEvent({
+  missionIdHash: ed25519Capability.missionIdHash,
+  capabilityHash: ed25519Capability.capabilityHash,
+  policyHash: policy.policyHash,
+  action: "private_compute.run",
+  targetDomain: "compute.example",
+  resource: "clinical-failures-q1",
+  expiresAt: policy.expiresAt,
+  holderKeyCommitment: ed25519Capability.holderKeyCommitment,
+  holder: {
+    scheme: ED25519_HOLDER_PROOF_SCHEME,
+    privateKey: ed25519Keys.privateKey
+  }
+});
+assert.equal(verifyBoundaryEvent(ed25519Event, { requireStrongHolderProof: true }).valid, true);
+const wrongCurveEvent = clone(ed25519Event);
+wrongCurveEvent.holderProof.publicJwk = { ...wrongCurveEvent.holderProof.publicJwk, crv: "X25519" };
+wrongCurveEvent.holderProof.keyThumbprint = sha256Hex(wrongCurveEvent.holderProof.publicJwk);
+wrongCurveEvent.holderKeyCommitment = wrongCurveEvent.holderProof.keyThumbprint;
+const wrongCurveReplay = recomputeEventEnvelope(wrongCurveEvent);
+assert.equal(verifyBoundaryEvent(wrongCurveReplay, { requireStrongHolderProof: true }).valid, false);
+assert.match(verifyBoundaryEvent(wrongCurveReplay, { requireStrongHolderProof: true }).reason, /Ed25519 public JWK/);
+assert.throws(
+  () => buildBoundaryEvent({
+    missionIdHash,
+    capabilityHash: capability.capabilityHash,
+    policyHash: policy.policyHash,
+    action: "private_compute.run",
+    targetDomain: "compute.example",
+    resource: "clinical-failures-q1",
+    holder: { scheme: "unsupported-holder-proof-v1" }
+  }),
+  /Unsupported holder proof scheme/
+);
+assert.equal(verifyTraceChain([ed25519Event], {
+  requireStrongHolderProof: true,
+  missionIdHash: ed25519Capability.missionIdHash,
+  capabilityHash: ed25519Capability.capabilityHash,
+  policyHash: policy.policyHash
+}).valid, true);
+
+const previousProductionEnv = {
+  MISSION_AUTH_PROFILE: process.env.MISSION_AUTH_PROFILE,
+  DEMO_MODE: process.env.DEMO_MODE
+};
+process.env.MISSION_AUTH_PROFILE = "production";
+process.env.DEMO_MODE = "false";
+assert.equal(verifyBoundaryEvent(event).valid, false);
+assert.match(verifyBoundaryEvent(event).reason, /digest-holder-proof/);
+assert.equal(verifyBoundaryEvent(ed25519Event).valid, true);
+if (previousProductionEnv.MISSION_AUTH_PROFILE === undefined) {
+  delete process.env.MISSION_AUTH_PROFILE;
+} else {
+  process.env.MISSION_AUTH_PROFILE = previousProductionEnv.MISSION_AUTH_PROFILE;
+}
+if (previousProductionEnv.DEMO_MODE === undefined) {
+  delete process.env.DEMO_MODE;
+} else {
+  process.env.DEMO_MODE = previousProductionEnv.DEMO_MODE;
+}
+
 const secondReceipt = clone(receipt);
 assert.equal(verifySettlementState(receipt, { spentNullifiers: [] }).decision, "release_allowed");
 assert.equal(verifySettlementState(secondReceipt, { spentNullifiers: [receipt.nullifier] }).decision, "duplicate_payment");
+assert.equal(verifySettlementState(receipt, { expiresAt: "not-a-date" }).decision, "expired_authorization");
 
 const changedPolicy = buildMissionPolicy({
   ...policy,
@@ -248,7 +360,11 @@ console.log(JSON.stringify({
     "policy-hash",
     "trace-chain",
     "anchor-statement",
-    "production-anchor-required"
+    "production-anchor-required",
+    "ed25519-holder-proof",
+    "rejects-wrong-ed25519-curve",
+    "rejects-unsupported-holder-proof",
+    "production-rejects-digest-holder-proof"
   ],
   receiptPath,
   anchorPath,

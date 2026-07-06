@@ -1,4 +1,9 @@
+import { createPrivateKey, createPublicKey, sign as cryptoSign, verify as cryptoVerify } from "node:crypto";
 import { id, sha256Hex } from "./digest.js";
+import { isProductionProfile } from "./runtime.js";
+
+export const DIGEST_HOLDER_PROOF_SCHEME = "digest-holder-proof-v1";
+export const ED25519_HOLDER_PROOF_SCHEME = "ed25519-holder-proof-v1";
 
 export function holderChallengeHash(eventBody) {
   return sha256Hex({
@@ -17,10 +22,73 @@ export function holderChallengeHash(eventBody) {
   });
 }
 
+function keyObjectFromPrivateInput(input) {
+  const key = input.privateKey ?? input.privateJwk;
+  if (!key) return null;
+  if (typeof key === "object" && key.type === "private") return key;
+  if (typeof key === "object" && key.kty) return createPrivateKey({ key, format: "jwk" });
+  return createPrivateKey(key);
+}
+
+function keyObjectFromPublicInput(input) {
+  const key = input.publicKey ?? input.publicJwk;
+  if (!key) return null;
+  if (typeof key === "object" && key.type === "public") return key;
+  if (typeof key === "object" && key.kty) return createPublicKey({ key, format: "jwk" });
+  return createPublicKey(key);
+}
+
+function publicJwkFromHolderInput(input = {}) {
+  if (input.publicJwk) return input.publicJwk;
+  const publicKey = keyObjectFromPublicInput(input);
+  if (publicKey) return publicKey.export({ format: "jwk" });
+  const privateKey = keyObjectFromPrivateInput(input);
+  if (!privateKey) return null;
+  return createPublicKey(privateKey).export({ format: "jwk" });
+}
+
+function isEd25519Jwk(publicJwk) {
+  return publicJwk?.kty === "OKP" && publicJwk?.crv === "Ed25519" && typeof publicJwk?.x === "string";
+}
+
+function holderKeyCommitmentFromInput(input = {}) {
+  if (input.holderKeyCommitment) return input.holderKeyCommitment;
+  const publicJwk = publicJwkFromHolderInput(input.holder ?? {});
+  return publicJwk ? sha256Hex(publicJwk) : undefined;
+}
+
 export function buildHolderProof(eventBody, input = {}) {
   const messageHash = holderChallengeHash(eventBody);
+  const scheme = input.scheme ?? DIGEST_HOLDER_PROOF_SCHEME;
+  if (scheme !== DIGEST_HOLDER_PROOF_SCHEME && scheme !== ED25519_HOLDER_PROOF_SCHEME) {
+    throw new Error(`Unsupported holder proof scheme:${scheme}.`);
+  }
+  if (scheme === ED25519_HOLDER_PROOF_SCHEME) {
+    const publicJwk = publicJwkFromHolderInput(input);
+    if (!publicJwk) {
+      throw new Error("ed25519-holder-proof-v1 requires publicJwk or privateKey.");
+    }
+    if (!isEd25519Jwk(publicJwk)) {
+      throw new Error("ed25519-holder-proof-v1 requires an Ed25519 public JWK.");
+    }
+    const privateKey = keyObjectFromPrivateInput(input);
+    const signature = input.signature ?? (privateKey
+      ? cryptoSign(null, Buffer.from(messageHash, "utf8"), privateKey).toString("base64url")
+      : null);
+    if (!signature) {
+      throw new Error("ed25519-holder-proof-v1 requires signature or privateKey.");
+    }
+    return {
+      scheme,
+      keyThumbprint: input.keyThumbprint ?? sha256Hex(publicJwk),
+      publicJwk,
+      messageHash,
+      signature
+    };
+  }
+
   return {
-    scheme: input.scheme ?? "digest-holder-proof-v1",
+    scheme,
     keyThumbprint: input.keyThumbprint ?? eventBody.holderKeyCommitment,
     messageHash,
     signature: input.signature ?? sha256Hex({
@@ -47,7 +115,7 @@ export function buildBoundaryEvent(input = {}) {
     previousEventHash: input.previousEventHash ?? "GENESIS",
     observedAt: input.observedAt ?? new Date().toISOString(),
     expiresAt: input.expiresAt,
-    holderKeyCommitment: input.holderKeyCommitment
+    holderKeyCommitment: holderKeyCommitmentFromInput(input)
   };
   const holderProof = input.holderProof ?? buildHolderProof(body, input.holder ?? {});
   const eventBody = {
@@ -59,6 +127,67 @@ export function buildBoundaryEvent(input = {}) {
     eventId: input.eventId ?? id("event", eventBody),
     eventHash: sha256Hex(eventBody)
   };
+}
+
+function verifyDigestHolderProof(holderProof, options = {}) {
+  if (options.requireStrongHolderProof ?? isProductionProfile(options.env ?? process.env)) {
+    return { valid: false, reason: "digest-holder-proof-v1 is not accepted for production holder proofs." };
+  }
+  const expected = sha256Hex({
+    holderSecret: options.holderSecret ?? "local-holder-proof",
+    messageHash: holderProof.messageHash
+  });
+  if (holderProof.signature !== expected) {
+    return { valid: false, reason: "Digest holder proof signature is invalid." };
+  }
+  return { valid: true };
+}
+
+function verifyEd25519HolderProof(event, holderProof) {
+  if (!holderProof.publicJwk) {
+    return { valid: false, reason: "Ed25519 holder proof missing publicJwk." };
+  }
+  if (!isEd25519Jwk(holderProof.publicJwk)) {
+    return { valid: false, reason: "Ed25519 holder proof requires an Ed25519 public JWK." };
+  }
+  const keyThumbprint = sha256Hex(holderProof.publicJwk);
+  if (holderProof.keyThumbprint !== keyThumbprint) {
+    return { valid: false, reason: "Ed25519 holder proof key thumbprint mismatch." };
+  }
+  if (event.holderKeyCommitment !== keyThumbprint) {
+    return { valid: false, reason: "Ed25519 holder proof is not bound to the event holder key commitment." };
+  }
+  try {
+    const publicKey = createPublicKey({ key: holderProof.publicJwk, format: "jwk" });
+    const ok = cryptoVerify(
+      null,
+      Buffer.from(holderProof.messageHash, "utf8"),
+      publicKey,
+      Buffer.from(holderProof.signature, "base64url")
+    );
+    if (!ok) return { valid: false, reason: "Ed25519 holder proof signature is invalid." };
+    return { valid: true };
+  } catch (error) {
+    return { valid: false, reason: error instanceof Error ? error.message : "Ed25519 holder proof verification failed." };
+  }
+}
+
+export function verifyHolderProof(event, options = {}) {
+  const holderProof = event.holderProof;
+  if (!holderProof?.messageHash) {
+    return { valid: false, reason: "Boundary event missing holder proof message hash." };
+  }
+  const { eventId: _eventId, eventHash: _eventHash, ...body } = event;
+  if (holderProof.messageHash !== holderChallengeHash(body)) {
+    return { valid: false, reason: "Boundary event holder proof is not bound to this action context." };
+  }
+  if (holderProof.scheme === ED25519_HOLDER_PROOF_SCHEME) {
+    return verifyEd25519HolderProof(event, holderProof);
+  }
+  if (!holderProof.scheme || holderProof.scheme === DIGEST_HOLDER_PROOF_SCHEME) {
+    return verifyDigestHolderProof(holderProof, options);
+  }
+  return { valid: false, reason: `Unsupported holder proof scheme:${holderProof.scheme}.` };
 }
 
 export function verifyBoundaryEvent(event, options = {}) {
@@ -93,16 +222,14 @@ export function verifyBoundaryEvent(event, options = {}) {
   if (options.allowedDomainHashes && !options.allowedDomainHashes.includes(event.targetDomainHash)) {
     return { valid: false, reason: "Boundary event target domain not allowed." };
   }
-  if (!options.allowExpired && event.expiresAt && Date.parse(event.expiresAt) <= Date.now()) {
-    return { valid: false, reason: "Boundary event expired." };
+  if (!options.allowExpired && event.expiresAt) {
+    const expiry = Date.parse(event.expiresAt);
+    if (Number.isNaN(expiry) || expiry <= Date.now()) {
+      return { valid: false, reason: "Boundary event expired or has invalid expiry." };
+    }
   }
-  const holderProof = event.holderProof;
-  if (!holderProof?.messageHash) {
-    return { valid: false, reason: "Boundary event missing holder proof message hash." };
-  }
-  if (holderProof.messageHash !== holderChallengeHash(body)) {
-    return { valid: false, reason: "Boundary event holder proof is not bound to this action context." };
-  }
+  const holderProof = verifyHolderProof(event, options);
+  if (!holderProof.valid) return holderProof;
   return { valid: true, eventHash, eventId };
 }
 

@@ -1,6 +1,6 @@
 import { id, sha256Hex } from "../protocol/digest.js";
 import { verifyJws } from "../protocol/authority-keys.js";
-export { verifyTraceChain } from "../protocol/boundary-events.js";
+export { verifyHolderProof, verifyTraceChain } from "../protocol/boundary-events.js";
 export { verifyReceipt } from "../protocol/receipts.js";
 export { verifyAnchorPayload, verifySettlementState } from "../protocol/registry.js";
 export { verifyCapability } from "../protocol/capabilities.js";
@@ -42,7 +42,8 @@ export function verifyApproval(approval, jwks) {
   if (!authorityJws) throw new Error("approval missing authorityJws");
   if (approvalId !== id("approval", body)) throw new Error("approval id mismatch");
   if (approvalHash !== sha256Hex(body)) throw new Error("approval hash mismatch");
-  if (Date.parse(approval.expiresAt) <= Date.now()) throw new Error("approval expired");
+  const expiry = Date.parse(approval.expiresAt);
+  if (Number.isNaN(expiry) || expiry <= Date.now()) throw new Error("approval expired or has invalid expiry");
   return {
     ok: true,
     ...assertJwsMatchesBody(authorityJws, body, jwks, "approval", "mission-approval+jwt")

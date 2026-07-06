@@ -40,7 +40,7 @@ A verifier should be able to answer:
   },
   "holder": {
     "keyThumbprint": "...",
-    "proofScheme": "digest-holder-proof-v1"
+    "proofScheme": "ed25519-holder-proof-v1"
   },
   "trace": {
     "eventCount": 3,
@@ -80,3 +80,9 @@ production-settled receipt must include anchor evidence. The verifier rejects
 `settlement_release_allowed` or `settled` receipts that lack an anchor unless
 the caller explicitly allows pre-final receipts.
 
+## Holder Proof Rule
+
+Receipts point to the trace commitment and holder proof scheme. Local examples
+may use `digest-holder-proof-v1`, but production traces should use
+`ed25519-holder-proof-v1` or another public-key/ZK-friendly holder proof scheme.
+The verifier rejects digest holder proofs in production mode.

@@ -33,6 +33,9 @@ export function requireAuthorityBearer(req, envName = "MISSION_APPROVAL_BEARER_T
     return { ok: false, status: 500, reason: `${envName} is required in production profile.` };
   }
   const supplied = bearerToken(req);
+  if (!supplied) {
+    return { ok: false, status: 401, reason: "approval authority token is missing or invalid." };
+  }
   const suppliedBuffer = Buffer.from(supplied);
   const expectedBuffer = Buffer.from(expected);
   if (suppliedBuffer.length !== expectedBuffer.length || !timingSafeEqual(suppliedBuffer, expectedBuffer)) {

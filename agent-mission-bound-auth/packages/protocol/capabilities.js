@@ -152,8 +152,11 @@ export function verifyCapability(capability, options = {}) {
   if (nullifier !== expectedNullifier) {
     return { valid: false, reason: "Capability nullifier mismatch." };
   }
-  if (!options.allowExpired && Date.parse(capability.expiresAt) <= Date.now()) {
-    return { valid: false, reason: "Capability expired." };
+  if (!options.allowExpired) {
+    const expiry = Date.parse(capability.expiresAt);
+    if (Number.isNaN(expiry) || expiry <= Date.now()) {
+      return { valid: false, reason: "Capability expired or has invalid expiry." };
+    }
   }
   return { valid: true, capabilityHash, capabilityId, nullifier };
 }

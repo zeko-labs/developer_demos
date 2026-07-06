@@ -12,5 +12,6 @@ export * from "./registry.js";
 export * from "./rails.js";
 export * from "./revocations.js";
 export * from "./runtime.js";
+export * from "./storage.js";
 export * from "./x402.js";
 export * from "./zeko-plan.js";

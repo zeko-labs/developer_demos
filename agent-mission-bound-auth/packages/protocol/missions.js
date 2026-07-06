@@ -3,6 +3,7 @@ import path from "node:path";
 import { hmacSha256Hex, id, sha256Hex } from "./digest.js";
 import { signJws, verifyJws, jwks } from "./authority-keys.js";
 import { requireConfiguredValue, isProductionProfile } from "./runtime.js";
+import { writeJsonAtomic } from "./storage.js";
 
 const agents = new Map();
 const missions = new Map();
@@ -73,8 +74,7 @@ function persistState() {
     checkpointProgress: Array.from(checkpointProgress.entries()),
     spendLedger: Array.from(spendLedger.entries())
   };
-  fs.mkdirSync(path.dirname(file), { recursive: true });
-  fs.writeFileSync(file, JSON.stringify(state, null, 2));
+  writeJsonAtomic(file, state);
 }
 
 export function buildAgentPassport(input = {}) {
@@ -258,7 +258,8 @@ export function verifyMissionApproval(approval, context) {
       return { ok: false, reason: "Mission approval signature is invalid." };
     }
   }
-  if (Date.parse(approval.expiresAt) <= Date.now()) {
+  const approvalExpiry = Date.parse(approval.expiresAt);
+  if (Number.isNaN(approvalExpiry) || approvalExpiry <= Date.now()) {
     return { ok: false, reason: "Mission approval is expired." };
   }
   const mission = missions.get(approval.missionId) ?? approval.missionSnapshot;
