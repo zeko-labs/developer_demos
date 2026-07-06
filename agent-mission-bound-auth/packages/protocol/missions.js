@@ -74,7 +74,9 @@ function persistState() {
     spendLedger: Array.from(spendLedger.entries())
   };
   fs.mkdirSync(path.dirname(file), { recursive: true });
-  fs.writeFileSync(file, JSON.stringify(state, null, 2));
+  const tempFile = `${file}.tmp`;
+  fs.writeFileSync(tempFile, JSON.stringify(state, null, 2));
+  fs.renameSync(tempFile, file);
 }
 
 export function buildAgentPassport(input = {}) {
@@ -258,7 +260,8 @@ export function verifyMissionApproval(approval, context) {
       return { ok: false, reason: "Mission approval signature is invalid." };
     }
   }
-  if (Date.parse(approval.expiresAt) <= Date.now()) {
+  const approvalExpiry = Date.parse(approval.expiresAt);
+  if (Number.isNaN(approvalExpiry) || approvalExpiry <= Date.now()) {
     return { ok: false, reason: "Mission approval is expired." };
   }
   const mission = missions.get(approval.missionId) ?? approval.missionSnapshot;

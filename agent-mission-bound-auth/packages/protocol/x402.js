@@ -29,11 +29,15 @@ function stripAuthorizationDigest(payload) {
   return rest;
 }
 
+let cachedFacilitatorJwks = null;
+
 function facilitatorJwks() {
+  if (cachedFacilitatorJwks) return cachedFacilitatorJwks;
   const raw = process.env.X402_FACILITATOR_JWKS_JSON;
   if (!raw) throw new Error("X402_FACILITATOR_JWKS_JSON is required for trusted facilitator receipts.");
   const parsed = JSON.parse(raw);
   if (!Array.isArray(parsed.keys)) throw new Error("X402_FACILITATOR_JWKS_JSON must contain keys[].");
+  cachedFacilitatorJwks = parsed;
   return parsed;
 }
 
@@ -230,7 +234,8 @@ function verifySettlementProof(option, payment) {
   ];
   const failed = checks.find((check) => !check.ok);
   if (failed) return failed;
-  if (typeof receipt.exp !== "number" || receipt.exp <= Math.floor(Date.now() / 1000)) {
+  const clockToleranceSeconds = Number(process.env.X402_FACILITATOR_CLOCK_TOLERANCE_SECONDS ?? 60);
+  if (typeof receipt.exp !== "number" || receipt.exp <= Math.floor(Date.now() / 1000) - clockToleranceSeconds) {
     return { ok: false, reason: "Facilitator receipt is expired or missing exp." };
   }
   if (!receipt.txHash && !receipt.settlementId) {
@@ -262,8 +267,9 @@ export function verifyPayment(requirement, payment) {
     return { ok: false, reason: "Payment requestId does not match the requirement." };
   }
 
-  if (Date.parse(payment.expiresAtIso) <= Date.now()) {
-    return { ok: false, reason: "Payment authorization has expired." };
+  const paymentExpiry = Date.parse(payment.expiresAtIso);
+  if (Number.isNaN(paymentExpiry) || paymentExpiry <= Date.now()) {
+    return { ok: false, reason: "Payment authorization has expired or has invalid expiry." };
   }
 
   const expectedDigest = buildAuthorizationDigest(stripAuthorizationDigest(payment));

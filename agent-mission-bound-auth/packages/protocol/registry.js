@@ -108,18 +108,22 @@ export function verifyAnchorPayload(receipt, anchor) {
 export function verifySettlementState(receipt, settlement = {}) {
   const receiptCheck = verifyReceipt(receipt, { allowAnchorPrepared: true });
   if (!receiptCheck.valid) return { valid: false, decision: "release_denied", reason: receiptCheck.reason };
-  const spentNullifiers = new Set(settlement.spentNullifiers ?? settlement.nullifiers ?? []);
+  const safeSettlement = settlement || {};
+  const spentNullifiers = new Set(safeSettlement.spentNullifiers ?? safeSettlement.nullifiers ?? []);
   if (spentNullifiers.has(receipt.nullifier)) {
     return { valid: false, decision: "duplicate_payment", reason: "Receipt nullifier already settled." };
   }
-  if (settlement.requiredAnchor !== false && !receipt.anchor) {
+  if (safeSettlement.requiredAnchor !== false && !receipt.anchor) {
     return { valid: false, decision: "not_ready", reason: "Receipt anchor evidence is required before settlement." };
   }
-  if (settlement.allowedRails && !settlement.allowedRails.includes(receipt.payment.rail)) {
+  if (safeSettlement.allowedRails && !safeSettlement.allowedRails.includes(receipt.payment.rail)) {
     return { valid: false, decision: "policy_violation", reason: "Receipt payment rail is not allowed." };
   }
-  if (settlement.expiresAt && Date.parse(settlement.expiresAt) <= Date.now()) {
-    return { valid: false, decision: "expired_authorization", reason: "Settlement authorization expired." };
+  if (safeSettlement.expiresAt) {
+    const expiry = Date.parse(safeSettlement.expiresAt);
+    if (Number.isNaN(expiry) || expiry <= Date.now()) {
+      return { valid: false, decision: "expired_authorization", reason: "Settlement authorization expired or has invalid expiry." };
+    }
   }
   return {
     valid: true,

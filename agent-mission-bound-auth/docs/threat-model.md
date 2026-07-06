@@ -92,4 +92,5 @@ Production deployments should:
 - anchor approval roots and receipt roots on a Zeko-compatible registry
 - require signed facilitator receipts or live chain verification for settlement
 - reject production-final receipts that lack anchor evidence
-
+- reject demo digest holder proofs and require a public-key or ZK-friendly
+  holder proof scheme such as `ed25519-holder-proof-v1`

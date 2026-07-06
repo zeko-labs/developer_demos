@@ -76,6 +76,11 @@ holder participation through signatures, holder commitments, message
 signatures, wallet signatures, ZK-friendly signatures, or equivalent proof of
 possession.
 
+The reference implementation supports `ed25519-holder-proof-v1` for
+public-key-verifiable holder participation. `digest-holder-proof-v1` remains
+available for local deterministic fixtures and is rejected by production
+verifiers.
+
 ### Domain Verifier
 
 The domain verifier is the external application, API, merchant, data service,

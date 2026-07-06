@@ -32,11 +32,13 @@ function persistRevocations() {
   if (!durableRevocationsEnabled()) return;
   const file = revocationStatePath();
   fs.mkdirSync(path.dirname(file), { recursive: true });
-  fs.writeFileSync(file, JSON.stringify({
+  const tempFile = `${file}.tmp`;
+  fs.writeFileSync(tempFile, JSON.stringify({
     version: "revocation-state-v1",
     savedAt: new Date().toISOString(),
     revocations: Array.from(revokedAuthCommitments.values())
   }, null, 2));
+  fs.renameSync(tempFile, file);
 }
 
 export function revokeAuthCommitment(authCommitment, reason = "revoked") {
