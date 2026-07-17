@@ -1,6 +1,0 @@
-.env
-.env.local
-.env.production
-data/keys/
-dist-zkapp/
-node_modules/
