@@ -4,6 +4,9 @@ A monorepo of end-to-end demos for building zero-knowledge applications on Zeko 
 
 This repository is meant to be practical. Each demo is a working reference for a different product or protocol pattern: private markets, agent payments, order books, provenance, and privacy-preserving consumer apps.
 
+Agent Mission-Bound Auth now lives as a standalone protocol repository:
+[zeko-labs/agent-mission-bound-auth](https://github.com/zeko-labs/agent-mission-bound-auth).
+
 ## What’s in this repo
 
 ### `agent_coordination_protocol-financial_intelligence`
@@ -153,6 +156,7 @@ If you want to explore:
 
 - agent payments and attestations: `agent_coordination_protocol-financial_intelligence`
 - agent execution escrow on Zeko: `agent_execution_escrow`
+- mission-bound authorization for autonomous agents: [zeko-labs/agent-mission-bound-auth](https://github.com/zeko-labs/agent-mission-bound-auth)
 - private prediction markets: `perfect-weather_prediction_market`
 - private trading systems: `private_order_book`
 - programmable asset flows: `private-tokenized-asset-protocol`

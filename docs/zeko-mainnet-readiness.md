@@ -40,7 +40,6 @@ Before running a demo against mainnet:
 
 ## Demo Notes
 
-- `agent-mission-bound-auth`: replace the testnet private-compute zkApp, `zeko:testnet` rail metadata, `tMINA` labels, and anchor deployment records with mainnet-specific values.
 - `agent_coordination_protocol-financial_intelligence`: set a mainnet `ZEKO_NETWORK_ID`, GraphQL endpoint, zkApp, oracle, sponsor, treasury, and token addresses. Do not reuse testnet marketplace or relayer keys.
 - `agent_execution_escrow`: use `ZEKO_SUBMIT_MODE=zkapp` only after deploying the intent zkApp on mainnet and configuring mainnet verifier keys and sync paths.
 - `perfect-weather_prediction_market`: deploy fresh market zkApps, oracle policy, tx-prover config, archive sync, and fee-payer keys for mainnet. Review privacy language before real-value markets.
@@ -49,3 +48,8 @@ Before running a demo against mainnet:
 - `proof_of_prayer`: deploy a new prayer batch zkApp, configure mainnet submitter/deployer keys, and remove testnet funding assumptions.
 - `proof_over_hype_ai_image_provenance`: deploy a new provenance zkApp and separate mainnet keychain/env values from local/testnet package artifacts.
 - `zeko_ai_runtime`: configure mainnet sponsor lanes, operator memberships, zkApp v2 deployment records, and builder auth separately from testnet operator bundles.
+
+Agent Mission-Bound Auth is now maintained as a standalone protocol repository:
+[zeko-labs/agent-mission-bound-auth](https://github.com/zeko-labs/agent-mission-bound-auth).
+Use that repository's README and production docs for its Zeko anchoring,
+settlement, and mainnet profile guidance.
