@@ -119,6 +119,26 @@ const GTC_ORDER_EXPIRY_MS = Number.parseInt(process.env.GTC_ORDER_EXPIRY_MS || '
 const SETTLEMENT_PROCEEDS_AS_NOTES =
   String(process.env.SETTLEMENT_PROCEEDS_AS_NOTES || String(!process.env.RENDER)).toLowerCase() === 'true';
 const ORDER_RECEIPT_SECRET = process.env.ORDER_RECEIPT_SECRET || 'shadowbook-receipt-secret';
+
+function detectWalletNetworkConfig() {
+  const endpoint = String(ZEKO_GRAPHQL || '').trim();
+  if (endpoint.includes('sepolia.zeko.io')) {
+    return {
+      key: 'zekoEthereumTestnet',
+      label: 'Zeko Ethereum Testnet',
+      networkId: 'testnet',
+      graphqlUrl: endpoint,
+      chainType: 'zeko-on-ethereum'
+    };
+  }
+  return {
+    key: 'zekoMinaTestnet',
+    label: 'Zeko Mina Testnet',
+    networkId: String(ZEKO_NETWORK_ID || 'testnet'),
+    graphqlUrl: endpoint,
+    chainType: 'zeko'
+  };
+}
 const INTERNAL_SERVICE_SECRET = String(process.env.INTERNAL_SERVICE_SECRET || ORDER_RECEIPT_SECRET || 'shadowbook-internal-service').trim();
 const EARLY_ACCESS_COOKIE_NAME = String(process.env.EARLY_ACCESS_COOKIE_NAME || 'shadowbook_access').trim() || 'shadowbook_access';
 const EARLY_ACCESS_COOKIE_SECRET = String(process.env.EARLY_ACCESS_COOKIE_SECRET || ORDER_RECEIPT_SECRET || 'shadowbook-access-secret');
@@ -3922,6 +3942,7 @@ function computeStatusSnapshot(port) {
   const openOrders = Array.from(orders.values()).filter((o) => o.status !== 'FILLED' && o.status !== 'CANCELED' && o.remaining > 1e-9);
   const avgMatchMs = engineMetrics.matchCallCount > 0 ? engineMetrics.matchTotalMs / engineMetrics.matchCallCount : 0;
   const auditStatus = getAuditChainStatus(auditTrail);
+  const walletNetwork = detectWalletNetworkConfig();
   return {
     ok: true,
     nowUnixMs: now(),
@@ -3947,6 +3968,7 @@ function computeStatusSnapshot(port) {
         archiveRelayEndpoint: ZEKO_ARCHIVE_RELAY_GRAPHQL || null,
         hasDedicatedTxEndpoint: Boolean(ZEKO_TX_GRAPHQL_ENV && ZEKO_TX_GRAPHQL_ENV !== ZEKO_GRAPHQL)
       },
+      walletNetwork,
       da: {
         mode: DA_MODE,
         enabled: Boolean(DA_ENDPOINT),
