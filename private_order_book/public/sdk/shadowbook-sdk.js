@@ -26,7 +26,17 @@
       body: body ? JSON.stringify(body) : undefined
     });
 
-    var json = await response.json();
+    var responseText = await response.text();
+    var json;
+    try {
+      json = JSON.parse(responseText);
+    } catch (error) {
+      var detail = String(responseText || '').replace(/\s+/g, ' ').trim().slice(0, 240);
+      throw new Error(
+        'request failed with non-JSON response' +
+        (detail ? ': ' + detail : '')
+      );
+    }
     if (!response.ok) {
       throw new Error(json.error || 'request failed');
     }
@@ -48,8 +58,8 @@
       } else if (market.pair) {
         query.push('pair=' + encodeURIComponent(String(market.pair)));
       }
-    } else {
-      query.push('pair=' + encodeURIComponent(String(market || 'tETH/tZEKO')));
+    } else if (market) {
+      query.push('pair=' + encodeURIComponent(String(market)));
     }
     query.push('levels=' + encodeURIComponent(String(l)));
     return this.request('/api/darkpool/book?' + query.join('&'));
@@ -144,8 +154,28 @@
     return this.request('/api/darkpool/vault/deposit/build-transaction', { method: 'POST', body: payload });
   };
 
+  ShadowBookClient.prototype.buildTokenTransferTransaction = function buildTokenTransferTransaction(payload) {
+    return this.request('/api/darkpool/funding/token-transfer/build-transaction', { method: 'POST', body: payload });
+  };
+
   ShadowBookClient.prototype.submitSignedDepositTransaction = function submitSignedDepositTransaction(payload) {
     return this.request('/api/darkpool/vault/deposit/submit-signed', { method: 'POST', body: payload });
+  };
+
+  ShadowBookClient.prototype.submitSignedTokenTransferTransaction = function submitSignedTokenTransferTransaction(payload) {
+    return this.request('/api/darkpool/funding/token-transfer/submit-signed', { method: 'POST', body: payload });
+  };
+
+  ShadowBookClient.prototype.createDepositIntent = function createDepositIntent(payload) {
+    return this.request('/api/darkpool/vault/deposit-intent', { method: 'POST', body: payload });
+  };
+
+  ShadowBookClient.prototype.recoverDepositIntent = function recoverDepositIntent(payload) {
+    return this.request('/api/darkpool/vault/deposit-recover', { method: 'POST', body: payload });
+  };
+
+  ShadowBookClient.prototype.cancelDepositIntent = function cancelDepositIntent(payload) {
+    return this.request('/api/darkpool/vault/deposit-cancel', { method: 'POST', body: payload });
   };
 
   ShadowBookClient.prototype.depositAuto = function depositAuto(payload) {

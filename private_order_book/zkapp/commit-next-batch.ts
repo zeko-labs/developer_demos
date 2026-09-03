@@ -115,9 +115,13 @@ export async function commitNextPendingBatch() {
   const usePrivateStateProof = parseBoolEnv('ZKAPP_COMMIT_USE_PROOF', false);
   const requireCachedProof = parseBoolEnv('REQUIRE_CACHED_PRIVATE_STATE_PROOF', false);
   const allowInlineProving = parseBoolEnv('ALLOW_INLINE_PRIVATE_STATE_PROVING', !requireCachedProof);
+  const dataDir = readOptionalEnv(
+    'DARKPOOL_DATA_DIR',
+    path.resolve(process.cwd(), 'data', 'zeko-sepolia')
+  );
   const batchPath = readOptionalEnv(
     'SETTLEMENT_BATCHES_FILE',
-    path.resolve(process.cwd(), 'data', 'settlement-batches.json')
+    path.resolve(dataDir, 'settlement-batches.json')
   );
 
   const deployerKey = PrivateKey.fromBase58(requireEnv('DEPLOYER_PRIVATE_KEY'));

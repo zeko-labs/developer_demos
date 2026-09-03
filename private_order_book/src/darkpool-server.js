@@ -12,30 +12,52 @@ const __dirname = path.dirname(__filename);
 const projectRoot = path.resolve(__dirname, '..');
 const require = createRequire(import.meta.url);
 
-const pairs = new Map([
-  [
-    'TETH/TZEKO',
-    {
-      symbol: 'tETH/tZEKO',
-      baseAsset: 'tETH',
-      quoteAsset: 'tZEKO',
-      baseTokenId: 'wpWnRKT383VPM2TWtBWs8R4i927SKUgzAycsSs3AyvyriGXyP2',
-      quoteTokenId: 'x3jovPY75iFmbZ5kTfxZmNmEQ6874mmBu3jufom1QsxMNqPx27',
-      referencePrice: 12
-    }
-  ],
-  [
-    'TZEKO/TMINA',
-    {
-      symbol: 'tZEKO/tMINA',
-      baseAsset: 'tZEKO',
-      quoteAsset: 'tMINA',
-      baseTokenId: 'x3jovPY75iFmbZ5kTfxZmNmEQ6874mmBu3jufom1QsxMNqPx27',
-      quoteTokenId: 'wSHV2S4qX9jFsLjQo8r1BsMLH2ZRKsZx6EJd1sbozGPieEC4Jf',
-      referencePrice: 0.08333333
-    }
-  ]
-]);
+const SEPOLIA_ZEKO_GRAPHQL = 'https://sepolia.zeko.io/graphql';
+function isSepoliaGraphqlEndpoint(value) {
+  try {
+    const url = new URL(String(value || '').trim());
+    return url.protocol === 'https:' && url.hostname === 'sepolia.zeko.io' && url.pathname === '/graphql';
+  } catch {
+    return false;
+  }
+}
+
+const CONFIGURED_ZEKO_GRAPHQL = String(process.env.ZEKO_GRAPHQL || '').trim();
+const ZEKO_GRAPHQL = isSepoliaGraphqlEndpoint(CONFIGURED_ZEKO_GRAPHQL)
+  ? CONFIGURED_ZEKO_GRAPHQL
+  : SEPOLIA_ZEKO_GRAPHQL;
+const CONFIGURED_ZEKO_NETWORK_ID = String(process.env.ZEKO_NETWORK_ID || '').trim();
+const ZEKO_NETWORK_ID = isSepoliaGraphqlEndpoint(ZEKO_GRAPHQL)
+  ? 'testnet'
+  : CONFIGURED_ZEKO_NETWORK_ID || 'zeko';
+const ZEKO_TX_GRAPHQL_ENV = isSepoliaGraphqlEndpoint(process.env.ZEKO_TX_GRAPHQL) ? process.env.ZEKO_TX_GRAPHQL : '';
+const ZEKO_ARCHIVE_GRAPHQL = isSepoliaGraphqlEndpoint(process.env.ZEKO_ARCHIVE_GRAPHQL) ? process.env.ZEKO_ARCHIVE_GRAPHQL : '';
+const ZEKO_ARCHIVE_RELAY_GRAPHQL = isSepoliaGraphqlEndpoint(process.env.ZEKO_ARCHIVE_RELAY_GRAPHQL)
+  ? process.env.ZEKO_ARCHIVE_RELAY_GRAPHQL
+  : '';
+const ZEKO_TX_GRAPHQL =
+  ZEKO_TX_GRAPHQL_ENV ||
+  ZEKO_ARCHIVE_RELAY_GRAPHQL ||
+  ZEKO_ARCHIVE_GRAPHQL ||
+  ZEKO_GRAPHQL;
+const DEFAULT_NATIVE_TOKEN_ID = 'wSHV2S4qX9jFsLjQo8r1BsMLH2ZRKsZx6EJd1sbozGPieEC4Jf';
+const DEFAULT_SZEKO_TOKEN_ID = 'xpAptwG79jEStACsCv9C6yXUBmKbvurUo8GsTPYapn9QWB5zE5';
+const DEFAULT_MARKET_DEFINITIONS = [
+  {
+    symbol: 'sETH/sZEKO',
+    baseAsset: 'sETH',
+    quoteAsset: 'sZEKO',
+    baseTokenId: DEFAULT_NATIVE_TOKEN_ID,
+    quoteTokenId: DEFAULT_SZEKO_TOKEN_ID,
+    referencePrice: 12
+  }
+];
+const DEFAULT_ASSET_DECIMALS = { SETH: 9, SZEKO: 9 };
+const DEFAULT_TOKEN_CONTRACT_ADDRESSES = {
+  SETH: '',
+  SZEKO: 'B62qpCuSDoTuL8dUcNfuoLoas8A77gRHJTp4WVe5NF2phXbQUNwNZ3W'
+};
+const pairs = new Map();
 const marketsById = new Map();
 const marketsByTokenKey = new Map();
 
@@ -55,18 +77,10 @@ const activityEvents = [];
 const frontendFeeLedger = new Map();
 const protocolFeeBalances = {};
 const participantWallets = new Map();
+const depositIntents = new Map();
+const ACTIVITY_PRIVACY_MODE = String(process.env.ACTIVITY_PRIVACY_MODE || 'redacted').trim().toLowerCase();
+const OPERATOR_ACTIVITY_REDACTION_ENABLED = ACTIVITY_PRIVACY_MODE !== 'verbose';
 const WALLET_HASH_SALT = process.env.WALLET_HASH_SALT || 'shadowbook-demo-salt';
-const ZEKO_GRAPHQL = process.env.ZEKO_GRAPHQL || '';
-const ZEKO_NETWORK_ID = process.env.ZEKO_NETWORK_ID || 'testnet';
-const ZEKO_IS_MAINNET = String(ZEKO_NETWORK_ID).trim().toLowerCase() === 'mainnet';
-const ZEKO_TX_GRAPHQL_ENV = process.env.ZEKO_TX_GRAPHQL || '';
-const ZEKO_ARCHIVE_GRAPHQL = process.env.ZEKO_ARCHIVE_GRAPHQL || '';
-const ZEKO_ARCHIVE_RELAY_GRAPHQL = process.env.ZEKO_ARCHIVE_RELAY_GRAPHQL || '';
-const ZEKO_TX_GRAPHQL =
-  ZEKO_TX_GRAPHQL_ENV ||
-  ZEKO_ARCHIVE_RELAY_GRAPHQL ||
-  ZEKO_ARCHIVE_GRAPHQL ||
-  ZEKO_GRAPHQL;
 const DARKPOOL_HOST = process.env.DARKPOOL_HOST || (process.env.RENDER ? '0.0.0.0' : '127.0.0.1');
 const AUTO_RUN_BACKGROUND_WORKERS = String(process.env.AUTO_RUN_BACKGROUND_WORKERS || 'false').toLowerCase() === 'true';
 const AUTO_RUN_PROOF_WORKER = String(process.env.AUTO_RUN_PROOF_WORKER || String(AUTO_RUN_BACKGROUND_WORKERS)).toLowerCase() === 'true';
@@ -85,30 +99,79 @@ const ZEKO_FAUCET_GITHUB_TOKEN = String(
   process.env.ZEKO_FAUCET_GITHUB_TOKEN || process.env.GITHUB_TOKEN || ''
 ).trim();
 const REAL_FUNDS_MODE = true;
+// Secure mode is design-only here. Do not label this runtime operator-confidential
+// until an encrypted matcher and attested execution boundary are wired in.
+const SECURE_MODE_IMPLEMENTED = false;
 const ONCHAIN_SYNC_TTL_MS = Number.parseInt(process.env.ONCHAIN_SYNC_TTL_MS || '60000', 10);
-const ASSET_DECIMALS = (() => {
+function normalizeAssetMapKey(value) {
+  return String(value || '').trim().toUpperCase();
+}
+
+function parseUpperNumberMap(jsonRaw, fallback) {
+  const result = { ...fallback };
   try {
-    const parsed = JSON.parse(process.env.ASSET_DECIMALS_JSON || '{}');
-    return {
-      tETH: Number.isFinite(Number(parsed.tETH)) ? Number(parsed.tETH) : 9,
-      tZEKO: Number.isFinite(Number(parsed.tZEKO)) ? Number(parsed.tZEKO) : 9,
-      tMINA: Number.isFinite(Number(parsed.tMINA)) ? Number(parsed.tMINA) : 9
-    };
+    const parsed = JSON.parse(jsonRaw || '{}');
+    for (const [key, value] of Object.entries(parsed || {})) {
+      if (!key) continue;
+      const normalized = normalizeAssetMapKey(key);
+      const numeric = Number(value);
+      if (Number.isFinite(numeric)) result[normalized] = numeric;
+    }
+  } catch {}
+  return result;
+}
+
+function parseUpperStringMap(jsonRaw, fallback) {
+  const result = { ...fallback };
+  try {
+    const parsed = JSON.parse(jsonRaw || '{}');
+    for (const [key, value] of Object.entries(parsed || {})) {
+      if (!key || typeof value !== 'string') continue;
+      result[normalizeAssetMapKey(key)] = value.trim();
+    }
+  } catch {}
+  return result;
+}
+
+function parseSupportedAssetPairs(jsonRaw) {
+  try {
+    const parsed = JSON.parse(jsonRaw || '[]');
+    if (!Array.isArray(parsed)) return null;
+    const normalized = parsed
+      .map((entry) => {
+        const symbol = typeof entry?.symbol === 'string' ? entry.symbol.trim() : '';
+        const baseAsset = typeof entry?.baseAsset === 'string' ? entry.baseAsset.trim() : '';
+        const quoteAsset = typeof entry?.quoteAsset === 'string' ? entry.quoteAsset.trim() : '';
+        if (!symbol || !baseAsset || !quoteAsset) return null;
+        const referencePrice = Number(entry?.referencePrice);
+        return {
+          symbol,
+          baseAsset,
+          quoteAsset,
+          baseTokenId: typeof entry?.baseTokenId === 'string' ? entry.baseTokenId.trim() : '',
+          quoteTokenId: typeof entry?.quoteTokenId === 'string' ? entry.quoteTokenId.trim() : '',
+          referencePrice: Number.isFinite(referencePrice) ? referencePrice : 1
+        };
+      })
+      .filter(Boolean);
+    return normalized.length ? normalized : null;
   } catch {
-    return { tETH: 9, tZEKO: 9, tMINA: 9 };
+    return null;
   }
+}
+
+async function deriveTokenIdFromAddress(tokenAddress58) {
+  const address = String(tokenAddress58 || '').trim();
+  if (!address) return '';
+  const [{ PublicKey, TokenId }] = await Promise.all([import('o1js')]);
+  return TokenId.toBase58(TokenId.derive(PublicKey.fromBase58(address)));
+}
+
+const ASSET_DECIMALS = (() => {
+  return parseUpperNumberMap(process.env.ASSET_DECIMALS_JSON || '{}', DEFAULT_ASSET_DECIMALS);
 })();
 const TOKEN_CONTRACT_ADDRESSES = (() => {
-  try {
-    const parsed = JSON.parse(process.env.TOKEN_CONTRACT_ADDRESSES_JSON || '{}');
-    return {
-      TETH: typeof parsed.tETH === 'string' ? parsed.tETH.trim() : '',
-      TZEKO: typeof parsed.tZEKO === 'string' ? parsed.tZEKO.trim() : '',
-      TMINA: typeof parsed.tMINA === 'string' ? parsed.tMINA.trim() : ''
-    };
-  } catch {
-    return { TETH: '', TZEKO: '', TMINA: '' };
-  }
+  return parseUpperStringMap(process.env.TOKEN_CONTRACT_ADDRESSES_JSON || '{}', DEFAULT_TOKEN_CONTRACT_ADDRESSES);
 })();
 const MAKER_API_KEY = process.env.MAKER_API_KEY || 'demo-maker-key';
 const SERVER_BUILD_ID = 'matcher-debug-v3';
@@ -120,25 +183,13 @@ const SETTLEMENT_PROCEEDS_AS_NOTES =
   String(process.env.SETTLEMENT_PROCEEDS_AS_NOTES || String(!process.env.RENDER)).toLowerCase() === 'true';
 const ORDER_RECEIPT_SECRET = process.env.ORDER_RECEIPT_SECRET || 'shadowbook-receipt-secret';
 
-function detectWalletNetworkConfig() {
-  const endpoint = String(ZEKO_GRAPHQL || '').trim();
-  if (endpoint.includes('sepolia.zeko.io')) {
-    return {
-      key: 'zekoEthereumTestnet',
-      label: 'Zeko Ethereum Testnet',
-      networkId: 'testnet',
-      graphqlUrl: endpoint,
-      chainType: 'zeko-on-ethereum'
-    };
-  }
-  return {
-    key: 'zekoMinaTestnet',
-    label: 'Zeko Mina Testnet',
-    networkId: String(ZEKO_NETWORK_ID || 'testnet'),
-    graphqlUrl: endpoint,
-    chainType: 'zeko'
-  };
-}
+const WALLET_NETWORK_CONFIG = {
+  key: 'zekoEthereumSepolia',
+  label: 'Zeko Ethereum Sepolia',
+  networkId: ZEKO_NETWORK_ID,
+  graphqlUrl: ZEKO_GRAPHQL,
+  chainType: 'zeko-on-ethereum'
+};
 const INTERNAL_SERVICE_SECRET = String(process.env.INTERNAL_SERVICE_SECRET || ORDER_RECEIPT_SECRET || 'shadowbook-internal-service').trim();
 const EARLY_ACCESS_COOKIE_NAME = String(process.env.EARLY_ACCESS_COOKIE_NAME || 'shadowbook_access').trim() || 'shadowbook_access';
 const EARLY_ACCESS_COOKIE_SECRET = String(process.env.EARLY_ACCESS_COOKIE_SECRET || ORDER_RECEIPT_SECRET || 'shadowbook-access-secret');
@@ -165,7 +216,7 @@ const DA_BEARER_TOKEN = process.env.DA_BEARER_TOKEN || '';
 const DA_REQUIRE_ENCRYPTION = String(process.env.DA_REQUIRE_ENCRYPTION || 'true').toLowerCase() === 'true';
 const DA_INCLUDE_ORDER_SNAPSHOT = String(process.env.DA_INCLUDE_ORDER_SNAPSHOT || 'false').toLowerCase() === 'true';
 const DA_ENCRYPTION_KEY = process.env.DA_ENCRYPTION_KEY || ORDER_STATE_ENCRYPTION_KEY || ORDER_RECEIPT_SECRET;
-const ZEKO_DA_NETWORK = process.env.ZEKO_DA_NETWORK || 'testnet';
+const ZEKO_DA_NETWORK = process.env.ZEKO_DA_NETWORK || 'zeko:testnet';
 const ZEKO_DA_APP_ID = process.env.ZEKO_DA_APP_ID || 'shadowbook';
 const ZEKO_DA_SCHEMA = process.env.ZEKO_DA_SCHEMA || 'shadowbook.da.v1';
 const VAULT_DEPOSIT_ADDRESS = process.env.VAULT_DEPOSIT_ADDRESS || '';
@@ -173,8 +224,11 @@ const REQUIRE_ONCHAIN_DEPOSIT_TX =
   String(process.env.REQUIRE_ONCHAIN_DEPOSIT_TX || 'true').toLowerCase() === 'true';
 const ALLOW_WALLET_TX_HASH_FALLBACK =
   String(process.env.ALLOW_WALLET_TX_HASH_FALLBACK || 'true').toLowerCase() === 'true';
-const TX_FEE = String(process.env.TX_FEE || '100000000').trim();
-const ZEKO_SETTLEMENT_GRAPHQL = process.env.ZEKO_SETTLEMENT_GRAPHQL || ZEKO_GRAPHQL || '';
+const TX_FEE = String(process.env.TX_FEE || '200000').trim();
+const SEQUENCER_FEE_MODE = String(process.env.SEQUENCER_FEE_MODE || 'static').trim().toLowerCase();
+const ZEKO_SETTLEMENT_GRAPHQL = isSepoliaGraphqlEndpoint(process.env.ZEKO_SETTLEMENT_GRAPHQL)
+  ? process.env.ZEKO_SETTLEMENT_GRAPHQL
+  : ZEKO_GRAPHQL;
 const ZKAPP_PUBLIC_KEY = process.env.ZKAPP_PUBLIC_KEY || '';
 const OPERATOR_PUBLIC_KEY = process.env.OPERATOR_PUBLIC_KEY || '';
 const OPERATOR_PANEL_ALLOWED_WALLET = String(process.env.OPERATOR_PANEL_ALLOWED_WALLET || '').trim();
@@ -378,7 +432,13 @@ function createAuditEntry(eventType, payload) {
 }
 
 function recordAuditEvent(eventType, payload) {
-  const entry = createAuditEntry(eventType, payload);
+  const auditPayload = OPERATOR_ACTIVITY_REDACTION_ENABLED
+    ? {
+        privacy: 'operator-redacted',
+        commitment: sha256Hex(`${eventType}:${stableStringify(payload || {})}`)
+      }
+    : payload;
+  const entry = createAuditEntry(eventType, auditPayload);
   auditHeadHash = entry.hash;
   auditTrail.unshift(entry);
   if (auditTrail.length > 5000) auditTrail.pop();
@@ -387,6 +447,14 @@ function recordAuditEvent(eventType, payload) {
     auditWriteChain = auditWriteChain.then(() => appendFile(auditLogPath, line, 'utf8')).catch(() => {});
   }
   return entry;
+}
+
+function storedActivityDetails(type, details = {}) {
+  if (!OPERATOR_ACTIVITY_REDACTION_ENABLED) return details;
+  return {
+    privacy: 'operator-redacted',
+    commitment: sha256Hex(`${type}:${stableStringify(details || {})}`)
+  };
 }
 
 async function loadAuditHeadFromFile() {
@@ -567,14 +635,6 @@ function getAuditChainStatus(entriesNewestFirst) {
   };
 }
 
-function encodePrivate(value) {
-  return Buffer.from(value, 'utf8').toString('base64');
-}
-
-function decodePrivate(value) {
-  return Buffer.from(value, 'base64').toString('utf8');
-}
-
 function startManagedBackgroundProcess(name, command, envOverrides = {}) {
   let child = null;
   let stopped = false;
@@ -673,7 +733,7 @@ function getPairConfigBySymbol(pairSymbol) {
 }
 
 function canonicalAssetKey(asset) {
-  return String(asset || '').trim().toUpperCase();
+  return normalizeAssetMapKey(asset);
 }
 
 function getKnownAssetConfigs() {
@@ -699,9 +759,16 @@ function getAssetConfig(asset) {
   return getKnownAssetConfigs().find((entry) => canonicalAssetKey(entry.asset) === key) || null;
 }
 
+function isNativeAsset(asset) {
+  const config = typeof asset === 'string' ? getAssetConfig(asset) : asset;
+  if (!config?.asset) return false;
+  return !String(TOKEN_CONTRACT_ADDRESSES[canonicalAssetKey(config.asset)] || '').trim();
+}
+
 function convertFromOnchainUnits(asset, rawTotal) {
   const n = Number(rawTotal || 0);
-  const decimals = Number.isFinite(ASSET_DECIMALS[asset]) ? ASSET_DECIMALS[asset] : 9;
+  const assetKey = canonicalAssetKey(asset);
+  const decimals = Number.isFinite(ASSET_DECIMALS[assetKey]) ? ASSET_DECIMALS[assetKey] : 9;
   return n / 10 ** decimals;
 }
 
@@ -734,7 +801,14 @@ function parseRawFeeInt(value) {
 }
 
 async function getSuggestedSequencerFeeRaw() {
-  const fallback = parseRawFeeInt(TX_FEE) || 100000000;
+  const fallback = parseRawFeeInt(TX_FEE) || 200000;
+  if (SEQUENCER_FEE_MODE !== 'dynamic') {
+    return {
+      feeRaw: String(fallback),
+      fee: rawNanoToMinaString(fallback),
+      source: 'configured-static'
+    };
+  }
   try {
     const data = await graphqlRequest(
       `query {
@@ -812,26 +886,60 @@ async function buildVaultDepositTransaction({ wallet, tokenId, amount, memo, fee
   const recipient = PublicKey.fromBase58(VAULT_DEPOSIT_ADDRESS);
   const assetConfig = resolveKnownAsset({ tokenId });
   const assetKey = canonicalAssetKey(assetConfig.asset);
+  const nativeAsset = isNativeAsset(assetConfig);
   const tokenAddress58 = TOKEN_CONTRACT_ADDRESSES[assetKey];
-  if (!tokenAddress58) {
+  if (!nativeAsset && !tokenAddress58) {
     throw new Error(`missing token contract address for ${assetKey}; set TOKEN_CONTRACT_ADDRESSES_JSON in .env`);
   }
-  const tokenAddress = PublicKey.fromBase58(tokenAddress58);
-  const token = new FungibleToken(tokenAddress);
   const network = Mina.Network({
     networkId: ZEKO_NETWORK_ID,
     mina: ZEKO_GRAPHQL,
     archive: ZEKO_ARCHIVE_GRAPHQL || ZEKO_GRAPHQL
   });
   Mina.setActiveInstance(network);
+  await fetchAccount({ publicKey: sender });
+  if (nativeAsset) {
+    const recipientAccount = await fetchAccount({ publicKey: recipient });
+    const recipientNeedsAccount = !recipientAccount?.account;
+    const tx = await Mina.transaction(
+      {
+        sender,
+        fee: UInt64.from(requireString(feeRaw || TX_FEE, 'feeRaw')),
+        memo
+      },
+      async () => {
+        if (recipientNeedsAccount) {
+          AccountUpdate.fundNewAccount(sender, 1);
+        }
+        const payer = AccountUpdate.createSigned(sender);
+        payer.send({ to: recipient, amount: UInt64.from(requireString(amount, 'amount')) });
+      }
+    );
+    const feePayerUpdate = tx.feePayer;
+    if (feePayerUpdate?.body?.preconditions?.account?.nonce) {
+      feePayerUpdate.body.preconditions.account.nonce = { isSome: Bool(false), value: UInt32.from(0) };
+    }
+    if (feePayerUpdate?.body) {
+      feePayerUpdate.body.useFullCommitment = Bool(true);
+    }
+    await tx.prove();
+    return {
+      transaction: tx.toJSON(),
+      receiverNeedsAccount: recipientNeedsAccount,
+      receiverNeedsTokenAccount: false,
+      nativeAsset: true
+    };
+  }
+  const tokenAddress = PublicKey.fromBase58(tokenAddress58);
+  const token = new FungibleToken(tokenAddress);
   if (!fungibleTokenCompilePromise) fungibleTokenCompilePromise = FungibleToken.compile();
   await fungibleTokenCompilePromise;
-  await fetchAccount({ publicKey: sender });
   const recipientNeedsTokenAccount = !(await doesOnchainTokenAccountExist(VAULT_DEPOSIT_ADDRESS, assetConfig.tokenId));
   const tx = await Mina.transaction(
     {
       sender,
-      fee: UInt64.from(requireString(feeRaw || TX_FEE, 'feeRaw'))
+      fee: UInt64.from(requireString(feeRaw || TX_FEE, 'feeRaw')),
+      memo
     },
     async () => {
       if (recipientNeedsTokenAccount) {
@@ -850,8 +958,68 @@ async function buildVaultDepositTransaction({ wallet, tokenId, amount, memo, fee
   await tx.prove();
   return {
     transaction: tx.toJSON(),
-    receiverNeedsTokenAccount: recipientNeedsTokenAccount
+    receiverNeedsTokenAccount: recipientNeedsTokenAccount,
+    nativeAsset: false
   };
+}
+
+async function buildTokenTransferTransaction({ wallet, recipient, tokenId, amount, memo, feeRaw }) {
+  if (!ZEKO_GRAPHQL) throw new Error('ZEKO_GRAPHQL is required');
+  const { Mina, PublicKey, UInt64, UInt32, Bool, AccountUpdate, fetchAccount } = await import('o1js');
+  const { FungibleToken } = await import('mina-fungible-token');
+  const sender = PublicKey.fromBase58(requireString(wallet, 'wallet'));
+  const receiver = PublicKey.fromBase58(requireString(recipient, 'recipient'));
+  if (sender.toBase58() === receiver.toBase58()) throw new Error('recipient must differ from sender');
+  const assetConfig = resolveKnownAsset({ tokenId });
+  const assetKey = canonicalAssetKey(assetConfig.asset);
+  if (isNativeAsset(assetConfig)) throw new Error('token transfer widget only supports fungible tokens');
+  const tokenAddress58 = TOKEN_CONTRACT_ADDRESSES[assetKey];
+  if (!tokenAddress58) throw new Error(`missing token contract address for ${assetKey}`);
+  const network = Mina.Network({
+    networkId: ZEKO_NETWORK_ID,
+    mina: ZEKO_GRAPHQL,
+    archive: ZEKO_ARCHIVE_GRAPHQL || ZEKO_GRAPHQL
+  });
+  Mina.setActiveInstance(network);
+  await fetchAccount({ publicKey: sender });
+  if (!(await doesOnchainTokenAccountExist(sender.toBase58(), assetConfig.tokenId))) {
+    throw new Error(`sender has no ${assetConfig.asset} token account`);
+  }
+  const tokenAddress = PublicKey.fromBase58(tokenAddress58);
+  const token = new FungibleToken(tokenAddress);
+  if (!fungibleTokenCompilePromise) fungibleTokenCompilePromise = FungibleToken.compile();
+  await fungibleTokenCompilePromise;
+  const recipientNeedsTokenAccount = !(await doesOnchainTokenAccountExist(receiver.toBase58(), assetConfig.tokenId));
+  const tx = await Mina.transaction(
+    {
+      sender,
+      fee: UInt64.from(requireString(feeRaw || TX_FEE, 'feeRaw')),
+      memo
+    },
+    async () => {
+      if (recipientNeedsTokenAccount) {
+        AccountUpdate.fundNewAccount(sender, 1);
+      }
+      await token.transfer(sender, receiver, UInt64.from(requireString(amount, 'amount')));
+    }
+  );
+  const feePayerUpdate = tx.feePayer;
+  if (feePayerUpdate?.body?.preconditions?.account?.nonce) {
+    feePayerUpdate.body.preconditions.account.nonce = { isSome: Bool(false), value: UInt32.from(0) };
+  }
+  if (feePayerUpdate?.body) {
+    feePayerUpdate.body.useFullCommitment = Bool(true);
+  }
+  await tx.prove();
+  return {
+    transaction: tx.toJSON(),
+    receiverNeedsTokenAccount: recipientNeedsTokenAccount,
+    nativeAsset: false
+  };
+}
+
+function getDefaultPairSymbol() {
+  return Array.from(pairs.values())[0]?.symbol || DEFAULT_MARKET_DEFINITIONS[0]?.symbol || '';
 }
 
 async function graphqlRequest(query, variables = {}, endpoint = ZEKO_GRAPHQL) {
@@ -861,7 +1029,14 @@ async function graphqlRequest(query, variables = {}, endpoint = ZEKO_GRAPHQL) {
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ query, variables })
   });
-  const json = await response.json();
+  const responseText = await response.text();
+  let json;
+  try {
+    json = JSON.parse(responseText);
+  } catch {
+    const detail = responseText.replace(/\s+/g, ' ').trim().slice(0, 240);
+    throw new Error(`graphql http ${response.status} returned non-JSON${detail ? `: ${detail}` : ''}`);
+  }
   if (!response.ok) throw new Error(`graphql http ${response.status}`);
   if (json.errors && json.errors.length) {
     throw new Error(json.errors.map((e) => e.message || String(e)).join('; '));
@@ -873,26 +1048,38 @@ async function submitSignedZkappCommand(zkappCommandInput) {
   if (!zkappCommandInput || typeof zkappCommandInput !== 'object') {
     throw new Error('zkappCommandInput is required');
   }
-  const data = await graphqlRequest(
-    `mutation sendZkapp($zkappCommandInput: ZkappCommandInput!) {
-      sendZkapp(input: { zkappCommand: $zkappCommandInput }) {
-        zkapp {
-          hash
-          id
-          failureReason { failures }
-        }
-      }
-    }`,
-    { zkappCommandInput }
-  );
-  const zkapp = data?.sendZkapp?.zkapp;
-  const failures = zkapp?.failureReason?.failures;
-  if (Array.isArray(failures) && failures.length) {
-    throw new Error(`sendZkapp failed: ${JSON.stringify(failures)}`);
+  if (typeof zkappCommandInput.memo !== 'string' || !zkappCommandInput.memo.trim()) {
+    throw new Error('signed zkApp command memo is required');
   }
-  const hash = typeof zkapp?.hash === 'string' ? zkapp.hash : '';
-  if (!hash) throw new Error('sendZkapp returned no hash');
-  return { hash, id: zkapp?.id || null };
+  const query = `mutation sendZkapp($zkappCommandInput: ZkappCommandInput!) {
+    sendZkapp(input: { zkappCommand: $zkappCommandInput }) {
+      zkapp {
+        hash
+        id
+        failureReason { failures }
+      }
+    }
+  }`;
+  let lastError = null;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      const data = await graphqlRequest(query, { zkappCommandInput });
+      const zkapp = data?.sendZkapp?.zkapp;
+      const failures = zkapp?.failureReason?.failures;
+      if (Array.isArray(failures) && failures.length) {
+        throw new Error(`sendZkapp failed: ${JSON.stringify(failures)}`);
+      }
+      const hash = typeof zkapp?.hash === 'string' ? zkapp.hash : '';
+      if (!hash) throw new Error('sendZkapp returned no hash');
+      return { hash, id: zkapp?.id || null };
+    } catch (error) {
+      lastError = error;
+      const message = error instanceof Error ? error.message : String(error);
+      if (!/graphql http (502|503|504|520)/i.test(message) || attempt === 1) throw error;
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+    }
+  }
+  throw lastError || new Error('sendZkapp submission failed');
 }
 
 function validateSignedZkappCommandCoverage(zkappCommandInput) {
@@ -1337,6 +1524,173 @@ async function fetchOnchainTokenBalanceDetailed(wallet, tokenId) {
   };
 }
 
+async function readDepositIntentBalances(intent) {
+  const [walletBalance, vaultBalance] = await Promise.all([
+    fetchOnchainTokenBalanceDetailed(intent.wallet, intent.tokenId),
+    fetchOnchainTokenBalanceDetailed(VAULT_DEPOSIT_ADDRESS, intent.tokenId)
+  ]);
+  if (!walletBalance.ok || !vaultBalance.ok) {
+    const detail = [walletBalance, vaultBalance]
+      .filter((entry) => !entry.ok)
+      .map((entry) => entry.error || 'balance lookup failed')
+      .join(' | ');
+    throw new Error(detail || 'unable to read deposit intent balances');
+  }
+  return {
+    walletRaw: String(walletBalance.total || '0'),
+    vaultRaw: String(vaultBalance.total || '0')
+  };
+}
+
+async function createDepositIntent({ wallet, asset, tokenId, amount }) {
+  if (!VAULT_DEPOSIT_ADDRESS) throw new Error('VAULT_DEPOSIT_ADDRESS is required for deposit recovery');
+  const resolved = resolveKnownAsset({ asset, tokenId });
+  const canonical = canonicalAssetKey(resolved.asset);
+  const decimals = Number.isFinite(ASSET_DECIMALS[canonical]) ? ASSET_DECIMALS[canonical] : 9;
+  const rawAmount = decimalToRawUnitsString(amount, decimals);
+  const before = await readDepositIntentBalances({ wallet, tokenId: resolved.tokenId });
+  const intentId = randomUUID();
+  const intent = {
+    intentId,
+    wallet,
+    asset: canonical,
+    tokenId: resolved.tokenId,
+    amount,
+    rawAmount,
+    beforeWalletRaw: before.walletRaw,
+    beforeVaultRaw: before.vaultRaw,
+    createdAtUnixMs: now(),
+    expiresAtUnixMs: now() + 10 * 60 * 1000,
+    status: 'pending',
+    note: null
+  };
+  depositIntents.set(intentId, intent);
+  queueEngineStatePersist();
+  return {
+    ok: true,
+    intentId,
+    asset: canonical,
+    tokenId: resolved.tokenId,
+    amount,
+    expiresAtUnixMs: intent.expiresAtUnixMs,
+    confirmationModel: 'zeko-sequencer-balance-delta'
+  };
+}
+
+async function recoverDepositIntent(intentId) {
+  const intent = depositIntents.get(intentId);
+  if (!intent) throw new Error('deposit intent not found or expired');
+  if (intent.status === 'claimed' && intent.note) {
+    const accountId = deriveBlindedAccountId({ wallet: intent.wallet });
+    return {
+      ok: true,
+      recovered: true,
+      pending: false,
+      intentId,
+      accountId,
+      note: intent.note,
+      participantBalances: accountBalanceSnapshot(accountId),
+      verificationMode: 'zeko-balance-delta-recovery'
+    };
+  }
+  if (intent.status === 'claiming') {
+    return {
+      ok: true,
+      recovered: false,
+      pending: true,
+      intentId,
+      status: 'claiming',
+      verificationMode: 'zeko-balance-delta-recovery'
+    };
+  }
+  if (intent.status === 'canceled') {
+    return {
+      ok: true,
+      recovered: false,
+      pending: false,
+      intentId,
+      status: 'canceled',
+      verificationMode: 'zeko-balance-delta-recovery'
+    };
+  }
+  if (Number(intent.expiresAtUnixMs || 0) <= now()) {
+    depositIntents.delete(intentId);
+    queueEngineStatePersist();
+    throw new Error('deposit intent expired; do not resend without checking the vault balance');
+  }
+
+  const current = await readDepositIntentBalances(intent);
+  const beforeWallet = BigInt(intent.beforeWalletRaw);
+  const beforeVault = BigInt(intent.beforeVaultRaw);
+  const currentWallet = BigInt(current.walletRaw);
+  const currentVault = BigInt(current.vaultRaw);
+  const rawAmount = BigInt(intent.rawAmount);
+  const walletDelta = beforeWallet - currentWallet;
+  const vaultDelta = currentVault - beforeVault;
+  const walletMatched = isNativeAsset(intent.asset) ? walletDelta >= rawAmount : walletDelta === rawAmount;
+  const vaultMatched = vaultDelta === rawAmount;
+
+  if (!walletMatched || !vaultMatched) {
+    return {
+      ok: true,
+      recovered: false,
+      pending: true,
+      intentId,
+      status: 'waiting_for_zeko',
+      walletDeltaRaw: walletDelta.toString(),
+      vaultDeltaRaw: vaultDelta.toString(),
+      expectedRawAmount: intent.rawAmount,
+      verificationMode: 'zeko-balance-delta-recovery'
+    };
+  }
+
+  const accountId = deriveBlindedAccountId({ wallet: intent.wallet });
+  intent.status = 'claiming';
+  queueEngineStatePersist();
+  let note;
+  try {
+    await syncParticipantFromOnchain(accountId, intent.wallet);
+    note = issueNote(intent.asset, intent.amount, 'onchain-backed-deposit-recovered', null, accountId);
+    if (!note) throw new Error('unable to issue recovered deposit note');
+    intent.status = 'claimed';
+    intent.claimedAtUnixMs = now();
+    intent.note = note;
+    intent.walletAfterRaw = current.walletRaw;
+    intent.vaultAfterRaw = current.vaultRaw;
+    queueEngineStatePersist();
+  } catch (error) {
+    intent.status = 'pending';
+    queueEngineStatePersist();
+    throw error;
+  }
+  return {
+    ok: true,
+    recovered: true,
+    pending: false,
+    intentId,
+    accountId,
+    note,
+    asset: intent.asset,
+    tokenId: intent.tokenId,
+    verifiedDepositTx: null,
+    verificationMode: 'zeko-balance-delta-recovery',
+    participantBalances: accountBalanceSnapshot(accountId),
+    poolTotals
+  };
+}
+
+function cancelDepositIntent(intentId) {
+  const intent = depositIntents.get(intentId);
+  if (!intent) return { ok: true, canceled: false, intentId };
+  if (intent.status === 'claimed' && intent.note) {
+    throw new Error('cannot cancel a deposit intent after a note was issued');
+  }
+  intent.status = 'canceled';
+  intent.canceledAtUnixMs = now();
+  queueEngineStatePersist();
+  return { ok: true, canceled: true, intentId, status: 'canceled' };
+}
+
 function hasOpenOrdersForAccount(accountId) {
   return Array.from(orders.values()).some(
     (o) =>
@@ -1624,7 +1978,11 @@ async function getMinaSignerClient() {
     const signerPath = path.join(path.dirname(o1jsEntry), 'mina-signer', 'mina-signer.js');
     minaSignerClientPromise = import(pathToFileURL(signerPath).href).then((mod) => {
       const Client = mod.default;
-      const networkId = String(ZEKO_NETWORK_ID || 'testnet').trim().toLowerCase() === 'mainnet' ? 'mainnet' : 'testnet';
+      // Zeko Sepolia uses the Mina testnet signing domain for wallet messages.
+      // `zeko:testnet` is the chain/network identifier, not the mina-signer domain.
+      const networkId = String(ZEKO_NETWORK_ID || 'testnet').trim().toLowerCase() === 'mainnet'
+        ? 'mainnet'
+        : 'testnet';
       return new Client({ network: networkId });
     });
   }
@@ -1799,7 +2157,7 @@ function setCorsHeaders(req, res) {
   const origin = typeof req.headers.origin === 'string' ? req.headers.origin : '*';
   res.setHeader('Access-Control-Allow-Origin', origin || '*');
   res.setHeader('Vary', 'Origin');
-  res.setHeader('Access-Control-Allow-Headers', 'content-type,x-maker-key');
+  res.setHeader('Access-Control-Allow-Headers', 'content-type,x-maker-key,x-internal-service-key');
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS,HEAD');
 }
 
@@ -1868,7 +2226,7 @@ function logActivity(accountId, type, details = {}) {
     id: randomUUID(),
     accountId,
     type,
-    details,
+    details: storedActivityDetails(type, details),
     createdAtUnixMs: now()
   });
   if (activityEvents.length > 5000) activityEvents.pop();
@@ -1946,7 +2304,6 @@ function openOrdersSnapshot() {
       reservedBaseRemaining: o.reservedBaseRemaining,
       timeInForce: o.timeInForce,
       commitment: o.commitment,
-      encryptedOrder: o.encryptedOrder,
       createdAtUnixMs: o.createdAtUnixMs,
       sequenceNumber: o.sequenceNumber || null,
       sequencingReceiptHash: o.sequencingReceiptHash || null,
@@ -2216,6 +2573,7 @@ function engineStateSnapshot() {
     privateStateJournal,
     nextOrderSequenceNumber,
     poolTotals,
+    depositIntents: Object.fromEntries(depositIntents.entries()),
     usedDepositTxHashes: Array.from(usedDepositTxHashes.values()),
     usedSettlementPayoutTxHashes: Array.from(usedSettlementPayoutTxHashes.values())
   };
@@ -2248,6 +2606,7 @@ async function loadEngineState() {
     const loadedSpentNullifiers = Array.isArray(state.spentNullifiers) ? state.spentNullifiers : [];
     const loadedSequencingReceipts = Array.isArray(state.sequencingReceipts) ? state.sequencingReceipts : [];
     const loadedPrivateStateJournal = Array.isArray(state.privateStateJournal) ? state.privateStateJournal : [];
+    const loadedDepositIntents = state.depositIntents && typeof state.depositIntents === 'object' ? state.depositIntents : {};
     const loadedUsedDepositTxHashes = Array.isArray(state.usedDepositTxHashes) ? state.usedDepositTxHashes : [];
     const loadedUsedSettlementPayoutTxHashes = Array.isArray(state.usedSettlementPayoutTxHashes)
       ? state.usedSettlementPayoutTxHashes
@@ -2290,6 +2649,11 @@ async function loadEngineState() {
       if (!entry || typeof entry !== 'object' || typeof entry.kind !== 'string') continue;
       privateStateJournal.push(entry);
     }
+    depositIntents.clear();
+    for (const [intentId, intent] of Object.entries(loadedDepositIntents)) {
+      if (!intent || typeof intent !== 'object' || typeof intentId !== 'string') continue;
+      if (Number(intent.expiresAtUnixMs || 0) > now()) depositIntents.set(intentId, intent);
+    }
     const loadedNextOrderSequenceNumber = Number(state.nextOrderSequenceNumber || 0);
     if (Number.isFinite(loadedNextOrderSequenceNumber) && loadedNextOrderSequenceNumber > 0) {
       nextOrderSequenceNumber = loadedNextOrderSequenceNumber;
@@ -2320,10 +2684,16 @@ async function loadEngineState() {
     activityEvents.length = 0;
     for (const event of loadedActivityEvents) {
       if (!event || typeof event.accountId !== 'string' || typeof event.type !== 'string') continue;
-      activityEvents.push(event);
+      activityEvents.push({
+        ...event,
+        details: storedActivityDetails(event.type, event.details || {})
+      });
     }
     for (const order of loadedOrders) {
       if (!order || !order.id || !order.pair) continue;
+      // Older snapshots carried base64-encoded plaintext order payloads. They
+      // were never encryption; discard them when loading the state.
+      delete order.encryptedOrder;
       orders.set(order.id, order);
       const book = getBook(order.pair);
       if (order.side === 'BUY') book.buys.push(order.id);
@@ -3321,7 +3691,6 @@ function placeOrder({
     reservedBaseRemaining: reservedBase,
     timeInForce,
     commitment: sha256Hex(payload),
-    encryptedOrder: encodePrivate(payload),
     createdAtUnixMs: now(),
     cancelToken: randomBytes(16).toString('hex'),
     status: 'OPEN',
@@ -3365,7 +3734,6 @@ function sanitizeOrder(order) {
     commitment: order.commitment,
     sequenceNumber: order.sequenceNumber || null,
     sequencingReceiptHash: order.sequencingReceiptHash || null,
-    encryptedOrder: order.encryptedOrder,
     makerTag: order.makerTag || null,
     frontendId: order.frontendId || null,
     status: order.status,
@@ -3525,7 +3893,6 @@ function requireMinaAddress(value, field) {
 }
 
 async function claimZekoTestnetFaucet(address) {
-  if (ZEKO_IS_MAINNET) throw new Error('zeko faucet is testnet-only and is disabled when ZEKO_NETWORK_ID=mainnet');
   if (!ZEKO_FAUCET_COMMAND) throw new Error('zeko faucet command is not configured');
   if (!ZEKO_FAUCET_GITHUB_TOKEN) throw new Error('zeko faucet github token is not configured');
   const target = requireMinaAddress(address, 'wallet');
@@ -3942,7 +4309,6 @@ function computeStatusSnapshot(port) {
   const openOrders = Array.from(orders.values()).filter((o) => o.status !== 'FILLED' && o.status !== 'CANCELED' && o.remaining > 1e-9);
   const avgMatchMs = engineMetrics.matchCallCount > 0 ? engineMetrics.matchTotalMs / engineMetrics.matchCallCount : 0;
   const auditStatus = getAuditChainStatus(auditTrail);
-  const walletNetwork = detectWalletNetworkConfig();
   return {
     ok: true,
     nowUnixMs: now(),
@@ -3968,7 +4334,24 @@ function computeStatusSnapshot(port) {
         archiveRelayEndpoint: ZEKO_ARCHIVE_RELAY_GRAPHQL || null,
         hasDedicatedTxEndpoint: Boolean(ZEKO_TX_GRAPHQL_ENV && ZEKO_TX_GRAPHQL_ENV !== ZEKO_GRAPHQL)
       },
-      walletNetwork,
+      userConfirmation: {
+        model: 'zeko-sequencer',
+        ethereumFinalityRequired: false,
+        noteIssuanceRequiresDepositHash: REQUIRE_ONCHAIN_DEPOSIT_TX
+      },
+      walletNetwork: WALLET_NETWORK_CONFIG,
+      executionPrivacy: {
+        currentMode: 'lean',
+        fullModeReferencePath: true,
+        proofWorkerAutoStart: Boolean(AUTO_RUN_PROOF_WORKER),
+        secureModeAvailable: SECURE_MODE_IMPLEMENTED,
+        secureModeBoundary: 'encrypted matcher inside an attested execution environment'
+      },
+      activityPrivacy: {
+        mode: ACTIVITY_PRIVACY_MODE,
+        serverDetailsStored: !OPERATOR_ACTIVITY_REDACTION_ENABLED,
+        clientTimelineStorage: 'browser-local'
+      },
       da: {
         mode: DA_MODE,
         enabled: Boolean(DA_ENDPOINT),
@@ -3984,8 +4367,7 @@ function computeStatusSnapshot(port) {
         maxDelayMs: SETTLEMENT_BATCH_MAX_DELAY_MS
       },
       faucet: {
-        enabled: !ZEKO_IS_MAINNET && Boolean(ZEKO_FAUCET_COMMAND && ZEKO_FAUCET_GITHUB_TOKEN),
-        testnetOnly: true,
+        enabled: Boolean(ZEKO_FAUCET_COMMAND && ZEKO_FAUCET_GITHUB_TOKEN),
         commandConfigured: Boolean(ZEKO_FAUCET_COMMAND),
         githubTokenConfigured: Boolean(ZEKO_FAUCET_GITHUB_TOKEN)
       },
@@ -4051,9 +4433,45 @@ function computeStatusSnapshot(port) {
   };
 }
 
-function bootstrapMarkets() {
+async function bootstrapMarkets() {
+  pairs.clear();
   marketsById.clear();
   marketsByTokenKey.clear();
+  const configuredMarkets = parseSupportedAssetPairs(process.env.SUPPORTED_ASSET_PAIRS_JSON || '');
+  const sourceMarkets = configuredMarkets || DEFAULT_MARKET_DEFINITIONS;
+  const configuredSzekoTokenId = TOKEN_CONTRACT_ADDRESSES.SZEKO
+    ? await deriveTokenIdFromAddress(TOKEN_CONTRACT_ADDRESSES.SZEKO)
+    : DEFAULT_SZEKO_TOKEN_ID;
+  for (const rawMarket of sourceMarkets) {
+    const market = { ...rawMarket };
+    const baseAssetKey = canonicalAssetKey(market.baseAsset);
+    const quoteAssetKey = canonicalAssetKey(market.quoteAsset);
+    if (!market.baseTokenId) {
+      market.baseTokenId = await deriveTokenIdFromAddress(TOKEN_CONTRACT_ADDRESSES[baseAssetKey]);
+    }
+    if (!market.quoteTokenId) {
+      market.quoteTokenId = await deriveTokenIdFromAddress(TOKEN_CONTRACT_ADDRESSES[quoteAssetKey]);
+    }
+    if (!market.baseTokenId) {
+      throw new Error(`missing baseTokenId for ${market.symbol}; set SUPPORTED_ASSET_PAIRS_JSON or token address for ${market.baseAsset}`);
+    }
+    if (!market.quoteTokenId) {
+      throw new Error(`missing quoteTokenId for ${market.symbol}; set SUPPORTED_ASSET_PAIRS_JSON or token address for ${market.quoteAsset}`);
+    }
+    const expectedBaseTokenId = baseAssetKey === 'SETH' ? DEFAULT_NATIVE_TOKEN_ID : configuredSzekoTokenId;
+    const expectedQuoteTokenId = quoteAssetKey === 'SETH' ? DEFAULT_NATIVE_TOKEN_ID : configuredSzekoTokenId;
+    if (
+      !['SETH', 'SZEKO'].includes(baseAssetKey) ||
+      !['SETH', 'SZEKO'].includes(quoteAssetKey) ||
+      market.baseTokenId !== expectedBaseTokenId ||
+      market.quoteTokenId !== expectedQuoteTokenId
+    ) {
+      throw new Error(
+        `Sepolia requires the sETH/sZEKO market using native token ${DEFAULT_NATIVE_TOKEN_ID} and configured sZEKO token ${configuredSzekoTokenId}`
+      );
+    }
+    pairs.set(String(market.symbol).trim().toUpperCase(), market);
+  }
   for (const market of pairs.values()) {
     if (!market.marketId) {
       market.marketId = makeMarketId(market.baseTokenId, market.quoteTokenId);
@@ -4064,17 +4482,22 @@ function bootstrapMarkets() {
 }
 
 async function main() {
-  bootstrapMarkets();
+  if (CONFIGURED_ZEKO_GRAPHQL && CONFIGURED_ZEKO_GRAPHQL !== SEPOLIA_ZEKO_GRAPHQL) {
+    console.warn('[darkpool-server] Ignoring non-Sepolia ZEKO_GRAPHQL and using https://sepolia.zeko.io/graphql');
+  }
+  await bootstrapMarkets();
   const landingPagePath = path.resolve(projectRoot, 'public', 'index.html');
   const landingPreviewPagePath = path.resolve(projectRoot, 'public', 'landing-preview.html');
   const pagePath = path.resolve(projectRoot, 'public', 'darkpool.html');
   const partnerPagePath = path.resolve(projectRoot, 'public', 'partner-frontend.html');
   const assetsRoot = path.resolve(projectRoot, 'public', 'assets');
   const sdkRoot = path.resolve(projectRoot, 'public', 'sdk');
-  settlementBatchesPath = path.resolve(projectRoot, 'data', 'settlement-batches.json');
-  engineStatePath = path.resolve(projectRoot, 'data', 'engine-state.json');
-  auditLogPath = path.resolve(projectRoot, 'data', 'fairness-audit.jsonl');
-  earlyAccessStatePath = path.resolve(projectRoot, 'data', 'early-access-state.json');
+  const defaultDataDir = path.resolve(projectRoot, 'data', 'zeko-sepolia');
+  const dataDir = path.resolve(process.env.DARKPOOL_DATA_DIR || defaultDataDir);
+  settlementBatchesPath = path.join(dataDir, 'settlement-batches.json');
+  engineStatePath = path.join(dataDir, 'engine-state.json');
+  auditLogPath = path.join(dataDir, 'fairness-audit.jsonl');
+  earlyAccessStatePath = path.join(dataDir, 'early-access-state.json');
   await mkdir(path.dirname(auditLogPath), { recursive: true });
   await loadAuditHeadFromFile();
   await loadSettlementBatches();
@@ -4269,7 +4692,7 @@ async function main() {
       if (req.method === 'GET' && url.pathname === '/api/darkpool/book') {
         const pair = resolveMarket({
           marketId: url.searchParams.get('marketId'),
-          pair: url.searchParams.get('pair') || 'tETH/tZEKO',
+          pair: url.searchParams.get('pair') || getDefaultPairSymbol(),
           baseTokenId: url.searchParams.get('baseTokenId'),
           quoteTokenId: url.searchParams.get('quoteTokenId')
         });
@@ -4289,7 +4712,7 @@ async function main() {
       if (req.method === 'GET' && url.pathname === '/api/darkpool/book/hash') {
         const pair = resolveMarket({
           marketId: url.searchParams.get('marketId'),
-          pair: url.searchParams.get('pair') || 'tETH/tZEKO',
+          pair: url.searchParams.get('pair') || getDefaultPairSymbol(),
           baseTokenId: url.searchParams.get('baseTokenId'),
           quoteTokenId: url.searchParams.get('quoteTokenId')
         });
@@ -4326,7 +4749,7 @@ async function main() {
       if (req.method === 'GET' && url.pathname === '/api/darkpool/candles') {
         const market = resolveMarket({
           marketId: url.searchParams.get('marketId'),
-          pair: url.searchParams.get('pair') || 'tETH/tZEKO',
+          pair: url.searchParams.get('pair') || getDefaultPairSymbol(),
           baseTokenId: url.searchParams.get('baseTokenId'),
           quoteTokenId: url.searchParams.get('quoteTokenId')
         });
@@ -4671,14 +5094,18 @@ async function main() {
         const quantity = requirePositiveNumber(Number(url.searchParams.get('quantity') || '0'), 'quantity');
         let limitPrice = Number(url.searchParams.get('limitPrice') || '0');
         let marketExecutable = true;
+        let marketAvailableQuantity = null;
+        let marketFullFillAvailable = null;
         if (orderType === 'MARKET') {
           const sweep = marketSweepQuote(market.symbol, side, quantity);
+          marketAvailableQuantity = sweep.availableQty;
+          marketFullFillAvailable = sweep.fullFillAvailable;
           const slip = Math.max(0, Number(MARKET_ORDER_SLIPPAGE_BPS || 0)) / 10000;
           if (side === 'BUY') {
-            if (!Number.isFinite(Number(sweep.terminalPrice)) || Number(sweep.terminalPrice) <= 0) marketExecutable = false;
+            if (!Number.isFinite(Number(sweep.terminalPrice)) || Number(sweep.terminalPrice) <= 0 || !sweep.fullFillAvailable) marketExecutable = false;
             else limitPrice = Number(sweep.terminalPrice) * (1 + slip);
           } else {
-            if (!Number.isFinite(Number(sweep.terminalPrice)) || Number(sweep.terminalPrice) <= 0) marketExecutable = false;
+            if (!Number.isFinite(Number(sweep.terminalPrice)) || Number(sweep.terminalPrice) <= 0 || !sweep.fullFillAvailable) marketExecutable = false;
             else limitPrice = Math.max(0.00000001, Number(sweep.terminalPrice) * (1 - slip));
           }
         } else {
@@ -4711,6 +5138,8 @@ async function main() {
           onchainSyncTtlMs: ONCHAIN_SYNC_TTL_MS,
           orderType,
           marketExecutable,
+          marketAvailableQuantity,
+          marketFullFillAvailable,
           side,
           quantity,
           limitPrice: Number.isFinite(limitPrice) ? limitPrice : null,
@@ -4755,6 +5184,11 @@ async function main() {
           sortBook(pairConfig.symbol);
           const sweep = marketSweepQuote(pairConfig.symbol, side, quantity);
           const slip = Math.max(0, Number(MARKET_ORDER_SLIPPAGE_BPS || 0)) / 10000;
+          if (!sweep.fullFillAvailable) {
+            throw new Error(
+              `market order quantity ${quantity} exceeds available ${side === 'BUY' ? 'ask' : 'bid'} liquidity ${sweep.availableQty}`
+            );
+          }
           if (side === 'BUY') {
             if (!Number.isFinite(Number(sweep.terminalPrice)) || Number(sweep.terminalPrice) <= 0) {
               throw new Error('no ask liquidity for market buy');
@@ -4887,6 +5321,7 @@ async function main() {
         const replace = Boolean(body.replace);
         const tif = normalizeTif(body.timeInForce);
         const frontendId = normalizeFrontendId(body.frontendId);
+        const visibility = String(body.visibility || 'public').trim().toLowerCase() === 'private' ? 'private' : 'public';
         const makerTag = typeof body.makerTag === 'string' ? body.makerTag.trim().slice(0, 60) : 'maker-quote';
         if (bidPrice >= askPrice) throw new Error('bidPrice must be less than askPrice');
 
@@ -4906,6 +5341,7 @@ async function main() {
           limitPrice: bidPrice,
           quantity: bidSize,
           timeInForce: tif,
+          visibility,
           privateMemo: `maker-bid:${makerTag}`,
           frontendId
         });
@@ -4920,6 +5356,7 @@ async function main() {
           limitPrice: askPrice,
           quantity: askSize,
           timeInForce: tif,
+          visibility,
           privateMemo: `maker-ask:${makerTag}`,
           frontendId
         });
@@ -4935,7 +5372,7 @@ async function main() {
           pair: pairConfig.symbol,
           replace,
           canceledOrders: canceled,
-          quote: { bidPrice, askPrice, bidSize, askSize, tif, makerTag },
+          quote: { bidPrice, askPrice, bidSize, askSize, tif, makerTag, visibility },
           bidOrder: sanitizeOrder(bid),
           askOrder: sanitizeOrder(ask),
           sequencingReceipts: {
@@ -5152,7 +5589,7 @@ async function main() {
         if (order.cancelToken !== token) throw new Error('invalid token');
         writeJson(res, 200, {
           order: sanitizeOrder(order),
-          decryptedOrderPayload: decodePrivate(order.encryptedOrder),
+          orderPayloadCommitment: order.commitment,
           privateFills: privateFillsByOrder.get(orderId) || [],
           issuedNotes: orderIssuedNotes.get(orderId) || []
         });
@@ -5201,7 +5638,7 @@ async function main() {
         const resolved = resolveKnownAsset({ asset: body.asset, tokenId: body.tokenId });
         const wallet = requireString(body.wallet, 'wallet');
         const amount = requirePositiveNumber(body.amount, 'amount');
-        const rawAmount = decimalToRawUnitsString(amount, ASSET_DECIMALS[resolved.asset] ?? 9);
+        const rawAmount = decimalToRawUnitsString(amount, ASSET_DECIMALS[canonicalAssetKey(resolved.asset)] ?? 9);
         const suggestedFee = await getSuggestedSequencerFeeRaw();
         const memo =
           typeof body.memo === 'string' && body.memo.trim()
@@ -5222,6 +5659,48 @@ async function main() {
           amount,
           rawAmount,
           vaultDepositAddress: VAULT_DEPOSIT_ADDRESS,
+          fee: suggestedFee.fee,
+          feeRaw: suggestedFee.feeRaw,
+          feeSource: suggestedFee.source,
+          receiverNeedsAccount: Boolean(built?.receiverNeedsAccount),
+          receiverNeedsTokenAccount: Boolean(built?.receiverNeedsTokenAccount),
+          memo,
+          transaction: built.transaction
+        });
+        return;
+      }
+
+      if (req.method === 'POST' && url.pathname === '/api/darkpool/funding/token-transfer/build-transaction') {
+        const body = await readJsonBody(req);
+        const resolved = resolveKnownAsset({ asset: body.asset, tokenId: body.tokenId });
+        if (canonicalAssetKey(resolved.asset) !== 'SZEKO') {
+          throw new Error('token transfer widget currently supports sZEKO only');
+        }
+        const wallet = requireString(body.wallet, 'wallet');
+        const recipient = requireString(body.recipient, 'recipient');
+        const amount = requirePositiveNumber(body.amount, 'amount');
+        const rawAmount = decimalToRawUnitsString(amount, ASSET_DECIMALS[canonicalAssetKey(resolved.asset)] ?? 9);
+        const suggestedFee = await getSuggestedSequencerFeeRaw();
+        const memo =
+          typeof body.memo === 'string' && body.memo.trim()
+            ? body.memo.trim()
+            : `shadowbook-transfer:${resolved.asset}`;
+        const built = await buildTokenTransferTransaction({
+          wallet,
+          recipient,
+          tokenId: resolved.tokenId,
+          amount: rawAmount,
+          memo,
+          feeRaw: suggestedFee.feeRaw
+        });
+        writeJson(res, 200, {
+          ok: true,
+          wallet,
+          recipient,
+          asset: resolved.asset,
+          tokenId: resolved.tokenId,
+          amount,
+          rawAmount,
           fee: suggestedFee.fee,
           feeRaw: suggestedFee.feeRaw,
           feeSource: suggestedFee.source,
@@ -5252,6 +5731,53 @@ async function main() {
           hash: submitted.hash,
           zkappId: submitted.id
         });
+        return;
+      }
+
+      if (req.method === 'POST' && url.pathname === '/api/darkpool/funding/token-transfer/submit-signed') {
+        const body = await readJsonBody(req);
+        const signedData = body?.signedData ?? body?.signature ?? body?.response?.signedData ?? null;
+        const parsed = signedData ? (typeof signedData === 'string' ? JSON.parse(signedData) : signedData) : null;
+        const zkappCommand =
+          body?.zkappCommand ||
+          parsed?.zkappCommand ||
+          parsed?.data?.zkappCommand ||
+          parsed?.signedData?.zkappCommand ||
+          null;
+        if (!zkappCommand || typeof zkappCommand !== 'object') {
+          throw new Error('submit-signed requires zkappCommand or signedData containing zkappCommand');
+        }
+        validateSignedZkappCommandCoverage(zkappCommand);
+        const submitted = await submitSignedZkappCommand(zkappCommand);
+        writeJson(res, 200, {
+          ok: true,
+          hash: submitted.hash,
+          zkappId: submitted.id
+        });
+        return;
+      }
+
+      if (req.method === 'POST' && url.pathname === '/api/darkpool/vault/deposit-intent') {
+        const body = await readJsonBody(req);
+        const wallet = requireString(body.wallet, 'wallet');
+        const asset = requireString(body.asset, 'asset');
+        const tokenId = requireString(body.tokenId, 'tokenId');
+        const amount = requirePositiveNumber(body.amount, 'amount');
+        writeJson(res, 200, await createDepositIntent({ wallet, asset, tokenId, amount }));
+        return;
+      }
+
+      if (req.method === 'POST' && url.pathname === '/api/darkpool/vault/deposit-recover') {
+        const body = await readJsonBody(req);
+        const intentId = requireString(body.intentId, 'intentId');
+        writeJson(res, 200, await recoverDepositIntent(intentId));
+        return;
+      }
+
+      if (req.method === 'POST' && url.pathname === '/api/darkpool/vault/deposit-cancel') {
+        const body = await readJsonBody(req);
+        const intentId = requireString(body.intentId, 'intentId');
+        writeJson(res, 200, cancelDepositIntent(intentId));
         return;
       }
 
@@ -5292,6 +5818,15 @@ async function main() {
         }
         const canonical = canonicalAssetKey(resolved.asset);
         const note = issueNote(canonical, amount, 'onchain-backed-deposit', null, accountId);
+        const intentId = typeof body.intentId === 'string' ? body.intentId.trim() : '';
+        if (intentId) {
+          const intent = depositIntents.get(intentId);
+          if (intent && intent.status === 'pending') {
+            intent.status = 'claimed';
+            intent.claimedAtUnixMs = now();
+            intent.note = note;
+          }
+        }
         queueEngineStatePersist();
         writeJson(res, 200, {
           ok: true,

@@ -1,15 +1,12 @@
 # Private Order Book
 
-ShadowBook is a private order book / dark pool demo built on Zeko with:
+ShadowBook is a private order book / dark pool demo built on Zeko Ethereum Sepolia with:
 - note-backed private collateral
 - public and private order visibility modes
 - off-chain matching
 - on-chain settlement anchoring through a zkApp
 - a lean settlement zkApp as the default hosted path
-
-## Network Profile
-
-Testnet remains the default so existing hosted deployments keep running. For mainnet, use a separate environment profile with `ZEKO_NETWORK_ID=mainnet`, official mainnet endpoints, fresh settlement zkApps, real asset/token addresses, production withdrawal policy, and faucet settings disabled. See [Zeko Mainnet Readiness](../docs/zeko-mainnet-readiness.md).
+- a single supported market: `sETH/sZEKO`
 
 ## What Works
 
@@ -35,6 +32,8 @@ pnpm darkpool:serve
 Open:
 - [Trading UI](http://127.0.0.1:8791/darkpool)
 - [Partner Frontend Example](http://127.0.0.1:8791/partner)
+
+The server is Sepolia-only. It requires `ZEKO_GRAPHQL=https://sepolia.zeko.io/graphql` and stores runtime state under `data/zeko-sepolia` by default.
 
 ## Recommended Runtime Modes
 
@@ -78,6 +77,7 @@ That remote proof agent fetches the next pending proof job snapshot, builds the 
 - [Full-mode implementation path](./docs/full-mode-implementation.md)
 - [Full-mode runbook](./docs/full-mode-runbook.md)
 - [Full-mode production gaps](./docs/full-mode-production-gaps.md)
+- [Secure-mode confidential matching design](./docs/secure-mode-pseudocode.md)
 - [On-chain order book reference path](./docs/onchain-orderbook-reference.md)
 
 ## Agent Skills

@@ -10,7 +10,7 @@ async function main() {
   const deployerKey = PrivateKey.fromBase58(requireEnv('DEPLOYER_PRIVATE_KEY'));
   const zkappKey = PrivateKey.fromBase58(requireEnv('ONCHAIN_OB_ZKAPP_PRIVATE_KEY'));
   const zkappAddress = PublicKey.fromBase58(requireEnv('ONCHAIN_OB_ZKAPP_PUBLIC_KEY'));
-  const marketSymbol = readOptionalEnv('ONCHAIN_OB_MARKET_SYMBOL', readOptionalEnv('MARKET_SYMBOL', 'tETH/tZEKO'));
+  const marketSymbol = readOptionalEnv('ONCHAIN_OB_MARKET_SYMBOL', readOptionalEnv('MARKET_SYMBOL', 'sETH/sZEKO'));
   const baseTokenId = readOptionalEnv('ONCHAIN_OB_BASE_TOKEN_ID', readOptionalEnv('BASE_TOKEN_ID', 'base'));
   const quoteTokenId = readOptionalEnv('ONCHAIN_OB_QUOTE_TOKEN_ID', readOptionalEnv('QUOTE_TOKEN_ID', 'quote'));
 

@@ -15,7 +15,7 @@ async function main() {
   const makerWallet = process.env.REPLAY_MAKER_WALLET || 'B62qdemo_maker_wallet_replay';
   const takerWalletA = process.env.REPLAY_TAKER_WALLET_A || 'B62qdemo_taker_wallet_a';
   const takerWalletB = process.env.REPLAY_TAKER_WALLET_B || 'B62qdemo_taker_wallet_b';
-  const pair = 'tETH/tZEKO';
+  const pair = 'sETH/sZEKO';
 
   await request('/api/darkpool/accounts/sync-onchain', { method: 'POST', body: { wallet: makerWallet } });
   await request('/api/darkpool/accounts/sync-onchain', { method: 'POST', body: { wallet: takerWalletA } });

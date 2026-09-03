@@ -13,35 +13,56 @@ import { FungibleToken } from 'mina-fungible-token';
 
 const API_BASE = (process.env.DARKPOOL_API || 'http://127.0.0.1:8791').replace(/\/$/, '');
 const ZEKO_GRAPHQL = String(process.env.ZEKO_GRAPHQL || '').trim();
-const TX_FEE = String(process.env.TX_FEE || '100000000').trim();
+const TX_FEE = String(process.env.TX_FEE || '200000').trim();
 const OPERATOR_PRIVATE_KEY = String(
   process.env.PAYOUT_OPERATOR_PRIVATE_KEY || process.env.DEPLOYER_PRIVATE_KEY || ''
 ).trim();
 const FEE_PAYER_PRIVATE_KEY = String(process.env.PAYOUT_FEE_PAYER_PRIVATE_KEY || OPERATOR_PRIVATE_KEY).trim();
 const EXPECTED_VAULT_ADDRESS = String(process.env.VAULT_DEPOSIT_ADDRESS || '').trim();
-const TOKEN_CONTRACT_ADDRESSES = (() => {
+function normalizeAsset(asset) {
+  return String(asset || '').trim().toUpperCase();
+}
+
+function parseUpperStringMap(jsonRaw, fallback = {}) {
+  const result = { ...fallback };
   try {
-    const parsed = JSON.parse(process.env.TOKEN_CONTRACT_ADDRESSES_JSON || '{}');
-    return {
-      TETH: typeof parsed.tETH === 'string' ? parsed.tETH.trim() : '',
-      TZEKO: typeof parsed.tZEKO === 'string' ? parsed.tZEKO.trim() : '',
-      TMINA: typeof parsed.tMINA === 'string' ? parsed.tMINA.trim() : ''
-    };
-  } catch {
-    return { TETH: '', TZEKO: '', TMINA: '' };
-  }
+    const parsed = JSON.parse(jsonRaw || '{}');
+    for (const [key, value] of Object.entries(parsed || {})) {
+      if (!key || typeof value !== 'string') continue;
+      result[normalizeAsset(key)] = value.trim();
+    }
+  } catch {}
+  return result;
+}
+
+function parseUpperNumberMap(jsonRaw, fallback = {}) {
+  const result = { ...fallback };
+  try {
+    const parsed = JSON.parse(jsonRaw || '{}');
+    for (const [key, value] of Object.entries(parsed || {})) {
+      if (!key) continue;
+      const numeric = Number(value);
+      if (Number.isFinite(numeric)) result[normalizeAsset(key)] = numeric;
+    }
+  } catch {}
+  return result;
+}
+
+const DEFAULT_TOKEN_CONTRACT_ADDRESSES = {
+  SETH: '',
+  SZEKO: 'B62qpCuSDoTuL8dUcNfuoLoas8A77gRHJTp4WVe5NF2phXbQUNwNZ3W'
+};
+const DEFAULT_ASSET_DECIMALS = { SETH: 9, SZEKO: 9 };
+
+function isNativeAsset(asset) {
+  return !String(TOKEN_CONTRACT_ADDRESSES[normalizeAsset(asset)] || '').trim();
+}
+
+const TOKEN_CONTRACT_ADDRESSES = (() => {
+  return parseUpperStringMap(process.env.TOKEN_CONTRACT_ADDRESSES_JSON || '{}', DEFAULT_TOKEN_CONTRACT_ADDRESSES);
 })();
 const ASSET_DECIMALS = (() => {
-  try {
-    const parsed = JSON.parse(process.env.ASSET_DECIMALS_JSON || '{}');
-    return {
-      TETH: Number.isFinite(Number(parsed.tETH)) ? Number(parsed.tETH) : 9,
-      TZEKO: Number.isFinite(Number(parsed.tZEKO)) ? Number(parsed.tZEKO) : 9,
-      TMINA: Number.isFinite(Number(parsed.tMINA)) ? Number(parsed.tMINA) : 9
-    };
-  } catch {
-    return { TETH: 9, TZEKO: 9, TMINA: 9 };
-  }
+  return parseUpperNumberMap(process.env.ASSET_DECIMALS_JSON || '{}', DEFAULT_ASSET_DECIMALS);
 })();
 let fungibleTokenCompilePromise = null;
 const PAYOUT_TX_WAIT_MAX_ATTEMPTS = Math.max(
@@ -78,10 +99,6 @@ async function readStdinJson() {
   } catch (error) {
     throw new Error(`stdin JSON parse failed: ${error instanceof Error ? error.message : String(error)}`);
   }
-}
-
-function normalizeAsset(asset) {
-  return String(asset || '').trim().toUpperCase();
 }
 
 function decimalToRawUInt64(amount, decimals) {
@@ -255,7 +272,7 @@ async function main() {
     }
     const nextFeePayerNonce = currentFeePayerNonce + 1n;
     const tx =
-      asset === 'TMINA'
+      isNativeAsset(asset)
         ? await Mina.transaction(
             {
               sender: feePayerPub,

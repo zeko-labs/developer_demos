@@ -112,9 +112,13 @@ type ProofRootOverrides = {
 };
 
 export async function buildPendingPrivateStateProofInputs(overrides: ProofRootOverrides = {}): Promise<PendingPrivateStateProofInputs | null> {
+  const dataDir = readOptionalEnv(
+    'DARKPOOL_DATA_DIR',
+    path.resolve(process.cwd(), 'data', 'zeko-sepolia')
+  );
   const batchPath = readOptionalEnv(
     'SETTLEMENT_BATCHES_FILE',
-    path.resolve(process.cwd(), 'data', 'settlement-batches.json')
+    path.resolve(dataDir, 'settlement-batches.json')
   );
   const batchFile = await loadBatchFile(batchPath);
   const pending = getNextPending(batchFile);
