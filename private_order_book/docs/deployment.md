@@ -4,6 +4,8 @@
 
 For demo-scale usage, this repo can run as a single Render web service.
 
+This deployment is intentionally Zeko Ethereum Sepolia-only. There is no second-network runtime, network selector, or multi-network gateway.
+
 ### Build command
 
 ```bash
@@ -16,34 +18,11 @@ pnpm install --frozen-lockfile && pnpm build:zkapp
 pnpm render:start
 ```
 
-### Required env
+### Environment profile
 
-At minimum, configure:
+Use [`.env.example`](../.env.example) as the Render environment checklist. It is intentionally limited to the Sepolia chain, deployed settlement zkApp, wallet/deposit handling, early access, matching, fees, and the on-chain settlement worker.
 
-```env
-DARKPOOL_HOST=0.0.0.0
-AUTO_RUN_BACKGROUND_WORKERS=true
-AUTO_RUN_PROOF_WORKER=false
-AUTO_RUN_SETTLEMENT_WORKER=true
-ZKAPP_COMMIT_USE_PROOF=false
-REQUIRE_CACHED_PRIVATE_STATE_PROOF=false
-ALLOW_INLINE_PRIVATE_STATE_PROVING=false
-```
-
-Plus your existing chain / app secrets:
-
-- `ZEKO_GRAPHQL`
-- `DEPLOYER_PRIVATE_KEY`
-- `ZKAPP_PRIVATE_KEY`
-- `ZKAPP_PUBLIC_KEY`
-- `PAYOUT_OPERATOR_PRIVATE_KEY`
-- `PAYOUT_FEE_PAYER_PRIVATE_KEY` if separate
-- `ORDER_RECEIPT_SECRET`
-- `MAKER_API_KEY`
-- `OPERATOR_PANEL_ADMIN_KEY`
-- `TOKEN_CONTRACT_ADDRESSES_JSON`
-- `EARLY_ACCESS_GATE_ENABLED` and `EARLY_ACCESS_CODES` if you want the landing-page invite gate enabled
-- any DA relay envs you actually use
+The profile intentionally does not include archive endpoints, proof-agent settings, faucet credentials, bot settings, or DA relay bridge credentials. Those belong to separately deployed services, not the Render web process.
 
 ### Recommended setup
 
@@ -56,6 +35,24 @@ Plus your existing chain / app secrets:
 - HTTP API + UI
 - matcher
 - embedded settlement loop
+
+The Render start command does not start `src/da-relay-server.js`. Keep `DA_MODE=disabled` and leave `DA_ENDPOINT` unset unless a separate relay service has been deployed and tested.
+
+### Activity privacy boundary
+
+The hosted app defaults to `ACTIVITY_PRIVACY_MODE=redacted`. Server-side
+activity and fairness-audit records retain event type, time, and a commitment,
+not order prices, quantities, note hashes, wallet addresses, or settlement
+amounts. Detailed order and fill history is kept in the user's browser for the
+`Your Activity` view. This reduces operator-accessible records but does not hide
+live order inputs from the central matcher; confidential matching still needs a
+TEE, MPC, wallet-side matching, or another private execution boundary.
+
+### DA relay boundary
+
+The relay accepts encrypted ShadowBook payloads and can persist a signed receipt locally. Its default `DA_RELAY_FORWARD_MODE=none` is stored-only behavior; it is not proof that data has been anchored to Zeko or Ethereum Sepolia. Actual forwarding requires a separately deployed bridge or command adapter and its own `ZEKO_DA_BRIDGE_URL` or `DA_RELAY_COMMAND`.
+
+When a relay is separately deployed, its payload should identify Sepolia as `network: "zeko:testnet"`. That is the live GraphQL network identifier returned by `https://sepolia.zeko.io/graphql`. For o1js/Auro-signed Sepolia transactions, use the `testnet` signing domain; these identifiers are not interchangeable.
 
 This is the simplest deployment shape for the demo.
 
@@ -130,8 +127,6 @@ So the architecture is:
 That is lean enough for demo-scale deployment while leaving a clean path to horizontal proof scaling later.
 
 ## Faucet Options
-
-Faucet paths are testnet-only. For mainnet, leave `ZEKO_FAUCET_COMMAND` and `ZEKO_FAUCET_GITHUB_TOKEN` unset and fund accounts through your production custody and bridge process.
 
 For the public UI, the funding tab links users to the official Zeko faucet:
 

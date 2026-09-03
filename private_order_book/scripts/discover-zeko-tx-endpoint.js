@@ -5,9 +5,7 @@ const PROJECT_ROOT = path.resolve(process.cwd());
 const ENV_PATH = path.resolve(PROJECT_ROOT, '.env');
 
 const CANDIDATES = [
-  'https://testnet.zeko.io/graphql',
-  'https://archive.testnet.zeko.io/graphql',
-  'https://devnet.zeko.io/graphql'
+  'https://sepolia.zeko.io/graphql'
 ];
 
 async function gql(endpoint, query) {
@@ -76,11 +74,11 @@ async function main() {
     process.exit(1);
   }
   const balanceEndpoint =
-    reachable.find((x) => x.endpoint.includes('testnet.zeko.io') && x.supportsAccount)?.endpoint ||
+    reachable.find((x) => x.endpoint.includes('sepolia.zeko.io') && x.supportsAccount)?.endpoint ||
     reachable.find((x) => x.supportsAccount)?.endpoint ||
     reachable[0].endpoint;
   const archiveEndpoint =
-    reachable.find((x) => x.endpoint.includes('archive.testnet.zeko.io') && x.supportsBlocks)?.endpoint ||
+    reachable.find((x) => x.endpoint.includes('sepolia.zeko.io') && x.supportsBlocks)?.endpoint ||
     reachable.find((x) => x.supportsBlocks)?.endpoint ||
     '';
   const txEndpoint = reachable.find((x) => x.supportsTxByHash)?.endpoint || '';

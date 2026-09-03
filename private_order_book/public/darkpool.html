@@ -1096,16 +1096,6 @@
         padding: 8px 12px;
         align-self: end;
       }
-      .acquire-links {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 8px;
-      }
-      .acquire-links .btn-link {
-        min-width: 0;
-        width: 100%;
-        justify-content: center;
-      }
       .meta-label {
         display: block;
         margin-top: 2px;
@@ -1192,50 +1182,14 @@
         margin-left: auto;
         min-width: 320px;
       }
-      .network-controls {
-        display: grid;
-        gap: 4px;
-        justify-items: end;
-      }
-      .network-label {
-        margin: 0;
-        font-size: 10px;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        color: #7f96ad;
-      }
-      .network-controls-row {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
-      .network-select {
-        min-width: 212px;
-        width: auto;
-        padding: 6px 28px 6px 10px;
-        border-radius: 999px;
-        border: 1px solid #2c4157;
-        background: #0b1420;
-        color: #d7e6f5;
-      }
-      .network-sync-btn {
-        width: auto;
-        min-width: 106px;
+      .network-badge {
         padding: 6px 12px;
+        border: 1px solid #2c4157;
         border-radius: 999px;
-      }
-      .network-status {
-        max-width: 320px;
-        text-align: right;
+        color: #9fb6cc;
         font-size: 11px;
-        line-height: 1.4;
-        color: #8ea8c0;
-      }
-      .network-status.warn {
-        color: #f2c572;
-      }
-      .network-status.ok {
-        color: #92e4b4;
+        letter-spacing: 0.04em;
+        white-space: nowrap;
       }
       .wallet-btn {
         width: auto;
@@ -1349,13 +1303,6 @@
           margin-left: 0;
           justify-content: flex-start;
         }
-        .network-controls {
-          justify-items: start;
-        }
-        .network-status {
-          max-width: none;
-          text-align: left;
-        }
         .chart-topline {
           grid-template-columns: 1fr 1fr;
         }
@@ -1420,14 +1367,6 @@
         }
         .top-tabs {
           gap: 6px;
-        }
-        .network-controls-row {
-          width: 100%;
-          flex-wrap: wrap;
-        }
-        .network-select,
-        .network-sync-btn {
-          width: 100%;
         }
         .price-chart-card,
         .order-book-card,
@@ -1539,20 +1478,10 @@
       <div class="top-tabs">
         <button id="tabTrading" class="tab-btn active">Trading</button>
         <button id="tabFunding" class="tab-btn">Funding</button>
-        <button type="button" class="ghost wallet-btn" id="globalConnectWalletBtn">Connect Wallet</button>
+        <button type="button" class="ghost wallet-btn" id="globalConnectWalletBtn">Connect Auro Wallet</button>
       </div>
       <div class="header-actions">
-        <div class="network-controls">
-          <label class="network-label" for="walletNetworkSelect">Wallet network</label>
-          <div class="network-controls-row">
-            <select id="walletNetworkSelect" class="network-select">
-              <option value="zekoMinaTestnet">Zeko Mina Testnet</option>
-              <option value="zekoEthereumTestnet">Zeko Ethereum Testnet</option>
-            </select>
-            <button type="button" class="ghost network-sync-btn" id="walletNetworkSyncBtn">Sync Network</button>
-          </div>
-          <div class="network-status" id="walletNetworkStatus">Server network: loading...</div>
-        </div>
+        <div class="network-badge">Zeko Ethereum Sepolia</div>
       </div>
     </div>
     <div id="tradingPanel" class="app">
@@ -1562,7 +1491,7 @@
           <div class="grid3">
             <div>
               <label>Wallet</label>
-              <input id="ordWallet" value="B62qdemo_wallet_alpha" />
+              <input id="ordWallet" placeholder="Connect Auro Wallet" />
             </div>
             <div>
               <label>Market</label>
@@ -1630,11 +1559,11 @@
               <div id="chartHeroPrice" class="value mono">-</div>
             </div>
             <div class="chart-top-stat">
-              <label>24h Change</label>
+              <label id="chartHeroChangeLabel">Window Change</label>
               <div id="chartHeroChange" class="value mono">-</div>
             </div>
             <div class="chart-top-stat">
-              <label>24h Volume</label>
+              <label id="chartHeroVolumeLabel">Window Volume</label>
               <div id="chartHeroVolume" class="value mono">-</div>
             </div>
             <div class="chart-top-stat">
@@ -1725,7 +1654,7 @@
               <option value="global">Global History</option>
             </select>
             <span class="activity-toolbar-label">Wallet</span>
-            <input id="activityWallet" class="compact-wallet" value="B62qdemo_wallet_alpha" />
+            <input id="activityWallet" class="compact-wallet" placeholder="Connect Auro Wallet" />
             <span class="activity-toolbar-label">Rows</span>
             <input id="activityLimit" class="compact-input" type="number" value="150" />
             <button type="button" class="ghost activity-refresh-btn" id="refreshActivityBtn"><span class="refresh-icon">↻</span><span>Refresh</span></button>
@@ -1772,6 +1701,9 @@
               <input id="activityMaxQty" class="compact-input" type="number" step="any" placeholder="-" />
             </div>
           </div>
+          <div class="hint-box activity-privacy-note">
+            Your detailed order and fill history is kept in this browser. The server stores only redacted activity commitments.
+          </div>
           <div class="activity-table">
             <div class="activity-head">
               <div><button type="button" id="activityTimeHeader" title="Toggle newest/oldest first">Time</button></div>
@@ -1808,7 +1740,7 @@
             <div class="footnote">Testing-only maker controls. Production makers should call authenticated APIs directly.</div>
             <div class="grid2">
               <div><label>Maker Wallet</label><input id="makerWallet" value="B62qdemo_maker_wallet" /></div>
-              <div><label>Pair</label><input id="makerPair" value="tETH/tZEKO" readonly /></div>
+              <div><label>Pair</label><input id="makerPair" value="" readonly /></div>
             </div>
             <input id="makerMarketId" type="hidden" />
             <div class="grid2">
@@ -1864,10 +1796,7 @@
           <div class="hd"><h2>Funding Guide</h2></div>
           <div class="bd stack">
             <div class="footnote mono">
-              1) Connect Wallet.
-              2) Acquire testnet tETH/tZEKO/tMINA in wallet.
-              3) Mint and Redeem privacy notes in Funding UI.
-              4) Place orders in Trading UI.
+              1) Connect Auro. 2) Sync balances. 3) Deposit and mint private notes. 4) Trade with notes.
             </div>
           </div>
         </section>
@@ -1878,9 +1807,15 @@
               Convert an on-chain vault deposit into private collateral. Trading uses your available notes automatically unless you override with specific note hashes.
             </div>
             <div class="grid3">
-              <div><label>Asset</label><select id="noteAsset"></select></div>
+              <div>
+                <label>Asset</label>
+                <select id="noteAsset">
+                  <option value="sETH" data-token-id="wSHV2S4qX9jFsLjQo8r1BsMLH2ZRKsZx6EJd1sbozGPieEC4Jf">sETH (0.00)</option>
+                  <option value="sZEKO" data-token-id="wTJjLAZ3BadNjLyLk3hw6C4oCwMd8rqsq6Mmck5gdd3Gn7UPPL">sZEKO (0.00)</option>
+                </select>
+              </div>
               <div><label>Amount</label><input id="noteAmount" type="number" value="1" /></div>
-              <div><label>Wallet</label><input id="noteWallet" value="B62qdemo_wallet_alpha" /></div>
+              <div><label>Wallet</label><input id="noteWallet" placeholder="Connect Auro Wallet" /></div>
             </div>
             <div id="noteAssetMeta" class="market-verify mono"></div>
             <div class="footnote">
@@ -1892,6 +1827,7 @@
               <button class="txn" id="sendDepositTxBtn">Deposit Funds &amp; Mint Notes</button>
               <button class="ghost" id="withdrawNotesPrimaryBtn">Redeem Notes &amp; Withdraw</button>
             </div>
+            <button class="ghost" id="clearDepositRecoveryBtn" hidden>Clear Canceled Deposit Request</button>
             <div class="withdraw-card">
               <div class="withdraw-summary">
                 <div>
@@ -1928,27 +1864,17 @@
       </div>
 
       <div class="funding-right-col">
-        <section class="card vault-zone">
-          <div class="hd"><h2>Acquire Testnet Funds</h2></div>
-          <div class="bd stack">
-            <div class="acquire-links">
-              <a class="ghost btn-link" href="https://faucet.zeko.io/" target="_blank" rel="noreferrer">Official Faucet</a>
-              <a class="ghost btn-link" href="https://bridge.zeko.io/" target="_blank" rel="noreferrer">Official Bridge</a>
-              <a class="ghost btn-link" href="https://solis.gizmolab.io/" target="_blank" rel="noreferrer">SolisDEX</a>
-            </div>
-          </div>
-        </section>
         <section class="card vault-zone funding-sync">
           <div class="hd"><h2>On-Chain Funding</h2></div>
           <div class="bd stack">
             <div class="footnote">
-              Fund your wallet on Zeko testnet, then sync balances into ShadowBook.
+              Sync your active Auro account and on-chain balances into ShadowBook.
             </div>
             <div class="grid2 funding-sync-row">
               <button id="syncBtn" class="txn">Sync On-Chain Balance</button>
               <div>
                 <label>Wallet</label>
-                <input id="chainWallet" value="B62qdemo_wallet_alpha" />
+                <input id="chainWallet" placeholder="Connect Auro Wallet" />
               </div>
             </div>
             <label>Latest Minted Note</label>
@@ -1956,6 +1882,31 @@
             <label>Wallet + Private Collateral</label>
             <pre id="notesPortfolioOut"></pre>
             <pre id="vaultOut"></pre>
+          </div>
+        </section>
+
+        <section class="card vault-zone funding-transfer">
+          <div class="hd"><h2>Transfer sZEKO</h2></div>
+          <div class="bd stack">
+            <div class="footnote">
+              Build the sZEKO transfer before Auro signs it. ShadowBook adds the recipient token account when needed; this does not mint notes or change vault collateral.
+            </div>
+            <div class="grid2">
+              <div>
+                <label>Recipient wallet</label>
+                <input id="tokenTransferRecipient" placeholder="B62..." autocomplete="off" />
+              </div>
+              <div>
+                <label>Amount sZEKO</label>
+                <input id="tokenTransferAmount" type="number" min="0.000000001" step="any" placeholder="0" />
+              </div>
+            </div>
+            <div id="tokenTransferHint" class="hint-box">Source wallet: connect Auro or enter a wallet in On-Chain Funding.</div>
+            <div class="grid2">
+              <button id="buildTokenTransferBtn" class="ghost">Build Transfer</button>
+              <button id="signTokenTransferBtn" class="txn" disabled>Sign in Auro</button>
+            </div>
+            <pre id="tokenTransferOut"></pre>
           </div>
         </section>
       </div>
@@ -1991,80 +1942,62 @@
       let recommendedBookActionSide = '';
       let operatorPanelAllowedWallet = null;
       let operatorPanelAdminKeyConfigured = false;
+      let serverTokenContractAddresses = {};
       const walletSyncTimes = new Map();
       const WALLET_SYNC_COOLDOWN_MS = 20000;
-      const walletNetworkStorageKey = 'shadowbook:selected-wallet-network:v1';
-      const walletNetworks = {
-        zekoMinaTestnet: {
-          key: 'zekoMinaTestnet',
-          label: 'Zeko Mina Testnet',
-          auroMode: 'builtin',
-          auroNetworkId: 'zeko:testnet',
-          graphqlUrl: 'https://testnet.zeko.io/graphql',
-          ethereumChainId: null
-        },
-        zekoEthereumTestnet: {
-          key: 'zekoEthereumTestnet',
-          label: 'Zeko Ethereum Testnet',
-          auroMode: 'custom',
-          auroNetworkName: 'Zeko Ethereum Testnet',
-          graphqlUrl: 'https://sepolia.zeko.io/graphql',
-          ethereumChainId: '0xaa36a7'
-        }
+      let activeAuroWallet = '';
+      let autoAuroSyncInFlight = false;
+      let activeDepositIntentId = '';
+      let pendingTokenTransfer = null;
+      const sepoliaWalletNetwork = {
+        key: 'zekoEthereumSepolia',
+        label: 'Zeko Ethereum Sepolia',
+        auroNetworkName: 'Zeko Ethereum Sepolia',
+        graphqlUrl: 'https://sepolia.zeko.io/graphql'
       };
-      let selectedWalletNetworkKey = loadSelectedWalletNetworkKey();
-      let serverWalletNetwork = null;
 
-      function loadSelectedWalletNetworkKey() {
-        try {
-          const stored = window.localStorage.getItem(walletNetworkStorageKey);
-          if (stored && walletNetworks[stored]) return stored;
-        } catch {}
-        return 'zekoMinaTestnet';
+      function formatDisplayAsset(asset) {
+        const value = String(asset || '').trim();
+        return value;
       }
 
-      function saveSelectedWalletNetworkKey(nextKey) {
-        if (!walletNetworks[nextKey]) return;
-        selectedWalletNetworkKey = nextKey;
-        try {
-          window.localStorage.setItem(walletNetworkStorageKey, nextKey);
-        } catch {}
+      function formatDisplayPair(pairOrMarket) {
+        if (!pairOrMarket) return '-';
+        if (typeof pairOrMarket === 'object') {
+          return `${formatDisplayAsset(pairOrMarket.baseAsset)}/${formatDisplayAsset(pairOrMarket.quoteAsset)}`;
+        }
+        const raw = String(pairOrMarket || '');
+        const parts = raw.split('/');
+        if (parts.length === 2) return `${formatDisplayAsset(parts[0])}/${formatDisplayAsset(parts[1])}`;
+        return raw;
       }
 
-      function getSelectedWalletNetwork() {
-        return walletNetworks[selectedWalletNetworkKey] || walletNetworks.zekoMinaTestnet;
+      function setMakerPairDisplay(pairOrMarket) {
+        const input = document.getElementById('makerPair');
+        if (!input) return;
+        const sourcePair =
+          typeof pairOrMarket === 'object'
+            ? String(pairOrMarket.pair || `${pairOrMarket.baseAsset}/${pairOrMarket.quoteAsset}`)
+            : String(pairOrMarket || '');
+        input.dataset.sourcePair = sourcePair;
+        input.value = formatDisplayPair(pairOrMarket);
       }
 
-      function setWalletNetworkStatus(message, tone) {
-        const status = document.getElementById('walletNetworkStatus');
-        if (!status) return;
-        status.textContent = message;
-        status.classList.toggle('warn', tone === 'warn');
-        status.classList.toggle('ok', tone === 'ok');
+      function getMakerPairRequestValue() {
+        const input = document.getElementById('makerPair');
+        return String(input?.dataset?.sourcePair || input?.value || '').trim();
       }
 
-      function describeServerWalletNetwork() {
-        if (!serverWalletNetwork?.label) return 'Server network: unavailable';
-        const endpoint = serverWalletNetwork?.graphqlUrl ? ` (${serverWalletNetwork.graphqlUrl})` : '';
-        return `Server network: ${serverWalletNetwork.label}${endpoint}`;
-      }
-
-      function updateWalletNetworkUi() {
-        const select = document.getElementById('walletNetworkSelect');
-        if (select && select.value !== selectedWalletNetworkKey) select.value = selectedWalletNetworkKey;
-        const selected = getSelectedWalletNetwork();
-        if (!serverWalletNetwork) {
-          setWalletNetworkStatus(`Preferred wallet network: ${selected.label}`, '');
+      function applyMarketDisplayDefaults() {
+        const selectedMarketId = document.getElementById('ordPair')?.value || '';
+        const currentMarket = getMarketById(selectedMarketId) || knownMarkets[0] || null;
+        if (currentMarket) {
+          setMakerPairDisplay(currentMarket);
+          renderMarketVerify(currentMarket);
+          updateOrderIntent(currentMarket);
           return;
         }
-        if (serverWalletNetwork.key && serverWalletNetwork.key !== selected.key) {
-          setWalletNetworkStatus(
-            `${describeServerWalletNetwork()}. Wallet preference is ${selected.label}; backend remains single-network until redeployed.`,
-            'warn'
-          );
-          return;
-        }
-        setWalletNetworkStatus(describeServerWalletNetwork(), 'ok');
+        setMakerPairDisplay('sETH/sZEKO');
       }
 
       async function auroRequest(methodName, params) {
@@ -2079,6 +2012,60 @@
         throw new Error(`Connected wallet provider does not support ${methodName}`);
       }
 
+      function walletAddressFromAccounts(accounts) {
+        const first = Array.isArray(accounts) ? accounts[0] : accounts;
+        if (typeof first === 'string') return first.trim();
+        return String(first?.publicKey || first?.address || '').trim();
+      }
+
+      async function readAuroWallet({ request = false } = {}) {
+        const provider = window.mina;
+        if (!provider) return '';
+        let accounts = [];
+        if (request && typeof provider.requestAccounts === 'function') {
+          accounts = await provider.requestAccounts();
+        } else if (request && typeof provider.request === 'function') {
+          const result = await provider.request({ method: 'mina_requestAccounts' });
+          accounts = Array.isArray(result) ? result : result?.result || [];
+        }
+        if (typeof provider.getAccounts === 'function') {
+          const activeAccounts = await provider.getAccounts();
+          if (Array.isArray(activeAccounts) && activeAccounts.length) accounts = activeAccounts;
+        }
+        return walletAddressFromAccounts(accounts);
+      }
+
+      function setWalletFields(wallet) {
+        for (const id of ['ordWallet', 'activityWallet', 'chainWallet', 'noteWallet']) {
+          const el = document.getElementById(id);
+          if (el) el.value = wallet;
+        }
+      }
+
+      async function syncDetectedAuroWallet({ force = false } = {}) {
+        if (autoAuroSyncInFlight) return false;
+        const wallet = await readAuroWallet();
+        if (!wallet) return false;
+        const current = String(document.getElementById('chainWallet')?.value || '').trim();
+        const currentIsEmpty = !current || isDemoWalletPlaceholder(current);
+        const canAdopt = force || walletConnected || currentIsEmpty || current === activeAuroWallet;
+        if (!canAdopt) return false;
+        const changed = wallet !== activeAuroWallet || current !== wallet;
+        activeAuroWallet = wallet;
+        walletConnected = true;
+        if (current !== wallet) setWalletFields(wallet);
+        updateWalletButtonState();
+        if (!changed && !force) return true;
+        autoAuroSyncInFlight = true;
+        try {
+          await syncWalletContext(wallet);
+          walletSyncTimes.set(wallet, Date.now());
+        } finally {
+          autoAuroSyncInFlight = false;
+        }
+        return true;
+      }
+
       async function requestAuroNetworkInfo() {
         try {
           return await auroRequest('requestNetwork');
@@ -2087,85 +2074,20 @@
         }
       }
 
-      async function ensureEthereumCompanionNetwork(config) {
-        if (!config?.ethereumChainId) return { attempted: false, switched: false };
-        const provider = window.ethereum;
-        if (!provider?.request) return { attempted: false, switched: false };
-        try {
-          await provider.request({
-            method: 'wallet_switchEthereumChain',
-            params: [{ chainId: config.ethereumChainId }]
-          });
-          return { attempted: true, switched: true };
-        } catch (error) {
-          const code = Number(error?.code || 0);
-          if (code === 4902) {
-            await provider.request({
-              method: 'wallet_addEthereumChain',
-              params: [
-                {
-                  chainId: config.ethereumChainId,
-                  chainName: 'Ethereum Sepolia',
-                  nativeCurrency: {
-                    name: 'Sepolia ETH',
-                    symbol: 'ETH',
-                    decimals: 18
-                  },
-                  rpcUrls: ['https://rpc.sepolia.org'],
-                  blockExplorerUrls: ['https://sepolia.etherscan.io']
-                }
-              ]
-            });
-            return { attempted: true, switched: true };
-          }
-          return { attempted: true, switched: false, error: String(error?.message || error) };
-        }
-      }
-
-      async function syncSelectedWalletNetwork(options = {}) {
-        const { interactive = true } = options;
+      async function syncSepoliaWalletNetwork() {
         const provider = window.mina;
-        const selected = getSelectedWalletNetwork();
         if (!provider) {
-          updateWalletNetworkUi();
           throw new Error('No Mina wallet provider found in browser');
         }
-        let auroResult = null;
-        if (selected.auroMode === 'builtin') {
-          auroResult = await auroRequest('switchChain', { networkID: selected.auroNetworkId });
-        } else {
-          auroResult = await auroRequest('addChain', {
-            url: selected.graphqlUrl,
-            name: selected.auroNetworkName
-          });
-        }
+        const auroResult = await auroRequest('addChain', {
+          url: sepoliaWalletNetwork.graphqlUrl,
+          name: sepoliaWalletNetwork.auroNetworkName
+        });
         const currentNetwork = await requestAuroNetworkInfo();
-        const ethereumResult = await ensureEthereumCompanionNetwork(selected);
-        const serverDescription = describeServerWalletNetwork();
-        const aux = [];
-        if (currentNetwork?.networkID) aux.push(`Auro: ${currentNetwork.networkID}`);
-        if (ethereumResult?.attempted) {
-          aux.push(ethereumResult.switched ? 'MetaMask: Ethereum Sepolia' : `MetaMask: ${ethereumResult.error || 'not switched'}`);
-        }
-        setWalletNetworkStatus(
-          `${serverDescription}. Requested wallet network: ${selected.label}${aux.length ? ` | ${aux.join(' | ')}` : ''}`,
-          serverWalletNetwork?.key && serverWalletNetwork.key !== selected.key ? 'warn' : 'ok'
-        );
-        if (interactive) {
-          setText('orderOut', {
-            ok: true,
-            requestedWalletNetwork: selected.label,
-            auroResult,
-            auroNetwork: currentNetwork,
-            ethereumCompanion: ethereumResult,
-            serverWalletNetwork
-          });
-        }
         return {
-          requestedWalletNetwork: selected,
+          requestedWalletNetwork: sepoliaWalletNetwork,
           auroResult,
-          auroNetwork: currentNetwork,
-          ethereumCompanion: ethereumResult
+          auroNetwork: currentNetwork
         };
       }
 
@@ -2207,7 +2129,9 @@
           hint.textContent = '';
           return;
         }
-        hint.textContent = `Book click ready: press ${recommendedBookActionSide === 'BUY' ? 'Buy' : 'Sell'} to trade against that displayed level with a LIMIT order.`;
+        const orderType = document.getElementById('ordType')?.value || 'LIMIT';
+        const executionLabel = orderType === 'MARKET' ? 'MARKET IOC order' : 'LIMIT order';
+        hint.textContent = `Book click ready: press ${recommendedBookActionSide === 'BUY' ? 'Buy' : 'Sell'} to trade against that displayed level with a ${executionLabel}.`;
       }
 
       function getConnectedWalletValue() {
@@ -2296,7 +2220,11 @@
         const n = Number(value);
         if (!Number.isFinite(n)) return '-';
         if (Math.abs(n - Math.trunc(n)) < 1e-9) return n.toFixed(2);
-        return n.toFixed(4);
+        const fixed = n.toFixed(4);
+        if (n !== 0 && Number(fixed) === 0) {
+          return n.toFixed(8).replace(/0+$/, '').replace(/\.$/, '');
+        }
+        return fixed;
       }
 
       function fmtUtcTime(value) {
@@ -2328,7 +2256,22 @@
           if (m?.baseAsset && m?.baseTokenId) map.set(String(m.baseAsset).toUpperCase(), { asset: m.baseAsset, tokenId: m.baseTokenId });
           if (m?.quoteAsset && m?.quoteTokenId) map.set(String(m.quoteAsset).toUpperCase(), { asset: m.quoteAsset, tokenId: m.quoteTokenId });
         }
-        return Array.from(map.values());
+        const catalog = Array.from(map.values());
+        if (catalog.length) return catalog;
+        return [
+          {
+            asset: 'sETH',
+            tokenId: 'wSHV2S4qX9jFsLjQo8r1BsMLH2ZRKsZx6EJd1sbozGPieEC4Jf'
+          },
+          {
+            asset: 'sZEKO',
+            tokenId: 'wTJjLAZ3BadNjLyLk3hw6C4oCwMd8rqsq6Mmck5gdd3Gn7UPPL'
+          }
+        ];
+      }
+
+      function isNativeAsset(asset) {
+        return !String(serverTokenContractAddresses[String(asset || '').toUpperCase()] || '').trim();
       }
 
       function updateSelectedNoteAssetMeta() {
@@ -2337,12 +2280,12 @@
         if (!select || !meta) return;
         const opt = select.options[select.selectedIndex];
         if (!opt) {
-          meta.textContent = 'No asset selected';
+          meta.textContent = 'Supported assets: sETH, sZEKO';
           return;
         }
         const tokenId = opt.getAttribute('data-token-id') || '';
         const avail = opt.getAttribute('data-avail') || '';
-        meta.textContent = `Asset: ${opt.value} | Token ID: ${tokenId} | Available: ${avail}`;
+        meta.textContent = `Asset: ${formatDisplayAsset(opt.value)} | Token ID: ${tokenId} | Available: ${avail}`;
         updateDepositActionState();
       }
 
@@ -2352,7 +2295,7 @@
         if (!sendBtn || !hint) return;
         const asset = String(document.getElementById('noteAsset')?.value || '').trim();
         sendBtn.disabled = false;
-        if (asset.toUpperCase() === 'TMINA') {
+        if (isNativeAsset(asset)) {
           hint.textContent =
             `Deposit + Mint uses a native payment flow for ${asset}. Vault: ${vaultDepositAddress || '(not configured)'}.`;
           return;
@@ -2378,10 +2321,13 @@
         const candidates = [
           response.hash,
           response.txHash,
+          response.transactionHash,
           response?.data?.hash,
           response?.data?.txHash,
+          response?.data?.transactionHash,
           response?.result?.hash,
           response?.result?.txHash,
+          response?.result?.transactionHash,
           response?.payment?.hash
         ];
         for (const c of candidates) {
@@ -2391,14 +2337,13 @@
         return '';
       }
 
-      function toAuroTransactionString(transaction) {
+      function toAuroTransactionData(transaction) {
         const original = typeof transaction === 'string' ? JSON.parse(transaction) : transaction;
         const tx = JSON.parse(JSON.stringify(original));
         if (tx?.feePayer?.body?.fee === '0') {
-          // Lumina works around an Auro edge case by forcing a non-zero fee here.
           tx.feePayer.body.fee = '1';
         }
-        return JSON.stringify(tx);
+        return tx;
       }
 
       function extractSignedZkappCommand(response, wallet) {
@@ -2413,12 +2358,86 @@
         if (!zkappCommand || typeof zkappCommand !== 'object') {
           throw new Error('wallet signedData did not contain zkappCommand');
         }
-        if (zkappCommand?.feePayer?.body?.publicKey && zkappCommand.feePayer.body.publicKey !== wallet) {
-          zkappCommand.feePayer.authorization =
-            '7mWxjLYgbJUkZNcGouvhVj5tJ8yu9hoexb9ntvPK8t5LHqzmrL6QJjjKtf5SgmxB4QWkDw7qoMMbbNGtHVpsbJHPyTy2EzRQ';
+        const feePayer = zkappCommand?.feePayer?.body?.publicKey || '';
+        if (feePayer && wallet && feePayer !== wallet) {
+          throw new Error(`wallet signed a different fee payer: ${feePayer}`);
+        }
+        if (typeof zkappCommand.memo !== 'string' || !zkappCommand.memo.trim()) {
+          throw new Error('wallet returned a signed transaction without a memo');
         }
         return zkappCommand;
       }
+
+      function depositDebugLog(event, data = {}) {
+        if (window.SHADOWBOOK_DEBUG_DEPOSITS !== true) return;
+        console.info('[shadowbook:deposit]', event, data);
+      }
+
+      const pendingDepositStorageKey = 'shadowbook:pending-deposit:v1';
+
+      function rememberPendingDeposit(payload) {
+        try {
+          localStorage.setItem(pendingDepositStorageKey, JSON.stringify({
+            ...payload,
+            createdAt: Date.now()
+          }));
+        } catch {}
+      }
+
+      function readPendingDeposit() {
+        try {
+          const value = JSON.parse(localStorage.getItem(pendingDepositStorageKey) || 'null');
+          return value && typeof value === 'object' ? value : null;
+        } catch {
+          return null;
+        }
+      }
+
+      function clearPendingDeposit(txHash = '', intentId = '') {
+        const pending = readPendingDeposit();
+        if (!pending || (txHash && pending.txHash === txHash) || (intentId && pending.intentId === intentId)) {
+          try { localStorage.removeItem(pendingDepositStorageKey); } catch {}
+        }
+      }
+
+      function setDepositRecoveryControl(intentId = '', visible = false) {
+        activeDepositIntentId = intentId || '';
+        const button = document.getElementById('clearDepositRecoveryBtn');
+        if (!button) return;
+        button.hidden = !visible;
+        button.disabled = false;
+        button.textContent = 'Clear Canceled Deposit Request';
+      }
+
+      function isWalletCancellationError(error) {
+        const message = String(error?.message || error || '').toLowerCase();
+        return (
+          /user\s*(rejected|denied|cancelled|canceled)/i.test(message) ||
+          /request\s*(rejected|denied|cancelled|canceled)/i.test(message) ||
+          /wallet.*(rejected|denied|cancelled|canceled)/i.test(message) ||
+          /code\s*[:=]?\s*1002\b/i.test(message)
+        );
+      }
+
+      async function clearDepositRecovery(intentId, { cancelServerIntent = true } = {}) {
+        if (!intentId) return;
+        if (cancelServerIntent) {
+          try { await sdk.cancelDepositIntent({ intentId }); } catch {}
+        }
+        clearPendingDeposit('', intentId);
+        if (activeDepositIntentId === intentId) setDepositRecoveryControl('', false);
+        setDepositBusyState(false);
+      }
+
+      document.getElementById('clearDepositRecoveryBtn').onclick = async () => {
+        const intentId = activeDepositIntentId || readPendingDeposit()?.intentId || '';
+        await clearDepositRecovery(intentId, { cancelServerIntent: true });
+        setText('vaultOut', {
+          ok: true,
+          pending: false,
+          message: 'Canceled deposit request cleared. No funds were resent. Sync the wallet before starting another deposit.'
+        });
+      };
 
       async function syncWalletContext(wallet, outputId) {
         if (!wallet) throw new Error('Wallet is required');
@@ -2450,46 +2469,6 @@
         const memo = `shadowbook-deposit:${asset}`;
         const attempts = [];
 
-        if (asset.toUpperCase() === 'TMINA') {
-          if (typeof provider.sendPayment === 'function') {
-            try {
-              const response = await provider.sendPayment({
-                to: vaultDepositAddress,
-                amount: String(amount),
-                memo
-              });
-              const txHash = extractWalletTxHash(response);
-              return { method: 'sendPayment', response, txHash, asset, tokenId: null };
-            } catch (e) {
-              attempts.push(`sendPayment: ${String(e?.message || e)}`);
-            }
-          }
-          if (typeof provider.request === 'function') {
-            const requestAttempts = [
-              {
-                method: 'mina_sendPayment',
-                params: {
-                  to: vaultDepositAddress,
-                  amount: String(amount),
-                  memo
-                }
-              }
-            ];
-            for (const req of requestAttempts) {
-              try {
-                const response = await provider.request({ method: req.method, params: req.params });
-                const txHash = extractWalletTxHash(response);
-                return { method: req.method, response, txHash, asset, tokenId: null };
-              } catch (e) {
-                attempts.push(`${req.method}: ${String(e?.message || e)}`);
-              }
-            }
-          }
-          throw new Error(
-            `Wallet did not accept the native payment deposit for ${asset}. Attempts: ${attempts.join(' | ') || 'none'}`
-          );
-        }
-
         const built = await sdk.buildDepositTransaction({
           wallet,
           asset,
@@ -2497,37 +2476,63 @@
           amount,
           memo
         });
-        const txPayload = toAuroTransactionString(built.transaction);
+        const txPayload = toAuroTransactionData(built.transaction);
+        const fee = built.fee || '0.0002';
+        const depositIntent = await sdk.createDepositIntent({ wallet, asset, tokenId, amount });
+        const depositIntentId = depositIntent.intentId;
+        const walletFee = Number(fee);
+        if (!Number.isFinite(walletFee) || walletFee <= 0) throw new Error(`invalid wallet fee ${fee}`);
+        depositDebugLog('built', {
+          asset,
+          tokenId,
+          amount,
+          fee,
+          depositIntentId,
+          feeSource: built.feeSource,
+          receiverNeedsTokenAccount: built.receiverNeedsTokenAccount,
+          transaction: txPayload
+        });
         if (typeof provider.sendTransaction === 'function') {
           try {
             const response = await provider.sendTransaction({
               onlySign: true,
-              transaction: txPayload
+              transaction: txPayload,
+              feePayer: { fee: walletFee }
             });
+            const directHash = extractWalletTxHash(response) || response?.hash || '';
+            if (directHash) {
+              depositDebugLog('wallet-submitted', { asset, tokenId, txHash: directHash, response });
+              return {
+                method: 'sendTransaction',
+                response,
+                txHash: directHash,
+                asset,
+                tokenId: tokenId || null,
+                intentId: depositIntentId,
+                built
+              };
+            }
             const zkappCommand = extractSignedZkappCommand(response, wallet);
-            const submitted = await sdk.submitSignedDepositTransaction({
-              zkappCommand
-            });
+            const submitted = await sdk.submitSignedDepositTransaction({ zkappCommand });
             const txHash = extractWalletTxHash(submitted) || submitted?.hash || '';
+            depositDebugLog('wallet-signed-server-submitted', { asset, tokenId, txHash, method: 'sendTransaction' });
             return {
-              method: 'sendTransaction:onlySign+submit',
+              method: 'sendTransaction:onlySign+serverSubmit',
               response,
               txHash,
               asset,
               tokenId: tokenId || null,
-              built,
-              submitted
+              intentId: depositIntentId,
+              submitted,
+              built
             };
           } catch (e) {
             attempts.push(`sendTransaction: ${String(e?.message || e)}`);
-            const msg = String(e?.message || e);
-            if (msg.toLowerCase().includes('sendzkapp') || msg.toLowerCase().includes('sequencer') || msg.includes('Invalid_fee_excess')) {
-              throw new Error(
-                `Wallet signed the token deposit transaction, but sequencer submission failed for ${asset}. ` +
-                `Attempt: ${attempts.join(' | ')}`
-              );
-            }
-            throw new Error(`Wallet did not accept the generated token deposit transaction for ${asset}. Attempts: ${attempts.join(' | ')}`);
+            depositDebugLog('wallet-error', { asset, tokenId, error: String(e?.message || e) });
+            const error = new Error(`Auro signing or Sepolia submission failed for ${asset}. No automatic retry was sent. Attempts: ${attempts.join(' | ')}`);
+            error.depositIntentId = depositIntentId;
+            error.depositContext = { wallet, asset, tokenId, amount };
+            throw error;
           }
         }
         if (typeof provider.request === 'function') {
@@ -2536,37 +2541,158 @@
               method: 'mina_sendTransaction',
               params: {
                 onlySign: true,
-                transaction: txPayload
+                transaction: txPayload,
+                feePayer: { fee: walletFee }
               }
             }
           ];
           for (const req of requestAttempts) {
             try {
               const response = await provider.request({ method: req.method, params: req.params });
+              const directHash = extractWalletTxHash(response) || response?.hash || '';
+              if (directHash) {
+                depositDebugLog('wallet-submitted', { asset, tokenId, txHash: directHash, response, method: req.method });
+                return {
+                  method: req.method,
+                  response,
+                  txHash: directHash,
+                  asset,
+                  tokenId: tokenId || null,
+                  intentId: depositIntentId,
+                  built
+                };
+              }
               const zkappCommand = extractSignedZkappCommand(response, wallet);
-              const submitted = await sdk.submitSignedDepositTransaction({
-                zkappCommand
-              });
+              const submitted = await sdk.submitSignedDepositTransaction({ zkappCommand });
               const txHash = extractWalletTxHash(submitted) || submitted?.hash || '';
+              depositDebugLog('wallet-signed-server-submitted', { asset, tokenId, txHash, method: req.method });
               return {
-                method: `${req.method}:onlySign+submit`,
+                method: `${req.method}:onlySign+serverSubmit`,
                 response,
                 txHash,
                 asset,
                 tokenId: tokenId || null,
-                built,
-                submitted
+                intentId: depositIntentId,
+                submitted,
+                built
               };
             } catch (e) {
               attempts.push(`${req.method}: ${String(e?.message || e)}`);
+              depositDebugLog('wallet-error', { asset, tokenId, error: String(e?.message || e), method: req.method });
             }
           }
         }
-        throw new Error(
-          `Wallet did not accept the generated token deposit transaction for ${asset}. ` +
-          `Use wallet UI to send to ${vaultDepositAddress}, then click Find Latest Eligible Deposit Tx. ` +
+        const error = new Error(
+          `Wallet did not accept the generated deposit transaction for ${asset}. ` +
+          `No automatic retry was sent. ` +
           `Attempts: ${attempts.join(' | ') || 'none'}`
         );
+        error.depositIntentId = depositIntentId;
+        error.depositContext = { wallet, asset, tokenId, amount };
+        throw error;
+      }
+
+      function resetPendingTokenTransfer() {
+        pendingTokenTransfer = null;
+        const signBtn = document.getElementById('signTokenTransferBtn');
+        if (signBtn) signBtn.disabled = true;
+      }
+
+      function getTokenTransferSourceWallet() {
+        return (
+          document.getElementById('chainWallet')?.value?.trim() ||
+          document.getElementById('noteWallet')?.value?.trim() ||
+          activeAuroWallet
+        );
+      }
+
+      async function buildTokenTransferForAuro() {
+        const wallet = getTokenTransferSourceWallet();
+        const recipient = document.getElementById('tokenTransferRecipient').value.trim();
+        const amount = Number(document.getElementById('tokenTransferAmount').value || 0);
+        if (!wallet) throw new Error('Source wallet is required. Connect Auro or enter a wallet in On-Chain Funding.');
+        if (!recipient) throw new Error('Recipient wallet is required');
+        if (!Number.isFinite(amount) || amount <= 0) throw new Error('Amount must be positive');
+        resetPendingTokenTransfer();
+        setText('tokenTransferOut', {
+          ok: true,
+          pending: true,
+          message: 'Building and proving the sZEKO transfer. Auro will not open until this finishes.'
+        });
+        const built = await sdk.buildTokenTransferTransaction({
+          wallet,
+          recipient,
+          asset: 'sZEKO',
+          amount,
+          memo: 'shadowbook-transfer:sZEKO'
+        });
+        pendingTokenTransfer = { wallet, recipient, amount, built };
+        document.getElementById('signTokenTransferBtn').disabled = false;
+        setText('tokenTransferOut', {
+          ok: true,
+          stage: 'built',
+          message: 'Transfer is built and proved. Review it, then click Sign in Auro.',
+          wallet,
+          recipient,
+          asset: built.asset,
+          amount: built.amount,
+          fee: built.fee,
+          feeSource: built.feeSource,
+          receiverNeedsTokenAccount: built.receiverNeedsTokenAccount,
+          memo: built.memo
+        });
+      }
+
+      async function signBuiltTokenTransferWithAuro() {
+        const provider = window.mina;
+        if (!provider) throw new Error('No Auro wallet provider found in browser');
+        if (!pendingTokenTransfer?.built?.transaction) throw new Error('Build the transfer before signing');
+        const { wallet, built } = pendingTokenTransfer;
+        const txPayload = toAuroTransactionData(built.transaction);
+        const walletFee = Number(built.fee || '0.0002');
+        if (!Number.isFinite(walletFee) || walletFee <= 0) throw new Error(`invalid wallet fee ${built.fee}`);
+        const attempts = [];
+
+        const signAndSubmit = async (response, method) => {
+          const directHash = extractWalletTxHash(response) || response?.hash || '';
+          if (directHash) return { method, txHash: directHash };
+          const zkappCommand = extractSignedZkappCommand(response, wallet);
+          const submitted = await sdk.submitSignedTokenTransferTransaction({ zkappCommand });
+          return {
+            method: `${method}:onlySign+serverSubmit`,
+            txHash: extractWalletTxHash(submitted) || submitted?.hash || '',
+            submitted
+          };
+        };
+
+        if (typeof provider.sendTransaction === 'function') {
+          try {
+            const response = await provider.sendTransaction({
+              onlySign: true,
+              transaction: txPayload,
+              feePayer: { fee: walletFee }
+            });
+            return signAndSubmit(response, 'sendTransaction');
+          } catch (error) {
+            attempts.push(`sendTransaction: ${String(error?.message || error)}`);
+          }
+        }
+        if (typeof provider.request === 'function') {
+          try {
+            const response = await provider.request({
+              method: 'mina_sendTransaction',
+              params: {
+                onlySign: true,
+                transaction: txPayload,
+                feePayer: { fee: walletFee }
+              }
+            });
+            return signAndSubmit(response, 'mina_sendTransaction');
+          } catch (error) {
+            attempts.push(`mina_sendTransaction: ${String(error?.message || error)}`);
+          }
+        }
+        throw new Error(`Auro did not accept the prebuilt sZEKO transfer. No automatic retry was sent. Attempts: ${attempts.join(' | ') || 'none'}`);
       }
 
       function sleep(ms) {
@@ -2581,10 +2707,11 @@
           asset: document.getElementById('noteAsset').value.trim(),
           tokenId,
           amount: Number(document.getElementById('noteAmount').value || 0),
-          txHash: options.txHash || document.getElementById('noteDepositTxHash').value.trim()
+          txHash: options.txHash || document.getElementById('noteDepositTxHash').value.trim(),
+          intentId: options.intentId || ''
         };
-        const attempts = Number.isFinite(Number(options.attempts)) ? Number(options.attempts) : 20;
-        const delayMs = Number.isFinite(Number(options.delayMs)) ? Number(options.delayMs) : 800;
+        const attempts = Number.isFinite(Number(options.attempts)) ? Number(options.attempts) : 60;
+        const delayMs = Number.isFinite(Number(options.delayMs)) ? Number(options.delayMs) : 1500;
         const onProgress = typeof options.onProgress === 'function' ? options.onProgress : null;
         let lastError = null;
         for (let i = 0; i < attempts; i += 1) {
@@ -2600,6 +2727,7 @@
               });
             }
             const result = await sdk.depositAuto(payload);
+            clearPendingDeposit(payload.txHash);
             if (result.note?.note) {
               document.getElementById('noteInput').value = result.note.note;
             }
@@ -2614,6 +2742,9 @@
             return result;
           } catch (error) {
             lastError = error;
+            const message = error instanceof Error ? error.message : String(error);
+            const retryable = /unable to verify|transaction lookup|not found|not included|stale|graphql/i.test(message);
+            if (!retryable) throw error;
             if (i < attempts - 1) {
               if (onProgress) {
                 onProgress({
@@ -2627,14 +2758,196 @@
                 });
               }
               const waitMs =
-                i < 5 ? delayMs :
-                i < 12 ? Math.max(delayMs, 1200) :
-                Math.max(delayMs, 1800);
+                i < 10 ? delayMs :
+                i < 30 ? Math.max(delayMs, 2500) :
+                Math.max(delayMs, 4000);
               await sleep(waitMs);
             }
           }
         }
         throw lastError || new Error('auto note mint failed');
+      }
+
+      async function recoverDepositIntentFromTimeout(intentId, context = {}) {
+        const payload = {
+          intentId,
+          wallet: context.wallet,
+          asset: context.asset,
+          tokenId: context.tokenId || '',
+          amount: Number(context.amount || 0)
+        };
+        rememberPendingDeposit(payload);
+        setDepositRecoveryControl(intentId, true);
+        const attempts = 120;
+        for (let i = 0; i < attempts; i += 1) {
+          try {
+            const result = await sdk.recoverDepositIntent({ intentId });
+            if (result.recovered && result.note?.note) {
+              clearPendingDeposit('', intentId);
+              setDepositRecoveryControl('', false);
+              document.getElementById('noteInput').value = result.note.note;
+              await syncWalletContext(payload.wallet);
+              await refreshNoteAssetOptions();
+              await refreshNotesPortfolio();
+              await refreshPretradeChecklist();
+              if (isActivityAutoRefreshEnabled()) await refreshActivity();
+              return result;
+            }
+            if (result.status === 'canceled') {
+              await clearDepositRecovery(intentId, { cancelServerIntent: false });
+              throw new Error('deposit request was canceled in the wallet; no funds were sent');
+            }
+            const resultError = String(result.lastError || result.error || '').toLowerCase();
+            if (
+              result.status === 'expired' ||
+              result.status === 'not_found' ||
+              /deposit intent (not found|.*expired)/i.test(resultError)
+            ) {
+              await clearDepositRecovery(intentId, { cancelServerIntent: false });
+              const terminal = {
+                ok: false,
+                pending: false,
+                terminal: true,
+                status: 'expired',
+                intentId,
+                asset: payload.asset,
+                message: 'This deposit recovery request is no longer valid. No funds were resent. Sync balances before starting a new deposit.',
+                lastError: result.lastError || result.error || null
+              };
+              setText('vaultOut', terminal);
+              return terminal;
+            }
+            setDepositBusyState(true, 'confirming');
+            setText('vaultOut', {
+              ok: true,
+              pending: true,
+              message: `Waiting for Zeko sequencer confirmation before note mint (${i + 1}/${attempts}). Do not resend this deposit.`,
+              intentId,
+              asset: payload.asset,
+              walletDeltaRaw: result.walletDeltaRaw || '0',
+              vaultDeltaRaw: result.vaultDeltaRaw || '0'
+            });
+          } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            if (/deposit intent (not found|.*expired)/i.test(errorMessage)) {
+              await clearDepositRecovery(intentId, { cancelServerIntent: false });
+              const terminal = {
+                ok: false,
+                pending: false,
+                terminal: true,
+                status: 'expired',
+                intentId,
+                asset: payload.asset,
+                message: 'This deposit recovery request is no longer valid. No funds were resent. Sync balances before starting a new deposit.',
+                lastError: errorMessage
+              };
+              setText('vaultOut', terminal);
+              return terminal;
+            }
+            setText('vaultOut', {
+              ok: true,
+              pending: true,
+              message: `Waiting for Zeko deposit state (${i + 1}/${attempts}). Do not resend this deposit.`,
+              intentId,
+              asset: payload.asset,
+              lastError: errorMessage
+            });
+          }
+          await sleep(i < 20 ? 1500 : 2500);
+        }
+        throw new Error(`Deposit intent ${intentId} is still pending. Refresh later to resume recovery; do not send the funds again.`);
+      }
+
+      async function resumePendingDeposit() {
+        const pending = readPendingDeposit();
+        if ((!pending?.txHash && !pending?.intentId) || !pending.wallet || !pending.asset) return;
+        const noteWallet = document.getElementById('noteWallet');
+        const noteAsset = document.getElementById('noteAsset');
+        const noteAmount = document.getElementById('noteAmount');
+        const noteTxHash = document.getElementById('noteDepositTxHash');
+        if (!noteWallet || !noteAsset || !noteAmount || !noteTxHash) return;
+        noteWallet.value = pending.wallet;
+        if (Array.from(noteAsset.options).some((option) => option.value === pending.asset)) {
+          noteAsset.value = pending.asset;
+        }
+        if (Number.isFinite(Number(pending.amount))) noteAmount.value = String(pending.amount);
+        noteTxHash.value = pending.txHash || '';
+        if (pending.intentId && !pending.txHash) {
+          try {
+            const recovered = await recoverDepositIntentFromTimeout(pending.intentId, pending);
+            if (recovered?.terminal) return;
+            rememberLocalActivity(pending.wallet, [
+              makeLocalActivityEvent('note_issued', {
+                asset: pending.asset,
+                amount: recovered?.note?.amount || pending.amount,
+                noteHash: recovered?.note?.note || null,
+                txHash: null
+              })
+            ]);
+            setText('vaultOut', { ok: true, message: 'Deposit recovered and privacy note minted.', note: recovered.note });
+          } catch (error) {
+            setText('vaultOut', String(error));
+          }
+          return;
+        }
+        try {
+          const portfolio = await sdk.getNotesPortfolio(pending.wallet);
+          const existing = Number(portfolio?.outstandingByAsset?.[String(pending.asset).toUpperCase()] || 0);
+          if (existing + 1e-9 >= Number(pending.amount || 0)) {
+            clearPendingDeposit(pending.txHash);
+            return;
+          }
+        } catch {}
+        setText('vaultOut', {
+          ok: true,
+          pending: true,
+          message: 'Resuming note issuance for a previously submitted deposit. No second transfer will be sent.',
+          asset: pending.asset,
+          txHash: pending.txHash
+        });
+        try {
+          const minted = await autoMintNoteFromLatestDeposit({
+            txHash: pending.txHash,
+            intentId: pending.intentId,
+            attempts: 60,
+            onProgress(progress) {
+              setDepositBusyState(true, progress?.phase === 'confirming' ? 'confirming' : 'minting');
+              setText('vaultOut', {
+                ok: true,
+                pending: true,
+                message: `Resuming Zeko confirmation before note mint (${progress.attempt}/${progress.attempts}).`,
+                txHash: progress.txHash || pending.txHash,
+                asset: pending.asset,
+                lastError: progress.error || null
+              });
+            }
+          });
+          rememberLocalActivity(pending.wallet, [
+            makeLocalActivityEvent('note_issued', {
+              asset: pending.asset,
+              amount: minted?.note?.amount || pending.amount,
+              noteHash: minted?.note?.note || null,
+              txHash: pending.txHash
+            })
+          ]);
+          setText('vaultOut', {
+            ok: true,
+            message: 'Pending deposit confirmed and privacy note minted.',
+            depositTxHash: pending.txHash,
+            note: minted.note,
+            verifiedDepositTx: minted.verifiedDepositTx || null
+          });
+        } catch (error) {
+          setText('vaultOut', {
+            ok: false,
+            pending: true,
+            message: 'Deposit remains pending note issuance. No second transfer was sent.',
+            txHash: pending.txHash,
+            error: error instanceof Error ? error.message : String(error)
+          });
+        } finally {
+          setDepositBusyState(false);
+        }
       }
 
       async function refreshNoteAssetOptions() {
@@ -2656,7 +2969,7 @@
           const avail = Number(balances[key] || 0);
           const opt = document.createElement('option');
           opt.value = item.asset;
-          opt.textContent = `${item.asset} (${fmtDisplayNumber(avail)})`;
+          opt.textContent = `${formatDisplayAsset(item.asset)} (${fmtDisplayNumber(avail)})`;
           opt.setAttribute('data-token-id', item.tokenId);
           opt.setAttribute('data-avail', fmtDisplayNumber(avail));
           select.appendChild(opt);
@@ -2709,7 +3022,7 @@
           await refreshWithdrawPanel();
         } catch (error) {
           latestNotesPortfolio = null;
-          setText('notesPortfolioOut', String(error));
+          setText('notesPortfolioOut', formatFundingError(error));
           await refreshWithdrawPanel();
         }
       }
@@ -2728,8 +3041,8 @@
           : '';
         root.textContent =
           `Market ID: ${market.marketId}\n` +
-          `Base: ${market.baseAsset} (${market.baseTokenId})\n` +
-          `Quote: ${market.quoteAsset} (${market.quoteTokenId})\n` +
+          `Base: ${formatDisplayAsset(market.baseAsset)} (${market.baseTokenId})\n` +
+          `Quote: ${formatDisplayAsset(market.quoteAsset)} (${market.quoteTokenId})\n` +
           `Best Bid / Ask: ${fmtDisplayNumber(market.bestBid)} / ${fmtDisplayNumber(market.bestAsk)}\n` +
           `Indicative Mid: ${fmtDisplayNumber(market.indicativeMid)}` +
           bandText;
@@ -2739,8 +3052,8 @@
         const root = document.getElementById('ordIntent');
         if (root) root.textContent = '';
         if (!market) return;
-        document.getElementById('placeBuy').textContent = `Buy ${market.baseAsset}`;
-        document.getElementById('placeSell').textContent = `Sell ${market.baseAsset}`;
+        document.getElementById('placeBuy').textContent = `Buy ${formatDisplayAsset(market.baseAsset)}`;
+        document.getElementById('placeSell').textContent = `Sell ${formatDisplayAsset(market.baseAsset)}`;
       }
 
       function updateFundingHint() {
@@ -2758,7 +3071,7 @@
             : 'Public anonymous orders show price and size in the book, but do not expose your wallet. ') +
           'Orders are note-collateralized only. ' +
           (orderType === 'MARKET'
-            ? 'Market orders are IOC and execute against standing liquidity.'
+            ? 'Market orders are IOC and execute against standing liquidity. Auro signs the order authorization; matched fills are queued for on-chain settlement.'
             : 'Limit orders lock collateral until filled, canceled, or expired.');
       }
 
@@ -2781,6 +3094,12 @@
         }
         if (msg.includes('no opposite liquidity')) {
           return 'No opposite liquidity available for market execution right now.';
+        }
+        if (msg.includes('no ask liquidity for market buy')) {
+          return 'This market BUY cannot execute: the selected market has no resting asks. Refresh the book and try again.';
+        }
+        if (msg.includes('no bid liquidity for market sell')) {
+          return 'This market SELL cannot execute: the selected market has no resting bids. Refresh the book and try again.';
         }
         return msg;
       }
@@ -2849,8 +3168,8 @@
               orderType === 'MARKET' && (!buyCheck.marketExecutable || !sellCheck.marketExecutable) ? 'bad' : 'ok',
               orderType === 'MARKET' ? `buy:${buyCheck.marketExecutable ? 'yes' : 'no'} sell:${sellCheck.marketExecutable ? 'yes' : 'no'}` : 'limit order'
             ) +
-            checklistRow(`Buy note collateral ${buyReq.asset || '-'}`, buyAvail + 1e-9 >= buyReqAmt ? 'ok' : 'bad', `${fmtDisplayNumber(buyReqAmt)} / notes ${fmtDisplayNumber(buyAvail)}`) +
-            checklistRow(`Sell note collateral ${sellReq.asset || '-'}`, sellAvail + 1e-9 >= sellReqAmt ? 'ok' : 'bad', `${fmtDisplayNumber(sellReqAmt)} / notes ${fmtDisplayNumber(sellAvail)}`) +
+            checklistRow(`Buy note collateral ${buyReq.asset || '-'}`, buyAvail + 1e-9 >= buyReqAmt ? 'ok' : 'bad', `${fmtDisplayNumber(buyReqAmt)} / available note amount ${fmtDisplayNumber(buyAvail)}`) +
+            checklistRow(`Sell note collateral ${sellReq.asset || '-'}`, sellAvail + 1e-9 >= sellReqAmt ? 'ok' : 'bad', `${fmtDisplayNumber(sellReqAmt)} / available note amount ${fmtDisplayNumber(sellAvail)}`) +
             checklistNote('Counter-asset note balances update after on-chain trade settlement.') +
             checklistRow('Locked base collateral', lockedBase > 0 ? 'warn' : 'ok', fmtDisplayNumber(lockedBase)) +
             checklistRow('Locked quote collateral', lockedQuote > 0 ? 'warn' : 'ok', fmtDisplayNumber(lockedQuote));
@@ -3018,14 +3337,15 @@
         const btn = document.getElementById('globalConnectWalletBtn');
         if (!btn) return;
         if (!walletConnected) {
-          btn.textContent = 'Connect Wallet';
+          btn.hidden = false;
+          btn.textContent = 'Connect Auro Wallet';
           btn.classList.remove('connected');
           btn.disabled = false;
           btn.title = '';
           return;
         }
+        btn.hidden = true;
         const w = String(document.getElementById('ordWallet')?.value || '').trim();
-        btn.textContent = 'Wallet Connected';
         btn.classList.add('connected');
         btn.disabled = false;
         btn.title = w || '';
@@ -3053,37 +3373,35 @@
       async function connectWallet() {
         const provider = window.mina;
         if (!provider) throw new Error('No Mina wallet provider found in browser');
-        let accounts = [];
-        if (typeof provider.requestAccounts === 'function') {
-          accounts = await provider.requestAccounts();
-        } else if (typeof provider.request === 'function') {
-          const result = await provider.request({ method: 'mina_requestAccounts' });
-          accounts = Array.isArray(result) ? result : (result?.result || []);
-        } else {
-          throw new Error('Connected wallet provider does not support account requests');
-        }
-        const wallet = Array.isArray(accounts) ? accounts[0] : accounts;
+        const wallet = await readAuroWallet({ request: true });
         if (!wallet || typeof wallet !== 'string') throw new Error('Wallet did not return an address');
-        await syncSelectedWalletNetwork({ interactive: false });
 
-        const targets = ['ordWallet', 'activityWallet', 'chainWallet', 'noteWallet'];
-        for (const id of targets) {
-          const el = document.getElementById(id);
-          if (el) el.value = wallet;
-        }
-
-        await sdk.syncOnchainBalance({ wallet });
-        walletSyncTimes.set(wallet, Date.now());
+        activeAuroWallet = wallet;
         walletConnected = true;
+        setWalletFields(wallet);
         updateWalletButtonState();
         updateOperatorPanelState();
-        setText('orderOut', { ok: true, connectedWallet: wallet, realFundsMode });
+        const connectionWarnings = [];
+        try {
+          await syncSepoliaWalletNetwork();
+        } catch (error) {
+          connectionWarnings.push(`network switch unavailable: ${String(error?.message || error)}`);
+        }
+        try {
+          await syncWalletContext(wallet);
+          walletSyncTimes.set(wallet, Date.now());
+        } catch (error) {
+          connectionWarnings.push(`on-chain sync unavailable: ${String(error?.message || error)}`);
+        }
         const activityView = document.getElementById('activityView');
         if (activityView) activityView.value = 'your';
-        await refreshNoteAssetOptions();
-        await refreshNotesPortfolio();
-        await refreshPretradeChecklist();
-        await refreshActivity();
+        await Promise.allSettled([
+          refreshNoteAssetOptions(),
+          refreshNotesPortfolio(),
+          refreshPretradeChecklist(),
+          refreshActivity()
+        ]);
+        if (connectionWarnings.length) console.warn('[wallet] connected with deferred sync', connectionWarnings);
       }
 
       async function syncWalletIfNeeded(wallet, force = false) {
@@ -3115,13 +3433,13 @@
           for (const market of knownMarkets) {
             const opt = document.createElement('option');
             opt.value = market.marketId;
-            opt.textContent = `${market.baseAsset}/${market.quoteAsset}`;
+            opt.textContent = formatDisplayPair(market);
             el.appendChild(opt);
           }
           el.value = selected.marketId;
         }
 
-        document.getElementById('makerPair').value = selected.pair;
+        setMakerPairDisplay(selected);
         document.getElementById('ordMarketId').value = selected.marketId;
         document.getElementById('makerMarketId').value = selected.marketId;
         renderMarketVerify(selected);
@@ -3133,6 +3451,20 @@
       async function cancelOpenOrder(orderId, cancelToken) {
         if (!orderId || !cancelToken) throw new Error('cancel credentials missing');
         const result = await sdk.cancelOrder(orderId, cancelToken);
+        const wallet = syncActivityWalletFromOrder(false);
+        if (wallet) {
+          const order = result?.order || {};
+          rememberLocalActivity(wallet, [
+            makeLocalActivityEvent('order_canceled', {
+              orderId,
+              pair: order.pair,
+              side: order.side,
+              limitPrice: order.limitPrice,
+              quantity: order.quantity,
+              released: result.released || null
+            })
+          ]);
+        }
         if (document.getElementById('replaceOrderId').value.trim() === String(orderId)) {
           clearReplaceOrderState();
         }
@@ -3159,7 +3491,7 @@
           row.innerHTML = `
             <div class="mono">${fmtUtcTime(t.createdAtUnixMs)}</div>
             <div>Trade</div>
-            <div class="mono">${t.pair || '-'}</div>
+            <div class="mono">${formatDisplayPair(t.pair || '-')}</div>
             <div class="mono">-</div>
             <div class="mono">${fmtDisplayNumber(t.price)}</div>
             <div class="mono">${fmtDisplayNumber(t.quantity)}</div>
@@ -3239,6 +3571,36 @@
         return 'Connect your wallet and sync/fund your account before trading.';
       }
 
+      function formatFundingError(error) {
+        const message = String(error || '');
+        if (/graphql http (502|503|504|520)|returned non-json/i.test(message)) {
+          return 'Zeko Sepolia balance service is temporarily unavailable, so wallet balances cannot be refreshed. Your stored notes were not changed. Retry Sync On-Chain Balance when the endpoint is back.';
+        }
+        if (/unable to fetch on-chain balance/i.test(message)) {
+          return 'Zeko Sepolia did not return a wallet balance. Your stored notes were not changed. Retry Sync On-Chain Balance.';
+        }
+        return message;
+      }
+
+      async function syncFundingWalletFromInput() {
+        const wallet =
+          String(document.getElementById('chainWallet')?.value || '').trim() ||
+          String(document.getElementById('noteWallet')?.value || '').trim();
+        if (!wallet) {
+          setText('notesPortfolioOut', 'Enter a wallet address or connect Auro Wallet.');
+          return;
+        }
+        if (isDemoWalletPlaceholder(wallet)) {
+          setText('notesPortfolioOut', walletSetupMessage('sync'));
+          return;
+        }
+        activeAuroWallet = '';
+        walletConnected = false;
+        updateWalletButtonState();
+        setText('notesPortfolioOut', 'Syncing on-chain balances and rebuilding wallet + private collateral view...');
+        await syncWalletContext(wallet);
+      }
+
       const activityFilterState = {
         sortTime: 'desc',
         openOnly: false
@@ -3258,6 +3620,124 @@
           activityWalletEl.value = orderWallet;
         }
         return activityWalletEl.value.trim() || orderWallet;
+      }
+
+      const LOCAL_ACTIVITY_STORAGE_PREFIX = 'shadowbook.activity.v1.';
+      function localActivityStorageKey(wallet) {
+        let hash = 1469598103934665603n;
+        for (const char of String(wallet || '').trim().toLowerCase()) {
+          hash ^= BigInt(char.codePointAt(0));
+          hash = BigInt.asUintN(64, hash * 1099511628211n);
+        }
+        return `${LOCAL_ACTIVITY_STORAGE_PREFIX}${hash.toString(16)}`;
+      }
+
+      function readLocalActivity(wallet) {
+        if (!wallet) return [];
+        try {
+          const parsed = JSON.parse(localStorage.getItem(localActivityStorageKey(wallet)) || '[]');
+          return Array.isArray(parsed) ? parsed : [];
+        } catch {
+          return [];
+        }
+      }
+
+      function writeLocalActivity(wallet, events) {
+        if (!wallet) return;
+        try {
+          localStorage.setItem(
+            localActivityStorageKey(wallet),
+            JSON.stringify(events.slice(0, 500))
+          );
+        } catch {}
+      }
+
+      function makeLocalActivityEvent(type, details, createdAtUnixMs = Date.now()) {
+        return {
+          id: `local_${type}_${createdAtUnixMs}_${Math.random().toString(16).slice(2)}`,
+          accountId: 'local',
+          type,
+          details,
+          createdAtUnixMs
+        };
+      }
+
+      function rememberLocalActivity(wallet, events) {
+        if (!wallet || !Array.isArray(events) || !events.length) return;
+        const existing = readLocalActivity(wallet);
+        const merged = [...events, ...existing]
+          .filter((event) => event && typeof event.type === 'string')
+          .sort((a, b) => Number(b.createdAtUnixMs || 0) - Number(a.createdAtUnixMs || 0));
+        const seen = new Set();
+        writeLocalActivity(
+          wallet,
+          merged.filter((event) => {
+            const details = event.details || {};
+            const identity = `${event.type}:${details.orderId || details.tradeId || event.id}`;
+            if (seen.has(identity)) return false;
+            seen.add(identity);
+            return true;
+          })
+        );
+      }
+
+      function mergeActivityWithLocal(wallet, serverEvents) {
+        const localEvents = readLocalActivity(wallet);
+        const safeServerEvents = (Array.isArray(serverEvents) ? serverEvents : []).map((event) => {
+          if (event?.details?.privacy === 'operator-redacted') return event;
+          return { ...event, details: { privacy: 'operator-redacted' } };
+        });
+        const localTypes = new Set(['order_submitted', 'trade_fill', 'order_canceled', 'order_replaced']);
+        const filteredServerEvents = safeServerEvents.filter((serverEvent) => {
+          if (!localTypes.has(serverEvent.type)) return true;
+          return !localEvents.some(
+            (localEvent) =>
+              localEvent.type === serverEvent.type &&
+              Math.abs(Number(localEvent.createdAtUnixMs || 0) - Number(serverEvent.createdAtUnixMs || 0)) < 10000
+          );
+        });
+        return [...localEvents, ...filteredServerEvents];
+      }
+
+      function rememberOrderActivity(wallet, result, replacedOrderId = '') {
+        const order = result?.replacementOrder || result?.order;
+        if (!wallet || !order) return;
+        const createdAtUnixMs = Number(order.createdAtUnixMs || Date.now());
+        const events = [
+          makeLocalActivityEvent(
+            replacedOrderId ? 'order_replaced' : 'order_submitted',
+            {
+              orderId: order.id,
+              replacedOrderId: replacedOrderId || undefined,
+              pair: order.pair,
+              side: order.side,
+              orderType: order.orderType || 'LIMIT',
+              limitPrice: order.limitPrice,
+              quantity: order.quantity,
+              tif: order.timeInForce,
+              sequenceNumber: order.sequenceNumber,
+              sequencingReceiptHash: order.sequencingReceiptHash
+            },
+            createdAtUnixMs
+          )
+        ];
+        for (const fill of Array.isArray(result.privateFills) ? result.privateFills : []) {
+          events.push(
+            makeLocalActivityEvent(
+              'trade_fill',
+              {
+                pair: order.pair,
+                side: order.side,
+                price: fill.price,
+                quantity: fill.quantity,
+                tradeId: fill.tradeId,
+                counterpartyCommitment: fill.counterpartyCommitment
+              },
+              Number(fill.createdAtUnixMs || createdAtUnixMs)
+            )
+          );
+        }
+        rememberLocalActivity(wallet, events);
       }
 
       function scheduleSettlementUiRefresh() {
@@ -3424,7 +3904,7 @@
             row.innerHTML = `
               <div class="mono">${fmtUtcTime(order.createdAtUnixMs)}</div>
               <div>Open Order</div>
-              <div class="mono">${order.pair || '-'}</div>
+              <div class="mono">${formatDisplayPair(order.pair || '-')}</div>
               <div class="mono">${order.side || '-'}</div>
               <div class="mono">${fmtNum(order.limitPrice, 4)}</div>
               <div class="mono">${fmtNum(order.remaining, 6)}</div>
@@ -3447,7 +3927,7 @@
             note_withdrawn: 'Withdraw'
           };
           const action = actionMap[ev.type] || ev.type;
-          const marketOrAsset = d.pair || d.asset || '-';
+          const marketOrAsset = d.pair ? formatDisplayPair(d.pair) : formatDisplayAsset(d.asset || '-');
           const side = d.side || '-';
           const price = d.price ?? d.limitPrice ?? null;
           const qty = d.quantity ?? d.amount ?? null;
@@ -3658,6 +4138,13 @@
         const change = lastPrice > 0 && firstPrice > 0 ? lastPrice - firstPrice : 0;
         const changePct = lastPrice > 0 && firstPrice > 0 ? (change / firstPrice) * 100 : 0;
         const volume = rows.reduce((sum, row) => sum + Number(row.volume || 0), 0);
+        const intervalSec = Math.max(1, Number(document.getElementById('chartInterval')?.value || 60));
+        const visibleSpanSec = first && last ? Math.max(0, Number(last.time || 0) - Number(first.time || 0)) + intervalSec : 0;
+        const hasFullDay = visibleSpanSec >= 24 * 60 * 60;
+        const changeLabel = document.getElementById('chartHeroChangeLabel');
+        const volumeLabel = document.getElementById('chartHeroVolumeLabel');
+        if (changeLabel) changeLabel.textContent = hasFullDay ? '24h Change' : 'Window Change';
+        if (volumeLabel) volumeLabel.textContent = hasFullDay ? '24h Volume' : 'Window Volume';
         const lastTrade = Array.isArray(trades) && trades.length ? trades[0] : null;
         document.getElementById('chartHeroVenue').textContent = market?.marketId
           ? `${market.marketId} · Last print ${lastTrade?.createdAtUnixMs ? fmtUtcTime(lastTrade.createdAtUnixMs) : 'UTC pending'}`
@@ -3688,7 +4175,7 @@
         const intervalLabel = ({ 60: '1m', 300: '5m', 900: '15m', 3600: '1h' })[Number(document.getElementById('chartInterval')?.value || 60)] || '1m';
         legendMain.innerHTML =
           `<span class="swatch"></span>` +
-          `<span>${market?.pair || '-'} · ${intervalLabel} · ShadowBook</span>`;
+          `<span>${formatDisplayPair(market?.pair || '-')} · ${intervalLabel} · ShadowBook</span>`;
         const delta = Number(last.close || 0) - Number(last.open || 0);
         const deltaPct = Number(last.open || 0) > 0 ? (delta / Number(last.open || 0)) * 100 : 0;
         legendValues.innerHTML = [
@@ -3972,7 +4459,7 @@
         const low = lows.length ? Math.min(...lows) : null;
         const volume = rows.reduce((sum, row) => sum + Number(row.volume || 0), 0);
         const lastTrade = Array.isArray(trades) && trades.length ? trades[0] : null;
-        const pairLabel = market?.pair || '-';
+        const pairLabel = formatDisplayPair(market?.pair || '-');
         const summary = [
           { label: 'Market', value: pairLabel },
           { label: 'Range', value: high !== null && low !== null ? `${fmtDisplayNumber(low)} - ${fmtDisplayNumber(high)}` : '-' },
@@ -4033,7 +4520,7 @@
         }
         try {
           const activity = await sdk.getActivity(wallet, 100);
-          const withdrawals = (activity.events || []).filter((ev) => ev.type === 'note_withdrawn');
+          const withdrawals = mergeActivityWithLocal(wallet, activity.events || []).filter((ev) => ev.type === 'note_withdrawn');
           const latest = withdrawals[0];
           status.textContent = latest
             ? `${latest.details?.asset || '-'} ${fmtDisplayNumber(latest.details?.amount)} at ${fmtUtcTime(latest.createdAtUnixMs)}`
@@ -4106,9 +4593,13 @@
           return;
         }
         const wallet = syncActivityWalletFromOrder(false);
+        if (!wallet || isDemoWalletPlaceholder(wallet)) {
+          renderActivity([], []);
+          return;
+        }
         const limit = Math.max(1, Number(document.getElementById('activityLimit').value || 150));
         const data = await sdk.getActivity(wallet, limit);
-        renderActivity(data.events || [], data.openOrders || []);
+        renderActivity(mergeActivityWithLocal(wallet, data.events || []), data.openOrders || []);
       }
 
       async function refreshFeeStats() {
@@ -4252,6 +4743,13 @@
           quantity,
           limitPrice: orderType === 'MARKET' ? null : Number(limitPrice)
         });
+        if (orderType === 'MARKET' && !pretrade.marketExecutable) {
+          throw new Error(
+            side === 'BUY'
+              ? 'no ask liquidity for market buy'
+              : 'no bid liquidity for market sell'
+          );
+        }
         const required = pretrade.required || {};
         const requiredAsset = required.asset;
         const requiredAmount = Number(required.amount || 0);
@@ -4278,7 +4776,7 @@
         const payload = {
           wallet,
           marketId,
-          pair: market?.pair || document.getElementById('makerPair').value,
+          pair: market?.pair || getMakerPairRequestValue(),
           side,
           orderType,
           timeInForce,
@@ -4328,6 +4826,7 @@
           }
         }
         setText('orderOut', result);
+        rememberOrderActivity(wallet, result, replaceOrderId);
         const effectiveOrder = result.replacementOrder || result.order || null;
         if (effectiveOrder?.id) document.getElementById('inspectOrderId').value = effectiveOrder.id;
         if (result.cancelToken) document.getElementById('inspectToken').value = result.cancelToken;
@@ -4379,7 +4878,7 @@
           clearReplaceOrderState();
           document.getElementById('chartPair').value = market.marketId;
           document.getElementById('ordPair').value = market.marketId;
-          document.getElementById('makerPair').value = market.pair;
+          setMakerPairDisplay(market);
           document.getElementById('ordMarketId').value = market.marketId;
           document.getElementById('makerMarketId').value = market.marketId;
           renderMarketVerify(market);
@@ -4399,7 +4898,7 @@
           document.getElementById('chartPair').value = market.marketId;
           document.getElementById('ordMarketId').value = market.marketId;
           document.getElementById('makerMarketId').value = market.marketId;
-          document.getElementById('makerPair').value = market.pair;
+          setMakerPairDisplay(market);
           renderMarketVerify(market);
           updateOrderIntent(market);
         }
@@ -4438,8 +4937,14 @@
         }
       };
       document.getElementById('ordType').onchange = () => {
-        updateBookPrefillActionUi('');
+        // A book-selected counter-side remains valid when changing LIMIT to MARKET.
+        // Market orders are always fresh IOC orders, never replacements.
+        const selectedBookSide = recommendedBookActionSide;
+        if (document.getElementById('ordType').value === 'MARKET') {
+          clearReplaceOrderState();
+        }
         updateOrderTypeUi();
+        updateBookPrefillActionUi(selectedBookSide);
       };
       document.getElementById('ordVisibility').onchange = () => {
         updateBookPrefillActionUi('');
@@ -4473,6 +4978,25 @@
         refreshPretradeChecklist().catch(() => {});
         updateOperatorPanelState();
       };
+      function mirrorFundingWalletDraft(sourceId) {
+        const source = document.getElementById(sourceId);
+        const value = String(source?.value || '').trim();
+        const otherId = sourceId === 'chainWallet' ? 'noteWallet' : 'chainWallet';
+        const other = document.getElementById(otherId);
+        if (other) other.value = value;
+      }
+      for (const id of ['chainWallet', 'noteWallet']) {
+        const el = document.getElementById(id);
+        if (!el) continue;
+        el.oninput = () => mirrorFundingWalletDraft(id);
+        el.onchange = () => syncFundingWalletFromInput().catch((error) => setText('notesPortfolioOut', formatFundingError(error)));
+        el.onkeydown = (event) => {
+          if (event.key === 'Enter') {
+            event.preventDefault();
+            syncFundingWalletFromInput().catch((error) => setText('notesPortfolioOut', formatFundingError(error)));
+          }
+        };
+      }
       document.getElementById('operatorAdminKey').oninput = () => {
         updateOperatorPanelState();
       };
@@ -4534,14 +5058,45 @@
 
       document.getElementById('syncBtn').onclick = async () => {
         try {
-          const wallet = document.getElementById('chainWallet').value.trim();
-          if (isDemoWalletPlaceholder(wallet)) {
-            setText('notesPortfolioOut', walletSetupMessage('sync'));
-            return;
-          }
-          setText('notesPortfolioOut', 'Syncing on-chain balances and rebuilding wallet + private collateral view...');
-          await syncWalletContext(wallet);
-        } catch (e) { setText('notesPortfolioOut', String(e)); }
+          await syncFundingWalletFromInput();
+        } catch (e) { setText('notesPortfolioOut', formatFundingError(e)); }
+      };
+
+      for (const id of ['tokenTransferRecipient', 'tokenTransferAmount']) {
+        document.getElementById(id)?.addEventListener('input', resetPendingTokenTransfer);
+      }
+      document.getElementById('buildTokenTransferBtn').onclick = async () => {
+        const button = document.getElementById('buildTokenTransferBtn');
+        try {
+          button.disabled = true;
+          await buildTokenTransferForAuro();
+        } catch (e) {
+          setText('tokenTransferOut', String(e));
+        } finally {
+          button.disabled = false;
+        }
+      };
+      document.getElementById('signTokenTransferBtn').onclick = async () => {
+        const button = document.getElementById('signTokenTransferBtn');
+        try {
+          button.disabled = true;
+          setText('tokenTransferOut', {
+            ok: true,
+            pending: true,
+            message: 'Opening the prebuilt sZEKO transfer in Auro for signature.'
+          });
+          const result = await signBuiltTokenTransferWithAuro();
+          setText('tokenTransferOut', {
+            ok: true,
+            submitted: true,
+            message: 'sZEKO transfer submitted to Zeko.',
+            ...result
+          });
+          resetPendingTokenTransfer();
+        } catch (e) {
+          setText('tokenTransferOut', String(e));
+          button.disabled = false;
+        }
       };
 
       document.getElementById('mintNoteBtn').onclick = async () => {
@@ -4557,6 +5112,14 @@
             amount: Number(document.getElementById('noteAmount').value || 0),
             txHash
           });
+          rememberLocalActivity(document.getElementById('noteWallet').value.trim(), [
+            makeLocalActivityEvent('note_issued', {
+              asset: document.getElementById('noteAsset').value.trim(),
+              amount: Number(document.getElementById('noteAmount').value || 0),
+              noteHash: result?.note?.note || null,
+              txHash
+            })
+          ]);
           setText('vaultOut', result);
           if (result.note?.note) {
             document.getElementById('noteInput').value = result.note.note;
@@ -4588,23 +5151,71 @@
       document.getElementById('sendDepositTxBtn').onclick = async () => {
         const asset = String(document.getElementById('noteAsset')?.value || '').trim() || 'asset';
         try {
-          setDepositBusyState(true, asset.toUpperCase() === 'TMINA' ? 'wallet' : 'building');
+          setDepositBusyState(true, isNativeAsset(asset) ? 'wallet' : 'building');
           setText('vaultOut', {
             ok: true,
             pending: true,
             message:
-              asset.toUpperCase() === 'TMINA'
+              isNativeAsset(asset)
                 ? `Preparing native ${asset} deposit request in wallet.`
                 : `Building ${asset} token deposit transaction. This can take a few seconds on first load.`,
             asset
           });
-          const result = await sendDepositTxWithWallet();
+          let result;
+          try {
+            result = await sendDepositTxWithWallet();
+          } catch (error) {
+            if (!error?.depositIntentId) throw error;
+            if (isWalletCancellationError(error)) {
+              await clearDepositRecovery(error.depositIntentId, { cancelServerIntent: true });
+              setText('vaultOut', {
+                ok: true,
+                pending: false,
+                message: 'Wallet request canceled. No deposit was submitted and no note was changed.'
+              });
+              return;
+            }
+            const context = error.depositContext || {
+              wallet: document.getElementById('noteWallet').value.trim(),
+              asset,
+              tokenId: document.getElementById('noteAsset').selectedOptions?.[0]?.getAttribute('data-token-id') || '',
+              amount: Number(document.getElementById('noteAmount').value || 0)
+            };
+            const recovered = await recoverDepositIntentFromTimeout(error.depositIntentId, context);
+            if (recovered?.terminal) return;
+            rememberLocalActivity(context.wallet, [
+              makeLocalActivityEvent('note_issued', {
+                asset: context.asset,
+                amount: recovered?.note?.amount || context.amount,
+                noteHash: recovered?.note?.note || null,
+                txHash: null
+              })
+            ]);
+            setText('vaultOut', {
+              ok: true,
+              message: 'Deposit confirmed by Zeko and privacy note minted after the wallet timeout.',
+              intentId: error.depositIntentId,
+              note: recovered.note,
+              verificationMode: recovered.verificationMode
+            });
+            return;
+          }
           setDepositBusyState(true, 'confirming');
           if (result.txHash) document.getElementById('noteDepositTxHash').value = result.txHash;
+          if (result.txHash) {
+            rememberPendingDeposit({
+              wallet: document.getElementById('noteWallet').value.trim(),
+              asset,
+              tokenId: result.tokenId || '',
+              amount: Number(document.getElementById('noteAmount').value || 0),
+              txHash: result.txHash,
+              intentId: result.intentId || ''
+            });
+          }
           setText('vaultOut', {
             ok: true,
             message: result.txHash
-              ? 'Deposit tx signed and submitted. Waiting for on-chain inclusion before minting the privacy note.'
+              ? 'Deposit tx accepted by the wallet. Waiting for Zeko confirmation before minting the privacy note.'
               : 'Transfer request submitted in wallet. Waiting for tx hash before auto-mint.',
             method: result.method,
             txHash: result.txHash || null,
@@ -4613,6 +5224,7 @@
           if (result.txHash) {
             const minted = await autoMintNoteFromLatestDeposit({
               txHash: result.txHash,
+              intentId: result.intentId || '',
               onProgress(progress) {
                 setDepositBusyState(true, progress?.phase === 'confirming' ? 'confirming' : 'minting');
                 setText('vaultOut', {
@@ -4620,14 +5232,22 @@
                   pending: true,
                   message:
                     progress?.phase === 'retrying'
-                      ? `Deposit tx submitted. Waiting for chain inclusion before note mint (${progress.attempt}/${progress.attempts}).`
-                      : `Deposit tx submitted. Confirming on-chain before note mint (${progress.attempt}/${progress.attempts}).`,
+                      ? `Deposit tx submitted. Waiting for Zeko confirmation before note mint (${progress.attempt}/${progress.attempts}).`
+                      : `Deposit tx submitted. Confirming with Zeko before note mint (${progress.attempt}/${progress.attempts}).`,
                   txHash: progress?.txHash || result.txHash || null,
                   asset: progress?.asset || asset,
                   lastError: progress?.error || null
                 });
               }
             });
+            rememberLocalActivity(document.getElementById('noteWallet').value.trim(), [
+              makeLocalActivityEvent('note_issued', {
+                asset,
+                amount: minted?.note?.amount || null,
+                noteHash: minted?.note?.note || null,
+                txHash: result.txHash
+              })
+            ]);
             setText('vaultOut', {
               ok: true,
               message: 'Deposit confirmed and privacy note minted.',
@@ -4635,6 +5255,28 @@
               note: minted.note,
               verifiedDepositTx: minted.verifiedDepositTx || null,
               participantBalances: minted.participantBalances || null
+            });
+          } else {
+            const recovered = await recoverDepositIntentFromTimeout(result.intentId, {
+              wallet: document.getElementById('noteWallet').value.trim(),
+              asset,
+              tokenId: result.tokenId || '',
+              amount: Number(document.getElementById('noteAmount').value || 0)
+            });
+            rememberLocalActivity(document.getElementById('noteWallet').value.trim(), [
+              makeLocalActivityEvent('note_issued', {
+                asset,
+                amount: recovered?.note?.amount || null,
+                noteHash: recovered?.note?.note || null,
+                txHash: null
+              })
+            ]);
+            setText('vaultOut', {
+              ok: true,
+              message: 'Deposit confirmed by Zeko and privacy note minted.',
+              intentId: result.intentId,
+              note: recovered.note,
+              verificationMode: recovered.verificationMode
             });
           }
         } catch (e) {
@@ -4685,7 +5327,7 @@
           return;
         }
         if (phase === 'confirming') {
-          sendBtn.textContent = 'Confirming On-Chain...';
+          sendBtn.textContent = 'Confirming with Zeko...';
           return;
         }
         sendBtn.textContent = 'Processing Deposit...';
@@ -4700,9 +5342,16 @@
           setText('vaultOut', {
             ok: true,
             pending: true,
-            message: `Preparing ${fmtDisplayNumber(amount)} ${asset} withdrawal to ${wallet}. Spending private notes and submitting payout transaction...`
+            message: `Preparing ${fmtDisplayNumber(amount)} ${formatDisplayAsset(asset)} withdrawal to ${wallet}. Spending private notes and submitting payout transaction...`
           });
           const result = await sdk.withdraw({ wallet, asset, amount });
+          rememberLocalActivity(wallet, [
+            makeLocalActivityEvent('note_withdrawn', {
+              asset,
+              amount,
+              txHash: result?.txHash || result?.payout?.txHash || null
+            })
+          ]);
           setText('vaultOut', result);
           await refreshNotesPortfolio();
           await refreshNoteAssetOptions();
@@ -4734,7 +5383,7 @@
             {
               wallet: document.getElementById('makerWallet').value,
               marketId: document.getElementById('makerMarketId').value,
-              pair: document.getElementById('makerPair').value,
+              pair: getMakerPairRequestValue(),
               bidPrice: Number(document.getElementById('makerBidPx').value),
               askPrice: Number(document.getElementById('makerAskPx').value),
               bidSize: Number(document.getElementById('makerBidSz').value),
@@ -4762,7 +5411,7 @@
             {
               wallet: document.getElementById('makerWallet').value,
               marketId: document.getElementById('makerMarketId').value,
-              pair: document.getElementById('makerPair').value
+              pair: getMakerPairRequestValue()
             },
             makerKey
           );
@@ -4837,27 +5486,6 @@
       document.getElementById('tabFunding').onclick = () => activateTab('funding');
       document.getElementById('welcomeDismissBtn').onclick = dismissWelcomeOverlay;
       document.getElementById('welcomeGotItBtn').onclick = dismissWelcomeOverlay;
-      document.getElementById('walletNetworkSelect').onchange = async (event) => {
-        const nextKey = String(event?.target?.value || '').trim();
-        if (!walletNetworks[nextKey]) return;
-        saveSelectedWalletNetworkKey(nextKey);
-        updateWalletNetworkUi();
-        if (walletConnected) {
-          try {
-            await syncSelectedWalletNetwork({ interactive: true });
-          } catch (error) {
-            setText('orderOut', String(error));
-          }
-        }
-      };
-      document.getElementById('walletNetworkSyncBtn').onclick = async () => {
-        try {
-          await syncSelectedWalletNetwork({ interactive: true });
-        } catch (error) {
-          setText('orderOut', String(error));
-        }
-      };
-
       (async () => {
         try {
           syncHeaderOffset();
@@ -4865,21 +5493,24 @@
           requestAnimationFrame(syncHeaderOffset);
           activateTab('trading');
           maybeShowWelcomeOverlay();
+          applyMarketDisplayDefaults();
           syncFrontendIdFromUi();
           const status = await sdk.getStatus();
-          serverWalletNetwork = status?.server?.walletNetwork || null;
+          serverTokenContractAddresses = status?.server?.tokenContractAddresses || {};
           realFundsMode = Boolean(status?.server?.realFundsMode);
           requireOnchainDepositTx = Boolean(status?.server?.requireOnchainDepositTx);
           vaultDepositAddress = String(status?.server?.vaultDepositAddress || '');
-          updateWalletNetworkUi();
+          applyMarketDisplayDefaults();
           updateFundingHint();
           updateNoteDepositHint();
           setText(
             'vaultOut',
-            'Privacy notes are enabled with on-chain deposit verification. Sync wallet, submit transfer to vault address, then mint with tx hash.'
+            'Privacy notes use Zeko sequencer confirmation. Sync wallet, submit the transfer to the vault, then mint with the returned tx hash.'
           );
           const marketsResp = await sdk.getMarkets();
           populateMarketSelectors(marketsResp.markets || []);
+          await syncDetectedAuroWallet({ force: true }).catch(() => {});
+          void resumePendingDeposit();
           updateWalletButtonState();
           updateOrderTypeUi();
           updateFundingModeHint();
@@ -4890,6 +5521,9 @@
           await refreshFeeStats();
           await refreshOperatorPanel();
           await refreshPretradeChecklist();
+          setInterval(() => {
+            syncDetectedAuroWallet().catch(() => {});
+          }, 5000);
           setText('notesPortfolioOut', 'Refreshing wallet + private collateral...');
           await refreshNotesPortfolio();
           setInterval(async () => {

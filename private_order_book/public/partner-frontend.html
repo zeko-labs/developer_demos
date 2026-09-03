@@ -32,7 +32,7 @@
       <div class="card">
         <div class="hd">Place Order (same shared liquidity pool)</div>
         <div class="bd grid">
-          <div><label>Pair</label><input id="pair" value="tETH/tZEKO" /></div>
+          <div><label>Pair</label><input id="pair" value="" /></div>
           <div><label>Side</label><select id="side"><option>BUY</option><option>SELL</option></select></div>
           <div><label>TIF</label><select id="tif"><option>GTC</option><option>IOC</option></select></div>
           <div><label>Price</label><input id="px" type="number" value="64000" /></div>
@@ -89,6 +89,13 @@
         renderTape(data.trades || []);
       }
 
+      async function setDefaultPair() {
+        if (document.getElementById('pair').value.trim()) return;
+        const data = await sdk.getMarkets();
+        const pair = data.markets?.[0]?.pair || '';
+        if (pair) document.getElementById('pair').value = pair;
+      }
+
       document.getElementById('place').onclick = async () => {
         try {
           mkClient();
@@ -121,6 +128,7 @@
       (async () => {
         try {
           mkClient();
+          await setDefaultPair();
           await refreshTape();
           const stats = await sdk.getFrontendFees();
           document.getElementById('feeOut').textContent = JSON.stringify(stats, null, 2);

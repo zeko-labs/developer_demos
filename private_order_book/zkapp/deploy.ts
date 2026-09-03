@@ -148,12 +148,15 @@ function pinAccountUpdateNonce(tx: any, accountPublicKey: PublicKey, nonce: bigi
 
 async function main() {
   const graphql = requireEnv('ZEKO_GRAPHQL');
-  const networkId = readOptionalEnv('ZEKO_NETWORK_ID', graphql.includes('sepolia.zeko.io') ? 'zeko' : 'testnet');
+  if (!graphql.includes('sepolia.zeko.io')) throw new Error('ZEKO_GRAPHQL must point to Zeko Ethereum Sepolia');
+  // Sepolia's o1js/Auro signing domain is `testnet`; keep this configurable
+  // so deployment can target another Zeko network without changing code.
+  const networkId = readOptionalEnv('ZEKO_O1JS_NETWORK_ID', 'testnet');
   const txFee = UInt64.from(readOptionalEnv('TX_FEE', '2000000000'));
   const useAdvanced = readOptionalEnv('ZKAPP_DEPLOY_USE_ADVANCED', 'false').toLowerCase() === 'true';
-  const marketSymbol = readOptionalEnv('MARKET_SYMBOL', 'tETH/tZEKO');
-  const baseTokenId = readOptionalEnv('BASE_TOKEN_ID', 'wpWnRKT383VPM2TWtBWs8R4i927SKUgzAycsSs3AyvyriGXyP2');
-  const quoteTokenId = readOptionalEnv('QUOTE_TOKEN_ID', 'x3jovPY75iFmbZ5kTfxZmNmEQ6874mmBu3jufom1QsxMNqPx27');
+  const marketSymbol = readOptionalEnv('MARKET_SYMBOL', 'sETH/sZEKO');
+  const baseTokenId = readOptionalEnv('BASE_TOKEN_ID', 'wSHV2S4qX9jFsLjQo8r1BsMLH2ZRKsZx6EJd1sbozGPieEC4Jf');
+  const quoteTokenId = readOptionalEnv('QUOTE_TOKEN_ID', 'xpAptwG79jEStACsCv9C6yXUBmKbvurUo8GsTPYapn9QWB5zE5');
 
   const deployerKey = PrivateKey.fromBase58(requireEnv('DEPLOYER_PRIVATE_KEY'));
   const zkappKey = PrivateKey.fromBase58(requireEnv('ZKAPP_PRIVATE_KEY'));
