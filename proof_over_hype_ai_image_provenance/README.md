@@ -99,7 +99,7 @@ npm run dev
 This repo **never** ships private keys or API keys. You must supply your own:
 
 - AI detector API keys (Sightengine)
-- Zeko/Mina keys (oracle, deployer, submitter, zkApp)
+- Zeko Sepolia o1js keys (oracle, deployer, submitter, zkApp)
 
 ## Optional: Captcha (public demo)
 
@@ -176,7 +176,7 @@ The server uses Sightengine’s `genai` model for AI image detection.
 
 ## ZK proof oracle key
 
-- `ORACLE_PRIVATE_KEY` (optional): Base58 Mina private key used to sign verdicts.
+- `ORACLE_PRIVATE_KEY` (optional): Base58 o1js private key used to sign verdicts.
   If not set, the server generates a random key each run.
 
 ## Local zkApp (for testing)
@@ -188,9 +188,9 @@ npm run deploy:local
 
 This spins up a local blockchain, deploys the zkApp, and prints the keys in the console.
 
-## Zeko testnet deploy (real chain)
+## Zeko Ethereum Sepolia deploy (real chain)
 
-1. Get testnet MINA in your Auro wallet and export the private key.
+1. Get sETH in your Auro wallet and export the private key.
 2. Generate a fresh zkApp key for the contract.
 3. Set the environment variables.
 4. Deploy.
@@ -202,8 +202,8 @@ cd app
 npm run keygen
 export DEPLOYER_PRIVATE_KEY=your_auro_private_key
 export ZKAPP_PRIVATE_KEY=your_new_zkapp_private_key
-export ZEKO_GRAPHQL=https://testnet.zeko.io
-export ZEKO_NETWORK_ID=zeko
+export ZEKO_GRAPHQL=https://sepolia.zeko.io/graphql
+export ZEKO_NETWORK_ID=testnet
 export TX_FEE=200000000
 npm run deploy:zeko
 ```
@@ -214,8 +214,8 @@ submissions:
 ```bash
 export ZKAPP_PUBLIC_KEY=your_deployed_contract_address
 export SUBMITTER_PRIVATE_KEY=your_auro_private_key
-export ZEKO_GRAPHQL=https://testnet.zeko.io
-export ZEKO_NETWORK_ID=zeko
+export ZEKO_GRAPHQL=https://sepolia.zeko.io/graphql
+export ZEKO_NETWORK_ID=testnet
 export TX_FEE=200000000
 npm run dev
 ```
@@ -234,7 +234,7 @@ cd app
 npm run keygen
 ```
 
-2. Fund the new `ZKAPP_PUBLIC_KEY` with 1 MINA (Zeko testnet).
+2. Fund the new `ZKAPP_PUBLIC_KEY` with 1 sETH (Zeko Ethereum Sepolia).
 3. Deploy:
 
 ```bash
@@ -349,7 +349,7 @@ If `ZKAPP_PUBLIC_KEY` is missing, the app derives it from `ZKAPP_PRIVATE_KEY` (e
 To avoid nonce-precondition race conditions, the app clears the fee payer nonce precondition and
 uses full commitment on the fee payer update (the "non-magic" flow).
 
-## Mina MCP server
+## Zeko/o1js MCP helper
 
-If you want to query Mina network data from an MCP-enabled assistant, configure the Mina MCP server:
+If you want to query Zeko network data from an MCP-enabled assistant, configure the o1js-compatible MCP helper:
 `https://github.com/ronykris/mina-mcp-server`.

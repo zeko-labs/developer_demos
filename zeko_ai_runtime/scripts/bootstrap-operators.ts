@@ -101,7 +101,7 @@ const operatorRegistryPath = path.join(dataDir, 'operator-registry.json');
 const localOperatorIdPath = path.join(dataDir, 'local-operator-id.txt');
 const sharedSponsorKeyPath = path.join(deploymentDir, 'sponsor-private-key.txt');
 const networkId = process.env.ZEKO_NETWORK_ID?.trim() || 'testnet';
-const graphql = normalizeGraphqlUrl(process.env.ZEKO_GRAPHQL || null, 'https://testnet.zeko.io/graphql');
+const graphql = normalizeGraphqlUrl(process.env.ZEKO_GRAPHQL || null, 'https://sepolia.zeko.io/graphql');
 const explorer = process.env.ZEKO_EXPLORER?.trim() || 'https://zekoscan.io/testnet';
 const txFee = process.env.TX_FEE?.trim() || '100000000';
 const newAccountFundingBuffer = BigInt(txFee);
@@ -585,7 +585,7 @@ async function planFunding(
   const funderPublicKey = funder.toPublicKey().toBase58();
   const funderState = await readAccountState(funderPublicKey);
   if (!funderState.exists) {
-    throw new Error('Funding sponsor account is not visible on Zeko testnet.');
+    throw new Error('Funding sponsor account is not visible on Zeko Ethereum Sepolia.');
   }
 
   const transfers: Array<{ scope: 'local' | 'remote'; lane: SponsorLane; publicKey: string; needed: bigint }> = [];
@@ -621,7 +621,7 @@ async function planFunding(
   const totalNeeded = transfers.reduce((sum, entry) => sum + entry.needed + BigInt(txFee), 0n);
   if (funderState.balance < totalNeeded) {
     throw new Error(
-      `Funding sponsor balance ${minaFromNanomina(funderState.balance).toFixed(4)} MINA is below required ${minaFromNanomina(totalNeeded).toFixed(4)} MINA.`
+      `Funding sponsor balance ${minaFromNanomina(funderState.balance).toFixed(4)} sETH is below required ${minaFromNanomina(totalNeeded).toFixed(4)} sETH.`
     );
   }
 

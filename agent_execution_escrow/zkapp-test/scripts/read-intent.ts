@@ -51,8 +51,8 @@ async function main() {
   };
 
   const networkId = resolveNetworkId(process.env.ZEKO_NETWORK_ID);
-  const graphql = normalizeGraphqlUrl(process.env.ZEKO_GRAPHQL, 'https://testnet.zeko.io/graphql');
-  const archive = normalizeGraphqlUrl(process.env.ZEKO_ARCHIVE_GRAPHQL, 'https://archive.testnet.zeko.io/graphql');
+  const graphql = normalizeGraphqlUrl(process.env.ZEKO_GRAPHQL, 'https://sepolia.zeko.io/graphql');
+  const archive = normalizeGraphqlUrl(process.env.ZEKO_ARCHIVE_GRAPHQL, 'https://sepolia.zeko.io/graphql');
 
   Mina.setActiveInstance(
     Mina.Network({

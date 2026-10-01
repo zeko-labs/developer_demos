@@ -107,4 +107,4 @@ npm run deploy:prayer
 - o1js docs: https://docs.o1labs.org/o1js
 - Zeko docs: https://docs.zeko.io/introduction/what-is-zeko.html
 - Auro Wallet: https://github.com/aurowallet
-- Mina MCP server: https://github.com/ronykris/mina-mcp-server
+- Optional Zeko/o1js MCP helper: https://github.com/ronykris/mina-mcp-server

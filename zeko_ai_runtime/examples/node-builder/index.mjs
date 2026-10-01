@@ -140,7 +140,7 @@ async function main() {
         await client.enqueueCreditsSpend({
           ownerPublicKey,
           requestId: `node-builder-credits-${suffix}`,
-          amountMina: Number(pickEnv('ZEKO_AI_CREDITS_SPEND_MINA', 'OPENGRADIENT_CREDITS_SPEND_MINA') || 0.01),
+          amountSEth: Number(pickEnv('ZEKO_AI_CREDITS_SPEND_SETH', 'ZEKO_AI_CREDITS_SPEND_MINA', 'OPENGRADIENT_CREDITS_SPEND_MINA') || 0.01),
           enqueue: true,
           processNow: true,
           waitForSettlement: true,
@@ -164,7 +164,7 @@ async function main() {
         await client.enqueueCreditsSpendFast({
           ownerPublicKey,
           requestId: `node-builder-credits-fast-${suffix}`,
-          amountMina: Number(pickEnv('ZEKO_AI_CREDITS_SPEND_MINA', 'OPENGRADIENT_CREDITS_SPEND_MINA') || 0.01),
+          amountSEth: Number(pickEnv('ZEKO_AI_CREDITS_SPEND_SETH', 'ZEKO_AI_CREDITS_SPEND_MINA', 'OPENGRADIENT_CREDITS_SPEND_MINA') || 0.01),
           enqueue: true,
           processNow: false,
           waitForSettlement: false,
@@ -189,7 +189,7 @@ async function main() {
           {
             ownerPublicKey,
             requestId: `node-builder-credits-wait-${suffix}`,
-            amountMina: Number(pickEnv('ZEKO_AI_CREDITS_SPEND_MINA', 'OPENGRADIENT_CREDITS_SPEND_MINA') || 0.01),
+            amountSEth: Number(pickEnv('ZEKO_AI_CREDITS_SPEND_SETH', 'ZEKO_AI_CREDITS_SPEND_MINA', 'OPENGRADIENT_CREDITS_SPEND_MINA') || 0.01),
             enqueue: true,
             processNow: true,
             waitForSettlement: false,

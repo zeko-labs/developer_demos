@@ -3,7 +3,7 @@ import 'dotenv/config';
 import { AccountUpdate, Mina, PrivateKey, PublicKey, fetchAccount } from 'o1js';
 import { PrayerBatchContract } from './prayerBatch.js';
 
-const graphql = process.env.ZEKO_GRAPHQL || 'https://testnet.zeko.io';
+const graphql = process.env.ZEKO_GRAPHQL || 'https://sepolia.zeko.io/graphql';
 function getSecret(envKey: string): string | null {
   return process.env[envKey] || null;
 }
@@ -18,7 +18,7 @@ if (!deployerKey || !zkappKeyEnv) {
   throw new Error('Missing DEPLOYER_PRIVATE_KEY or PRAYER_ZKAPP_PRIVATE_KEY in .env');
 }
 
-const networkId = process.env.ZEKO_NETWORK_ID ?? 'zeko';
+const networkId = process.env.ZEKO_NETWORK_ID ?? 'testnet';
 const network = Mina.Network({
   networkId: networkId as any,
   mina: graphql,
@@ -36,10 +36,10 @@ console.log('Deployer public key:', deployer.toPublicKey().toBase58());
 const deployerPub = deployer.toPublicKey();
 const account = await fetchAccount({ publicKey: deployerPub });
 if (account.error) {
-  console.error('Deployer account not found on Zeko testnet.');
+  console.error('Deployer account not found on Zeko Ethereum Sepolia.');
   console.error(account.error);
 } else {
-  console.log('Deployer balance:', account.account.balance.toString(), 'nanomina');
+  console.log('Deployer balance:', account.account.balance.toString(), 'sETH base units');
   console.log('Deployer nonce:', account.account.nonce.toString());
 }
 
@@ -52,9 +52,9 @@ if (zkappExists) {
 console.log('Compiling prayer batch contract...');
 await PrayerBatchContract.compile();
 
-console.log('Deploying PrayerBatchContract to Zeko testnet...');
+console.log('Deploying PrayerBatchContract to Zeko Ethereum Sepolia...');
 const txFee = process.env.TX_FEE ?? '200000000';
-console.log('Using fee (nanomina):', txFee);
+console.log('Using fee (sETH base units):', txFee);
 const tx = await Mina.transaction({ sender: deployer.toPublicKey(), fee: txFee }, async () => {
   if (!zkappExists) {
     AccountUpdate.fundNewAccount(deployer.toPublicKey());

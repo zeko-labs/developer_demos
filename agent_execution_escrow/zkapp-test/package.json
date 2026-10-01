@@ -16,7 +16,7 @@
   "dependencies": {
     "dotenv": "^16.4.7",
     "mina-signer": "^3.0.7",
-    "o1js": "^1.7.0",
+    "o1js": "^2.13.1",
     "reflect-metadata": "^0.2.2"
   },
   "devDependencies": {

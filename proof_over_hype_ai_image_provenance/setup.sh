@@ -19,11 +19,11 @@ fi
 
 if [ ! -f .env ]; then
   echo "Let's configure your .env now."
-  read -r -p "Zeko GraphQL (default https://testnet.zeko.io): " ZEKO_GRAPHQL
-  ZEKO_GRAPHQL=${ZEKO_GRAPHQL:-https://testnet.zeko.io}
+  read -r -p "Zeko GraphQL (default https://sepolia.zeko.io/graphql): " ZEKO_GRAPHQL
+  ZEKO_GRAPHQL=${ZEKO_GRAPHQL:-https://sepolia.zeko.io/graphql}
   read -r -p "Network ID (default testnet): " ZEKO_NETWORK_ID
   ZEKO_NETWORK_ID=${ZEKO_NETWORK_ID:-testnet}
-  read -r -p "TX fee in nanomina (default 100000000): " TX_FEE
+  read -r -p "TX fee in sETH base units (default 100000000): " TX_FEE
   TX_FEE=${TX_FEE:-100000000}
 
   read -r -p "ZKAPP_PUBLIC_KEY: " ZKAPP_PUBLIC_KEY

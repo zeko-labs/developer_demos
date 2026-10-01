@@ -154,7 +154,7 @@ async function main(): Promise<void> {
   const providedNonce = parseOptionalArgValue(args, 'nonce');
   const stateFile = parseOptionalArgValue(args, 'state-file') || DEFAULT_STATE_FILE;
 
-  const graphql = process.env.ZEKO_GRAPHQL || 'https://testnet.zeko.io';
+  const graphql = process.env.ZEKO_GRAPHQL || 'https://sepolia.zeko.io/graphql';
   const archiveGraphql = process.env.ZEKO_ARCHIVE_GRAPHQL || graphql;
   const networkId = process.env.ZEKO_NETWORK_ID || 'testnet';
   const txFee = process.env.TX_FEE || '200000000';

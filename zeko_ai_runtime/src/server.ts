@@ -1089,8 +1089,14 @@ const privateLanePrivateKeyPath = path.join(dataDir, 'private-lane-x25519-privat
 const treeHeight = 20;
 const attesterCount = Math.max(3, Number(process.env.OPENGRADIENT_ATTESTER_COUNT || 3));
 const attesterQuorum = Math.max(2, Number(process.env.OPENGRADIENT_ATTESTER_QUORUM || 2));
-const creditsMinDeposit = Math.max(0.01, Number(process.env.OPENGRADIENT_CREDITS_MIN_DEPOSIT || 0.1));
-const platformFeeMina = Math.max(0, Number(process.env.OPENGRADIENT_PLATFORM_FEE_MINA || 0.01));
+const creditsMinDeposit = Math.max(
+  0.01,
+  Number(process.env.ZEKO_AI_CREDITS_MIN_DEPOSIT_SETH || process.env.OPENGRADIENT_CREDITS_MIN_DEPOSIT || 0.1)
+);
+const platformFeeMina = Math.max(
+  0,
+  Number(process.env.ZEKO_AI_PLATFORM_FEE_SETH || process.env.OPENGRADIENT_PLATFORM_FEE_MINA || 0.01)
+);
 const creditsOperatorAutoProcessMs = Math.max(0, Number(process.env.OPENGRADIENT_CREDITS_OPERATOR_AUTO_PROCESS_MS || 3000));
 const creditsOperatorMaxAttempts = Math.max(1, Number(process.env.OPENGRADIENT_CREDITS_OPERATOR_MAX_ATTEMPTS || 3));
 const creditsOperatorLeaseMs = Math.max(
@@ -1152,8 +1158,8 @@ const validBuilderScopes: BuilderScope[] = [
 ];
 const zekoNetwork = {
   networkId: process.env.ZEKO_NETWORK_ID || 'testnet',
-  graphql: normalizeGraphqlUrl(process.env.ZEKO_GRAPHQL || null, 'https://testnet.zeko.io/graphql'),
-  archive: normalizeGraphqlUrl(process.env.ZEKO_ARCHIVE_GRAPHQL || null, 'https://archive.testnet.zeko.io/graphql'),
+  graphql: normalizeGraphqlUrl(process.env.ZEKO_GRAPHQL || null, 'https://sepolia.zeko.io/graphql'),
+  archive: normalizeGraphqlUrl(process.env.ZEKO_ARCHIVE_GRAPHQL || null, 'https://sepolia.zeko.io/graphql'),
   explorer: process.env.ZEKO_EXPLORER || 'https://zekoscan.io/testnet'
 };
 function resolveLocalOperatorId() {
@@ -1405,7 +1411,7 @@ function normalizeApiKeyHeader(value: string | string[] | undefined) {
 }
 
 function getCreditsSpendMinaFromBody(body: unknown) {
-  const candidate = Number((body as any)?.amountMina);
+  const candidate = Number((body as any)?.amountSEth ?? (body as any)?.amountMina);
   return Number.isFinite(candidate) && candidate > 0 ? candidate : 0;
 }
 
@@ -1868,7 +1874,7 @@ async function consumeBuilderUsageOrThrow(
         access.builder!.dailyQuota.creditsSpendMina !== null &&
         next.daily.creditsSpendMina + policy.delta.creditsSpendMina > access.builder!.dailyQuota.creditsSpendMina
       ) {
-        throw Object.assign(new Error('Builder daily credits spend MINA quota exceeded.'), {
+        throw Object.assign(new Error('Builder daily credits spend sETH quota exceeded.'), {
           statusCode: 403,
           details: getBuilderUsageStatus(access.builder!, next)
         });
@@ -2695,13 +2701,13 @@ async function refreshInferenceSettlementState(inference: InferenceRecord) {
       const nextRequest = refreshReceiptStageFromChain(
         current.liveSettlementV2.request,
         chainState.zkappState[current.liveSettlementV2.request?.stateIndex || 0] || null,
-        'Request root observed on Zeko testnet v2.',
+        'Request root observed on Zeko Ethereum Sepolia v2.',
         checkedAt
       );
       const nextOutput = refreshReceiptStageFromChain(
         current.liveSettlementV2.output,
         chainState.zkappState[current.liveSettlementV2.output?.stateIndex || 0] || null,
-        'Output root observed on Zeko testnet v2.',
+        'Output root observed on Zeko Ethereum Sepolia v2.',
         checkedAt
       );
       const nextLiveSettlementV2: LiveSettlementRecordV2 = {
@@ -2732,13 +2738,13 @@ async function refreshInferenceSettlementState(inference: InferenceRecord) {
       const nextRequest = refreshReceiptStageFromChain(
         current.liveSettlement.request,
         chainState.zkappState[current.liveSettlement.request?.stateIndex || 0] || null,
-        'Request root observed on Zeko testnet.',
+        'Request root observed on Zeko Ethereum Sepolia.',
         checkedAt
       );
       const nextOutput = refreshReceiptStageFromChain(
         current.liveSettlement.output,
         chainState.zkappState[current.liveSettlement.output?.stateIndex || 0] || null,
-        'Output root observed on Zeko testnet.',
+        'Output root observed on Zeko Ethereum Sepolia.',
         checkedAt
       );
       const nextLiveSettlement: LiveSettlementRecord = {
@@ -4444,7 +4450,7 @@ function createFutureEthereumEnvelope(settlementMode: SettlementMode): FutureEth
     challengePoint: null,
     evaluationClaim: null,
     notes: [
-      'Inference runs off-chain first and settles on Zeko testnet today.',
+      'Inference runs off-chain first and settles on Zeko Ethereum Sepolia today.',
       'When Ethereum settlement is enabled, export settled receipts or batches as EIP-4844-backed proof envelopes.',
       'The intended bridge shape matches Zeko blob-equivalence claims: bind batch data on Ethereum to the same witness committed on Zeko.'
     ]
@@ -5172,7 +5178,7 @@ export async function submitLiveReceiptsForInference(
           settled: true,
           settledAt: new Date().toISOString(),
           observedRoot: requestState.zkappState[liveSettlement.request.stateIndex] || null,
-          note: 'Request root observed on Zeko testnet.'
+          note: 'Request root observed on Zeko Ethereum Sepolia.'
         },
         latestCheckAt: new Date().toISOString()
       };
@@ -5215,7 +5221,7 @@ export async function submitLiveReceiptsForInference(
           settled: true,
           settledAt: new Date().toISOString(),
           observedRoot: outputState.zkappState[liveSettlement.output.stateIndex] || null,
-          note: 'Output root observed on Zeko testnet.'
+          note: 'Output root observed on Zeko Ethereum Sepolia.'
         },
         settled: true,
         settledAt: new Date().toISOString(),
@@ -5339,7 +5345,7 @@ export async function submitLiveReceiptsForInferenceV2(
           settled: true,
           settledAt: new Date().toISOString(),
           observedRoot: requestState.zkappState[liveSettlementV2.request.stateIndex] || null,
-          note: 'Request root observed on Zeko testnet v2.'
+          note: 'Request root observed on Zeko Ethereum Sepolia v2.'
         },
         latestCheckAt: new Date().toISOString()
       };
@@ -5382,7 +5388,7 @@ export async function submitLiveReceiptsForInferenceV2(
           settled: true,
           settledAt: new Date().toISOString(),
           observedRoot: outputState.zkappState[liveSettlementV2.output.stateIndex] || null,
-          note: 'Output root observed on Zeko testnet v2.'
+          note: 'Output root observed on Zeko Ethereum Sepolia v2.'
         },
         settled: true,
         settledAt: new Date().toISOString(),
@@ -5571,7 +5577,7 @@ export async function submitLiveAgentRegistrationV1(
         settled: true,
         settledAt: new Date().toISOString(),
         observedRoot: settledState.zkappState[2] || null,
-        note: 'Agent registry root observed on Zeko testnet.'
+        note: 'Agent registry root observed on Zeko Ethereum Sepolia.'
       };
       await updateAgentById(agent.id, (current) => ({ ...current, liveSettlement: settlement }));
     } else if (chainState) {
@@ -5649,7 +5655,7 @@ export async function submitLiveAgentRegistrationV2(
         settled: true,
         settledAt: new Date().toISOString(),
         observedRoot: settledState.zkappState[2] || null,
-        note: 'Agent registry root observed on Zeko testnet v2.'
+        note: 'Agent registry root observed on Zeko Ethereum Sepolia v2.'
       };
       await updateAgentById(agent.id, (current) => ({ ...current, liveSettlementV2: settlement }));
     } else if (chainState) {
@@ -5686,12 +5692,12 @@ export async function submitLiveAgentRegistration(
 export async function createCreditsDepositIntent(params: CreditsDepositIntentParams) {
   const ownerPublicKey = params.ownerPublicKey.trim();
   if (!ownerPublicKey) throw new Error('Missing ownerPublicKey.');
-  const amountMina = Number(params.amountMina);
+  const amountMina = Number((params as any).amountSEth ?? params.amountMina);
   if (!Number.isFinite(amountMina) || amountMina <= 0) {
     throw new Error('Invalid deposit amount.');
   }
   if (amountMina < creditsMinDeposit) {
-    throw new Error(`Minimum deposit is ${creditsMinDeposit} MINA.`);
+    throw new Error(`Minimum deposit is ${creditsMinDeposit} sETH.`);
   }
 
   const coordinationTrees = await readCoordinationTreeState();
@@ -5729,6 +5735,7 @@ export async function createCreditsDepositIntent(params: CreditsDepositIntentPar
   return {
     ownerPublicKey,
     balanceMina: ledger.balances[ownerPublicKey] || 0,
+    balanceSEth: ledger.balances[ownerPublicKey] || 0,
     pendingDepositKey: pendingKey,
     contractVersion: 'v2',
     payload: payloadV2,
@@ -5743,7 +5750,7 @@ export async function createCreditsSpendIntent(params: CreditsSpendIntentParams)
   const settlementStrategy = normalizeCreditsSettlementStrategy(params.settlementStrategy);
   if (!ownerPublicKey) throw new Error('Missing ownerPublicKey.');
   if (!requestId) throw new Error('Missing requestId.');
-  const amountMina = Number(params.amountMina);
+  const amountMina = Number((params as any).amountSEth ?? params.amountMina);
   if (!Number.isFinite(amountMina) || amountMina <= 0) {
     throw new Error('Invalid spend amount.');
   }
@@ -5856,6 +5863,7 @@ export async function createCreditsSpendIntent(params: CreditsSpendIntentParams)
   return {
     ownerPublicKey,
     balanceMina: ledger.balances[ownerPublicKey],
+    balanceSEth: ledger.balances[ownerPublicKey],
     contractVersion: 'v2',
     settlementStrategy,
     payload: payloadV2,
@@ -7385,7 +7393,7 @@ app.get('/api/architecture', async (_req, res) => {
     corePosition: {
       sdkAndMcpAreClients: true,
       preferredPermissionlessTransport: 'HTTP_X402',
-      settlementLedger: 'Zeko testnet now, Ethereum later',
+      settlementLedger: 'Zeko Ethereum Sepolia now, Ethereum later',
       privacyUpgrade: 'client-encrypted outputs plus commitment-first DA publication',
       decentralizationUpgrade: `threshold settlement attestations with quorum ${Math.min(attesterFile.quorum, attesterFile.attesters.length)} of ${attesterFile.attesters.length}`
     },
@@ -8213,7 +8221,7 @@ app.post('/api/credits/deposit-intent', async (req, res) => {
     }
     const intent = await createCreditsDepositIntent({
       ownerPublicKey: String(body.ownerPublicKey || ''),
-      amountMina: Number(body.amountMina ?? creditsMinDeposit)
+      amountMina: Number((body as any).amountSEth ?? body.amountMina ?? creditsMinDeposit)
     });
     return res.json({
       ...intent,
@@ -8312,7 +8320,7 @@ async function handleCreditsSpendIntentRequest(
   const intent = await createCreditsSpendIntent({
     ownerPublicKey: String(body.ownerPublicKey || ''),
     requestId: String(body.requestId || ''),
-    amountMina: Number(body.amountMina),
+    amountMina: Number((body as any).amountSEth ?? body.amountMina),
     spendTo: typeof body.spendTo === 'string' ? body.spendTo : undefined,
     platformPayee: typeof body.platformPayee === 'string' ? body.platformPayee : undefined,
     settlementStrategy

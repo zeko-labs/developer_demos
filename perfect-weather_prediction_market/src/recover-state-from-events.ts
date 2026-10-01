@@ -161,7 +161,7 @@ async function main(): Promise<void> {
   if (!targetMarketsRoot) throw new Error('missing --markets-root or RECOVERY_TARGET_MARKETS_ROOT');
   if (!targetReceiptsRoot) throw new Error('missing --receipts-root or RECOVERY_TARGET_RECEIPTS_ROOT');
 
-  const graphql = process.env.ZEKO_GRAPHQL || 'https://testnet.zeko.io';
+  const graphql = process.env.ZEKO_GRAPHQL || 'https://sepolia.zeko.io/graphql';
   const archiveGraphql = process.env.ZEKO_ARCHIVE_GRAPHQL || graphql;
   const networkId = process.env.ZEKO_NETWORK_ID || 'testnet';
   Mina.setActiveInstance(Mina.Network({ networkId: networkId as never, mina: graphql, archive: archiveGraphql }));

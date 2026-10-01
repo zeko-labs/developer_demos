@@ -233,7 +233,10 @@ async function main() {
   const pollMs = Math.max(500, Number(process.env.OPENGRADIENT_FAILOVER_POLL_MS || 1_500));
   const auth = resolveCoordinatorAuth();
   const ownerPublicKey = resolveOwnerPublicKey();
-  const amountMina = normalizePositiveNumber(process.env.OPENGRADIENT_CREDITS_SPEND_MINA, 0.001);
+  const amountMina = normalizePositiveNumber(
+    process.env.ZEKO_AI_CREDITS_SPEND_SETH || process.env.OPENGRADIENT_CREDITS_SPEND_MINA,
+    0.001
+  );
   const client = new CoordinatorClient({
     baseUrl,
     auth,

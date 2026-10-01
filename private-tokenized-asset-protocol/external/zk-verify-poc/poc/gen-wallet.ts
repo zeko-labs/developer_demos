@@ -46,7 +46,7 @@ function main(): void {
 
   existing.set(
     "ZEKO_GRAPHQL_URL",
-    existing.get("ZEKO_GRAPHQL_URL") ?? "https://testnet.zeko.io/graphql",
+    existing.get("ZEKO_GRAPHQL_URL") ?? "https://sepolia.zeko.io/graphql",
   );
   existing.set("FEE_PAYER_PRIVATE_KEY", feePayerKey.toBase58());
   existing.set("FEE_PAYER_PUBLIC_KEY", feePayerPublic.toBase58());

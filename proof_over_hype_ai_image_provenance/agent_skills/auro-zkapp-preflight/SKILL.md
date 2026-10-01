@@ -20,7 +20,7 @@ Use this skill before invoking `window.mina.sendTransaction(...)`.
 3. Fetch chain nonce for fee payer and check mempool pending tx count.
 4. Ensure tx payload contains required account updates and authorization fields.
 5. Confirm zkApp permissions on-chain allow the intended state update path.
-6. Confirm fee is integer nanomina and reasonable for current network.
+6. Confirm fee is integer sETH base units and reasonable for current network.
 
 ## Validation
 

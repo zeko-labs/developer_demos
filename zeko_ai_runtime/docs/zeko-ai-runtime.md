@@ -1,6 +1,6 @@
 # Zeko AI Runtime
 
-This runtime reverse-engineers the useful parts of current AI protocol design and maps them onto a Zeko testnet stack that already exists locally in Codex.
+This runtime reverse-engineers the useful parts of current AI protocol design and maps them onto a Zeko Ethereum Sepolia stack that already exists locally in Codex.
 
 The public starting point was inspiration from OpenGradient-style protocol ideas, but the resulting system is fundamentally rearchitected for Zeko-native execution, routing, privacy, and settlement.
 
@@ -43,7 +43,7 @@ The documented skill set lives under [../skills/README.md](../skills/README.md).
 - Settlement happens after execution, not inline with every request.
 - Each inference carries a verifiable receipt.
 - Settlement mode controls how much data is exposed.
-- A future Ethereum settlement envelope stays attached to every receipt, even though the live ledger is Zeko testnet today.
+- A future Ethereum settlement envelope stays attached to every receipt, even though the live ledger is Zeko Ethereum Sepolia today.
 
 ## What Was Reverse-Engineered From Existing AI Protocols
 
@@ -106,7 +106,7 @@ Mapped to model endpoints or deterministic local mock models.
 
 ### Reference protocol settlement ledger
 
-Mapped to Zeko testnet receipt roots. The prototype stores:
+Mapped to Zeko Ethereum Sepolia receipt roots. The prototype stores:
 
 - request Merkle root
 - output Merkle root
@@ -350,7 +350,7 @@ Operational helpers:
 ## Honest Limitations
 
 - It does not claim genuine TEE verification yet.
-- It can now build real unsigned receipt transactions and optionally sponsor-submit them to Zeko testnet, but only if the zkApp and sponsor keys are configured.
+- It can now build real unsigned receipt transactions and optionally sponsor-submit them to Zeko Ethereum Sepolia, but only if the zkApp and sponsor keys are configured.
 - It now also supports live agent registry settlement and threshold-verified credits flows on `v2`, but the credits path still relies on off-chain ledger bookkeeping plus signed root updates rather than a fully private proof system.
 - The spend branch is heavier than the plain credits-update branch because it also executes payout sends, so high-frequency micro-spends should still be batched or server-proved instead of treated like synchronous client-local work.
 - Deposit intents still need a wallet-funded tx because `depositMina > 0` cannot be sponsor-submitted safely; the operator lane is intentionally focused on the fast zero-deposit update/spend path, while the deposit monitor handles asynchronous confirmation after broadcast.

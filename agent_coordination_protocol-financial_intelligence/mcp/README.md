@@ -1,10 +1,10 @@
 # MCP Integration (Optional)
 
-This folder documents how to use the Mina MCP server alongside the app.
+This folder documents how to use the Zeko/o1js MCP helper alongside the app.
 
 ## Why
 
-The MCP server provides standardized tools for querying Mina / Zeko activity using a
+The MCP server provides standardized tools for querying Zeko Sepolia activity using a
 Blockberry API key. Use it to inspect transactions, zkApp calls, and wallet history
 from your own MCP client or LLM workflow.
 

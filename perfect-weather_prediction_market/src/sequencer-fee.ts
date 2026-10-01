@@ -17,7 +17,7 @@ function rawNanoToMinaString(value: number | bigint): string {
 }
 
 async function graphqlRequest(query: string, variables: Record<string, unknown>, graphqlUrl?: string | null): Promise<any> {
-  const url = graphqlUrl || process.env.ZEKO_GRAPHQL || 'https://testnet.zeko.io';
+  const url = graphqlUrl || process.env.ZEKO_GRAPHQL || 'https://sepolia.zeko.io/graphql';
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },

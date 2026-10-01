@@ -29,7 +29,7 @@ const ZEKO_GRAPHQL = isSepoliaGraphqlEndpoint(CONFIGURED_ZEKO_GRAPHQL)
 const CONFIGURED_ZEKO_NETWORK_ID = String(process.env.ZEKO_NETWORK_ID || '').trim();
 const ZEKO_NETWORK_ID = isSepoliaGraphqlEndpoint(ZEKO_GRAPHQL)
   ? 'testnet'
-  : CONFIGURED_ZEKO_NETWORK_ID || 'zeko';
+  : CONFIGURED_ZEKO_NETWORK_ID || 'testnet';
 const ZEKO_TX_GRAPHQL_ENV = isSepoliaGraphqlEndpoint(process.env.ZEKO_TX_GRAPHQL) ? process.env.ZEKO_TX_GRAPHQL : '';
 const ZEKO_ARCHIVE_GRAPHQL = isSepoliaGraphqlEndpoint(process.env.ZEKO_ARCHIVE_GRAPHQL) ? process.env.ZEKO_ARCHIVE_GRAPHQL : '';
 const ZEKO_ARCHIVE_RELAY_GRAPHQL = isSepoliaGraphqlEndpoint(process.env.ZEKO_ARCHIVE_RELAY_GRAPHQL)

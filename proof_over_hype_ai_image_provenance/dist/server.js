@@ -380,7 +380,7 @@ async function fetchOnChainState() {
     if (!zkappPublicKey) {
         throw new Error('ZKAPP_PUBLIC_KEY env var not set');
     }
-    const networkId = process.env.ZEKO_NETWORK_ID ?? 'zeko';
+    const networkId = process.env.ZEKO_NETWORK_ID ?? 'testnet';
     const network = Mina.Network({
         networkId: networkId,
         mina: process.env.ZEKO_GRAPHQL,
@@ -438,7 +438,7 @@ async function submitProofToZeko(payload) {
         throw new Error('ZKAPP_PRIVATE_KEY env var not set');
     }
     await ensureContractCompiled();
-    const networkId = process.env.ZEKO_NETWORK_ID ?? 'zeko';
+    const networkId = process.env.ZEKO_NETWORK_ID ?? 'testnet';
     const network = Mina.Network({
         networkId: networkId,
         mina: process.env.ZEKO_GRAPHQL,
@@ -479,7 +479,7 @@ async function submitProofToZeko(payload) {
     const signature = Signature.fromJSON(payload.signature);
     const newRoot = Field.fromJSON(payload.merkleRoot);
     const merkleIndex = typeof payload.merkleIndex === 'number' ? payload.merkleIndex : Number(payload.merkleIndex ?? 0);
-    const txFee = Number(process.env.TX_FEE ?? '100000000'); // 0.1 MINA in nanomina
+    const txFee = Number(process.env.TX_FEE ?? '100000000'); // 0.1 sETH in sETH base units
     const submitterPk = submitter.toPublicKey();
     const attemptSend = async (overrideNonce) => {
         const submitterAccount = await fetchAccount({ publicKey: submitterPk });
@@ -562,7 +562,7 @@ async function buildUnsignedTx(payload, feePayer) {
         throw new Error('ZKAPP_PRIVATE_KEY env var not set');
     }
     await ensureContractCompiled();
-    const networkId = process.env.ZEKO_NETWORK_ID ?? 'zeko';
+    const networkId = process.env.ZEKO_NETWORK_ID ?? 'testnet';
     const network = Mina.Network({
         networkId: networkId,
         mina: process.env.ZEKO_GRAPHQL,
@@ -636,7 +636,7 @@ async function buildUnsignedTx(payload, feePayer) {
     await tx.sign([zkappKey]);
     const txJson = tx.toJSON();
     // keep tx JSON opaque to avoid noisy logs
-    const netId = process.env.ZEKO_NETWORK_ID ?? 'zeko';
+    const netId = process.env.ZEKO_NETWORK_ID ?? 'testnet';
     return { tx: txJson, fee, networkId: netId };
 }
 app.post('/analyze', async (req, res) => {
@@ -1055,7 +1055,7 @@ app.post('/nonce', async (req, res) => {
         if (!process.env.ZEKO_GRAPHQL) {
             return res.status(400).json({ error: 'ZEKO_GRAPHQL env var not set' });
         }
-        const networkId = process.env.ZEKO_NETWORK_ID ?? 'zeko';
+        const networkId = process.env.ZEKO_NETWORK_ID ?? 'testnet';
         const network = Mina.Network({
             networkId: networkId,
             mina: process.env.ZEKO_GRAPHQL,
@@ -1117,7 +1117,7 @@ app.get('/zkapp-info', async (_req, res) => {
         if (!process.env.ZEKO_GRAPHQL) {
             return res.status(400).json({ error: 'ZEKO_GRAPHQL env var not set' });
         }
-        const networkId = process.env.ZEKO_NETWORK_ID ?? 'zeko';
+        const networkId = process.env.ZEKO_NETWORK_ID ?? 'testnet';
         const network = Mina.Network({
             networkId: networkId,
             mina: process.env.ZEKO_GRAPHQL,

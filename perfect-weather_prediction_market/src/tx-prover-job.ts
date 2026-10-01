@@ -114,9 +114,9 @@ async function ensureFastContractCompiled(network: { graphql: string; networkId:
 }
 
 function getNetworkConfig() {
-  const graphql = process.env.ZEKO_GRAPHQL || 'https://testnet.zeko.io';
+  const graphql = process.env.ZEKO_GRAPHQL || 'https://sepolia.zeko.io/graphql';
   const requestedNetworkId = process.env.ZEKO_NETWORK_ID || 'testnet';
-  const isZekoTestnet = /testnet\.zeko\.io/i.test(graphql);
+  const isZekoTestnet = /(?:testnet|sepolia).zeko.io/i.test(graphql);
   const networkId = isZekoTestnet && requestedNetworkId === 'zeko' ? 'testnet' : requestedNetworkId;
   return { graphql, networkId };
 }

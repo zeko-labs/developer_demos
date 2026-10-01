@@ -1,6 +1,6 @@
 # Perfect Weather Prediction Market
 
-A Zeko testnet prediction market demo that combines:
+A Zeko Ethereum Sepolia prediction market demo that combines:
 
 - real on-chain daily markets
 - wallet-signed betting

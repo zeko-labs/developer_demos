@@ -140,7 +140,10 @@ async function main() {
     inferenceCreates: parseNullableLimit(process.env.OPENGRADIENT_BUILDER_DAILY_INFERENCE_CREATES),
     agentCreates: parseNullableLimit(process.env.OPENGRADIENT_BUILDER_DAILY_AGENT_CREATES),
     creditsSpendCount: parseNullableLimit(process.env.OPENGRADIENT_BUILDER_DAILY_CREDITS_SPEND_COUNT),
-    creditsSpendMina: parseNullableLimit(process.env.OPENGRADIENT_BUILDER_DAILY_CREDITS_SPEND_MINA)
+    creditsSpendMina: parseNullableLimit(
+      process.env.ZEKO_AI_BUILDER_DAILY_CREDITS_SPEND_SETH ||
+        process.env.OPENGRADIENT_BUILDER_DAILY_CREDITS_SPEND_MINA
+    )
   };
   const hasDailyQuota = Object.values(dailyQuota).some((entry) => entry !== null);
 

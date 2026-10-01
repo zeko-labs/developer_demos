@@ -2,7 +2,7 @@
 
 Most prediction market demos do one thing well. They either show a nice market UI, a toy oracle, or a zk-branded contract that does not actually address the hard parts of the product. This project was built to do something more complete: show what a modern private prediction market can look like when you take oracle integrity, wallet UX, private bet intent, and developer extensibility seriously.
 
-The result is a working Zeko testnet demo with real on-chain daily markets, wallet-signed betting, a zkTLS-backed weather oracle, a rolling settlement loop, and a clear path for agents to plug in private signals and model outputs. It is not full shielded finance, and we are explicit about that. But it is a serious, technically coherent step toward a category of applications that feel much more aligned with what zero knowledge should actually enable.
+The result is a working Zeko Ethereum Sepolia demo with real on-chain daily markets, wallet-signed betting, a zkTLS-backed weather oracle, a rolling settlement loop, and a clear path for agents to plug in private signals and model outputs. It is not full shielded finance, and we are explicit about that. But it is a serious, technically coherent step toward a category of applications that feel much more aligned with what zero knowledge should actually enable.
 
 ## Why this is interesting
 
@@ -114,7 +114,7 @@ That is one of the reasons this repo is more interesting than a simple one-marke
 
 The system is not just a static page and a contract. It includes:
 
-- deployment and sync scripts for Zeko testnet
+- deployment and sync scripts for Zeko Ethereum Sepolia
 - per-date market creation
 - oracle daemon flow
 - periodic and nightly settlement checks

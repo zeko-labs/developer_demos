@@ -1789,7 +1789,7 @@ app.post('/api/v1/reliability/settlement/manual-status', async (req, res) => {
 app.get('/api/v1/config/public', (_req, res) => {
   res.json({
     networkId: process.env.ZEKO_NETWORK_ID || 'testnet',
-    zekoGraphqlUrl: process.env.ZEKO_GRAPHQL_URL || 'https://testnet.zeko.io/graphql',
+    zekoGraphqlUrl: process.env.ZEKO_GRAPHQL_URL || 'https://sepolia.zeko.io/graphql',
     bridgeEnabled: true,
     environment: process.env.NODE_ENV || 'development',
     proofMode: getProofMode(),

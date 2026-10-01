@@ -1,6 +1,6 @@
 ---
 name: zeko-market-ops
-description: Use when deploying, syncing, repairing, or operating the Zeko testnet market stack in this repo, including zkApp deployment, per-date market creation, state sync, nightly settlement, and wallet-signed transaction troubleshooting.
+description: Use when deploying, syncing, repairing, or operating the Zeko Ethereum Sepolia market stack in this repo, including zkApp deployment, per-date market creation, state sync, nightly settlement, and wallet-signed transaction troubleshooting.
 ---
 
 # Zeko Market Ops

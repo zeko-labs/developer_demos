@@ -57,7 +57,11 @@ const ipfsAuth = process.env.IPFS_AUTH || '';
 const ipfsGateway = process.env.IPFS_GATEWAY || '';
 const platformTreasuryKey =
   process.env.PLATFORM_TREASURY_PUBLIC_KEY || 'B62qqpyJPDGci2uxpapnXQmrFr77b47wRx1v2GDRnAHMUFJFjJv4YPb';
-const platformFeeMina = process.env.PLATFORM_FEE_MINA ? Number(process.env.PLATFORM_FEE_MINA) : 0.01;
+const platformFeeMina = process.env.PLATFORM_FEE_SETH
+  ? Number(process.env.PLATFORM_FEE_SETH)
+  : process.env.PLATFORM_FEE_MINA
+    ? Number(process.env.PLATFORM_FEE_MINA)
+    : 0.01;
 const adminToken = process.env.ADMIN_TOKEN || '';
 const acpProtocol = 'acp';
 const acpVersion = '0.1';
@@ -73,9 +77,11 @@ function getRelayerPublicKey(): string | null {
     return null;
   }
 }
-const creditsMinDeposit = process.env.CREDITS_MIN_DEPOSIT_MINA
-  ? Number(process.env.CREDITS_MIN_DEPOSIT_MINA)
-  : 1;
+const creditsMinDeposit = process.env.CREDITS_MIN_DEPOSIT_SETH
+  ? Number(process.env.CREDITS_MIN_DEPOSIT_SETH)
+  : process.env.CREDITS_MIN_DEPOSIT_MINA
+    ? Number(process.env.CREDITS_MIN_DEPOSIT_MINA)
+    : 1;
 const creditsTreasuryKey = process.env.CREDITS_TREASURY_PUBLIC_KEY || platformTreasuryKey;
 
 const bundledDataDir = path.join(process.cwd(), 'data');
@@ -1252,7 +1258,7 @@ function resolveTreasuryKey(): string | null {
 
 function getNetwork() {
   const networkId = process.env.ZEKO_NETWORK_ID ?? 'testnet';
-  const graphql = process.env.ZEKO_GRAPHQL;
+  const graphql = process.env.ZEKO_GRAPHQL || 'https://sepolia.zeko.io/graphql';
   if (!graphql) {
     return { networkId, graphql: null };
   }
@@ -1266,7 +1272,7 @@ function parseRawFeeInt(value: unknown): number | null {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 }
 
-function rawNanoToMinaString(value: number): string {
+function rawBaseUnitsToSEthString(value: number): string {
   const whole = Math.floor(value / 1e9);
   const frac = String(value % 1e9).padStart(9, '0').replace(/0+$/, '');
   return frac ? `${whole}.${frac}` : String(whole);
@@ -1332,7 +1338,7 @@ async function getSuggestedSequencerFee(graphqlUrl?: string | null): Promise<{ f
     if (!fees.length) {
       return {
         feeRaw: String(fallback),
-        fee: rawNanoToMinaString(fallback),
+        fee: rawBaseUnitsToSEthString(fallback),
         source: 'configured-fallback'
       };
     }
@@ -1340,13 +1346,13 @@ async function getSuggestedSequencerFee(graphqlUrl?: string | null): Promise<{ f
     const suggested = Math.max(fallback, p75);
     return {
       feeRaw: String(suggested),
-      fee: rawNanoToMinaString(suggested),
+      fee: rawBaseUnitsToSEthString(suggested),
       source: 'sequencer-mempool-p75'
     };
   } catch {
     return {
       feeRaw: String(fallback),
-      fee: rawNanoToMinaString(fallback),
+      fee: rawBaseUnitsToSEthString(fallback),
       source: 'configured-fallback'
     };
   }
@@ -1396,6 +1402,7 @@ async function buildUnsignedTx(payload: {
   signature: unknown;
   merkleRoot: string;
   priceMina?: number;
+  priceSEth?: number;
   treasuryPublicKey?: string | null;
 }, feePayer: string) {
   return withTxLock(async () => {
@@ -1482,7 +1489,12 @@ async function buildUnsignedTx(payload: {
   } catch {
     platformPk = null;
   }
-  const priceMina = typeof payload.priceMina === 'number' ? payload.priceMina : 0.1;
+  const priceMina =
+    typeof payload.priceSEth === 'number'
+      ? payload.priceSEth
+      : typeof payload.priceMina === 'number'
+        ? payload.priceMina
+        : 0.1;
   const amountNano = BigInt(Math.round(priceMina * 1e9));
   const amount = UInt64.from(amountNano);
   const platformFeeNano = BigInt(Math.round(Math.max(0, platformFeeMina) * 1e9));
@@ -1521,6 +1533,7 @@ async function buildAndSendRequestTxWithSponsor(payload: {
   signature: unknown;
   merkleRoot: string;
   priceMina?: number;
+  priceSEth?: number;
   treasuryPublicKey?: string | null;
 }) {
   return withTxLock(async () => {
@@ -1592,7 +1605,12 @@ async function buildAndSendRequestTxWithSponsor(payload: {
   } catch {
     platformPk = null;
   }
-  const priceMina = typeof payload.priceMina === 'number' ? payload.priceMina : 0.1;
+  const priceMina =
+    typeof payload.priceSEth === 'number'
+      ? payload.priceSEth
+      : typeof payload.priceMina === 'number'
+        ? payload.priceMina
+        : 0.1;
   const amountNano = BigInt(Math.round(priceMina * 1e9));
   const amount = UInt64.from(amountNano);
   const platformFeeNano = BigInt(Math.round(Math.max(0, platformFeeMina) * 1e9));
@@ -3855,7 +3873,7 @@ async function createIntentCore(input: {
       );
       if (quoteRes.ok) {
         const quoteData = await quoteRes.json();
-        const maybePrice = Number(quoteData?.priceMina ?? quoteData?.price);
+        const maybePrice = Number(quoteData?.priceSEth ?? quoteData?.priceMina ?? quoteData?.price);
         if (Number.isFinite(maybePrice) && maybePrice > 0) {
           quotedPrice = maybePrice;
         }
@@ -3880,7 +3898,7 @@ async function createIntentCore(input: {
   const signature = Signature.create(oracleKey, [requestHash, agentIdHash, newRoot]);
 
   const requestsStore = await readJson<{ requests: any[] }>(requestsPath, { requests: [] });
-  const priceMina = quotedPrice ?? agent.priceMina;
+  const priceMina = quotedPrice ?? agent.priceSEth ?? agent.priceMina;
   requestsStore.requests.unshift({
     id: requestId,
     agentId: normalizedAgentId,
@@ -3902,6 +3920,7 @@ async function createIntentCore(input: {
   return {
     requestId,
     priceMina,
+    priceSEth: priceMina,
     accessToken,
     payload: {
       requestHash: requestHash.toJSON(),
@@ -3910,6 +3929,7 @@ async function createIntentCore(input: {
       signature: signature.toJSON(),
       merkleRoot: newRoot.toJSON(),
       priceMina,
+      priceSEth: priceMina,
       treasuryPublicKey: agent.treasuryPublicKey ?? null,
       merkleIndex: index,
       merkleWitness: witness
@@ -4512,14 +4532,14 @@ app.post('/api/agent-test', async (req, res) => {
 
 app.post('/api/credits/deposit-intent', async (req, res) => {
   try {
-    const { ownerPublicKey, amountMina } = req.body ?? {};
+    const { ownerPublicKey, amountMina, amountSEth } = req.body ?? {};
     if (!ownerPublicKey) throw new Error('Missing ownerPublicKey');
-    const depositAmount = Number(amountMina ?? creditsMinDeposit);
+    const depositAmount = Number(amountSEth ?? amountMina ?? creditsMinDeposit);
     if (!Number.isFinite(depositAmount) || depositAmount <= 0) {
       throw new Error('Invalid deposit amount');
     }
     if (depositAmount < creditsMinDeposit) {
-      throw new Error(`Minimum deposit is ${creditsMinDeposit} MINA`);
+      throw new Error(`Minimum deposit is ${creditsMinDeposit} sETH`);
     }
     const ownerHash = hashToField(ownerPublicKey);
     const amountField = Field.from(Math.round(depositAmount * 1e9));
@@ -4555,12 +4575,14 @@ app.post('/api/credits/deposit-intent', async (req, res) => {
     res.json({
       ownerPublicKey,
       balanceMina: ledger.balances[ownerPublicKey] || 0,
+      balanceSEth: ledger.balances[ownerPublicKey] || 0,
       payload: {
         creditsRoot: commit.newRoot.toJSON(),
         nullifierRoot: nullifierRoot.toJSON(),
         oraclePublicKey: oraclePk.toBase58(),
         signature: signature.toJSON(),
         depositMina: depositAmount,
+        depositSEth: depositAmount,
         creditsMinDeposit
       }
     });
@@ -4572,10 +4594,10 @@ app.post('/api/credits/deposit-intent', async (req, res) => {
 
 app.post('/api/credits/spend-intent', async (req, res) => {
   try {
-    const { ownerPublicKey, requestId, amountMina } = req.body ?? {};
+    const { ownerPublicKey, requestId, amountMina, amountSEth } = req.body ?? {};
     if (!ownerPublicKey) throw new Error('Missing ownerPublicKey');
     if (!requestId) throw new Error('Missing requestId');
-    const spendAmount = Number(amountMina);
+    const spendAmount = Number(amountSEth ?? amountMina);
     if (!Number.isFinite(spendAmount) || spendAmount <= 0) {
       throw new Error('Invalid spend amount');
     }
@@ -4600,7 +4622,7 @@ app.post('/api/credits/spend-intent', async (req, res) => {
         timestamp: new Date().toISOString()
       });
       await writeCreditsLedger(ledger);
-      throw new Error(`Double-spend detected. Slashed ${slashAmount.toFixed(2)} MINA.`);
+      throw new Error(`Double-spend detected. Slashed ${slashAmount.toFixed(2)} sETH.`);
     }
     nullifiers.nullifiers[nullifierKey] = {
       timestamp: new Date().toISOString(),
@@ -4644,15 +4666,19 @@ app.post('/api/credits/spend-intent', async (req, res) => {
     res.json({
       ownerPublicKey,
       balanceMina: ledger.balances[ownerPublicKey],
+      balanceSEth: ledger.balances[ownerPublicKey],
       payload: {
         creditsRoot: creditsCommit.newRoot.toJSON(),
         nullifierRoot: nullifierCommit.newRoot.toJSON(),
         oraclePublicKey: oraclePk.toBase58(),
         signature: signature.toJSON(),
         depositMina: 0,
+        depositSEth: 0,
         spendTo,
         spendAmountMina: spendAmount,
+        spendAmountSEth: spendAmount,
         platformAmountMina: platformFee,
+        platformAmountSEth: platformFee,
         platformPayee: relayerPayee
       }
     });
@@ -4950,7 +4976,7 @@ app.post('/api/status', async (req, res) => {
     if (!process.env.ZEKO_GRAPHQL) {
       throw new Error('ZEKO_GRAPHQL not configured');
     }
-    const networkId = process.env.ZEKO_NETWORK_ID ?? 'zeko';
+    const networkId = process.env.ZEKO_NETWORK_ID ?? 'testnet';
     const network = Mina.Network({
       networkId: networkId as any,
       mina: process.env.ZEKO_GRAPHQL,

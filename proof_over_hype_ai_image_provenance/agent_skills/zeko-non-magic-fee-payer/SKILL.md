@@ -5,7 +5,7 @@ description: Build nonce-safe Zeko transactions by replacing o1js default fee-pa
 
 # Zeko Non-Magic Fee Payer
 
-Use this skill when wallet or server submissions fail with nonce/precondition errors on Zeko testnet.
+Use this skill when wallet or server submissions fail with nonce/precondition errors on Zeko Ethereum Sepolia.
 
 ## Trigger signals
 

@@ -1,6 +1,6 @@
 # ZKApp Test
 
-Standalone Zeko testnet zkApp workspace for both the minimal deploy smoke test and the first Nava-shaped intent lifecycle primitive.
+Standalone Zeko Ethereum Sepolia zkApp workspace for both the minimal deploy smoke test and the first Nava-shaped intent lifecycle primitive.
 
 This folder is standalone inside the Agent Execution Escrow demo:
 
@@ -65,13 +65,13 @@ For native verifier quorum tests, pass verifier keys and signing fields through 
 Defaults:
 
 - `ZEKO_NETWORK_ID=testnet`
-- `https://testnet.zeko.io/graphql`
-- `https://archive.testnet.zeko.io/graphql`
+- `https://sepolia.zeko.io/graphql`
+- `https://sepolia.zeko.io/graphql`
 - `https://zekoscan.io/testnet`
 
 ## Compatibility note
 
-The current Zeko testnet accepted deploy and update transactions from this project with the Mina `testnet` signer domain while targeting Zeko GraphQL endpoints. If Zeko's custom network signer domain becomes the required path later, set `ZEKO_NETWORK_ID` explicitly and re-test the scripts.
+For Zeko Ethereum Sepolia, use the Mina `testnet` signer domain while targeting the Zeko GraphQL endpoint. If Zeko's custom network signer domain becomes the required path later, set `ZEKO_NETWORK_ID` explicitly and validate the scripts before submitting transactions.
 
 ## Migration note
 

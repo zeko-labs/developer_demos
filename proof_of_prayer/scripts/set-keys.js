@@ -36,7 +36,7 @@ const publicKey = await ask(`ZKAPP_PUBLIC_KEY [${current.ZKAPP_PUBLIC_KEY || ''}
 const privateKey = await ask(`ZKAPP_PRIVATE_KEY [${current.ZKAPP_PRIVATE_KEY || ''}]: `);
 
 const next = {
-  ZEKO_GRAPHQL: current.ZEKO_GRAPHQL || 'https://testnet.zeko.io',
+  ZEKO_GRAPHQL: current.ZEKO_GRAPHQL || 'https://sepolia.zeko.io/graphql',
   ZEKO_NETWORK_ID: current.ZEKO_NETWORK_ID || 'testnet',
   TX_FEE: current.TX_FEE || '100000000',
   ZKAPP_PUBLIC_KEY: publicKey || current.ZKAPP_PUBLIC_KEY || '',

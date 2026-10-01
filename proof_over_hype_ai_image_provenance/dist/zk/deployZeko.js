@@ -3,7 +3,7 @@ import { execSync } from 'node:child_process';
 import { AccountUpdate, Mina, PrivateKey, fetchAccount } from 'o1js';
 import { AiVerdictProgram } from './aiVerdict.js';
 import { AiVerdictContract } from './zekoContract.js';
-const graphql = process.env.ZEKO_GRAPHQL || 'https://testnet.zeko.io';
+const graphql = process.env.ZEKO_GRAPHQL || 'https://sepolia.zeko.io/graphql';
 function getKeychainSecret(service) {
     try {
         const out = execSync(`security find-generic-password -a \"$USER\" -s \"${service}\" -w`, {
@@ -26,7 +26,8 @@ const zkappSource = process.env.ZKAPP_PRIVATE_KEY ? 'env' : 'keychain';
 if (!deployerKey || !zkappKeyEnv) {
     throw new Error('Missing DEPLOYER_PRIVATE_KEY or ZKAPP_PRIVATE_KEY');
 }
-const networkId = process.env.ZEKO_NETWORK_ID ?? 'zeko';
+const networkId = process.env.ZEKO_NETWORK_ID ?? 'testnet';
+const networkLabel = `Zeko ${networkId}`;
 const network = Mina.Network({
     networkId: networkId,
     mina: graphql,
@@ -42,11 +43,11 @@ console.log('Deployer public key:', deployer.toPublicKey().toBase58());
 const deployerPub = deployer.toPublicKey();
 const account = await fetchAccount({ publicKey: deployerPub });
 if (account.error) {
-    console.error('Deployer account not found on Zeko testnet.');
+    console.error(`Deployer account not found on ${networkLabel}.`);
     console.error(account.error);
 }
 else {
-    console.log('Deployer balance:', account.account.balance.toString(), 'nanomina');
+    console.log('Deployer balance:', account.account.balance.toString(), 'sETH base units');
     console.log('Deployer nonce:', account.account.nonce.toString());
 }
 const zkappAccount = await fetchAccount({ publicKey: zkappAddress });
@@ -57,9 +58,9 @@ if (zkappExists) {
 console.log('Compiling circuits...');
 await AiVerdictProgram.compile();
 await AiVerdictContract.compile();
-console.log('Deploying zkApp to Zeko testnet...');
-const txFee = process.env.TX_FEE ?? '200000000'; // 0.2 MINA in nanomina
-console.log('Using fee (nanomina):', txFee);
+console.log(`Deploying zkApp to ${networkLabel}...`);
+const txFee = process.env.TX_FEE ?? '200000000'; // 0.2 sETH in sETH base units
+console.log('Using fee (sETH base units):', txFee);
 const tx = await Mina.transaction({ sender: deployer.toPublicKey(), fee: txFee }, async () => {
     if (!zkappExists) {
         AccountUpdate.fundNewAccount(deployer.toPublicKey());

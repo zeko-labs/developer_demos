@@ -147,10 +147,10 @@ function resolveZkappPublicKeyV2(): string | null {
 }
 
 export function getZekoRuntimeConfigV2(): ZekoRuntimeConfigV2 {
-  const graphql = normalizeGraphqlUrl(process.env.ZEKO_GRAPHQL || null, 'https://testnet.zeko.io/graphql');
+  const graphql = normalizeGraphqlUrl(process.env.ZEKO_GRAPHQL || null, 'https://sepolia.zeko.io/graphql');
   const archive = normalizeGraphqlUrl(
     process.env.ZEKO_ARCHIVE_GRAPHQL || null,
-    'https://archive.testnet.zeko.io/graphql'
+    'https://sepolia.zeko.io/graphql'
   );
   const hasStoredZkappPrivateKey = Boolean(readStoredZkappPrivateKeyV2());
   return {

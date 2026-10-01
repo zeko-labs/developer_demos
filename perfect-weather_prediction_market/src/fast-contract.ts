@@ -334,7 +334,7 @@ export class FastPredictionMarketPlatform extends SmartContract {
     );
     winningPool.greaterThan(UInt64.from(0)).assertTrue();
 
-    // Market leaves track stake/pot in whole tMINA units; sends must use nanomina.
+    // Market leaves track stake/pot in whole sETH units; sends must use sETH base units.
     const payoutTmina = resolvedMarket.totalPositionBet.mul(addTotalBet).div(winningPool);
     payoutTmina.greaterThan(UInt64.from(0)).assertTrue();
     const payoutNanomina = payoutTmina.mul(NANOMINA_PER_TMINA);

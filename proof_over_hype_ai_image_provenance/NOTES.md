@@ -1,10 +1,10 @@
 # Notes: Zeko zkApp + Proof + Wallet Signing (Lessons Learned)
 
 ## Zeko zkApp deploy + network
-- Zeko testnet GraphQL endpoint: `https://testnet.zeko.io`.
-- Network ID matters for signatures. In practice, use `ZEKO_NETWORK_ID=testnet` for deployment/signing on Zeko testnet.
-- Fee must be **integer nanomina** (e.g. `100000000` for 0.1 MINA). Decimals like `0.1` cause BigInt errors.
-- When deploying a zkApp on Zeko testnet, pre-fund the zkApp account to avoid `Invalid_fee_excess` during account creation.
+- Zeko Ethereum Sepolia GraphQL endpoint: `https://sepolia.zeko.io/graphql`.
+- Network ID matters for signatures. In practice, use `ZEKO_NETWORK_ID=testnet` for deployment/signing on Zeko Ethereum Sepolia.
+- Fee must be **integer sETH base units** (e.g. `100000000` for 0.1 sETH). Decimals like `0.1` cause BigInt errors.
+- When deploying a zkApp on Zeko Ethereum Sepolia, pre-fund the zkApp account to avoid `Invalid_fee_excess` during account creation.
 
 ## Proof generation vs on-chain verification
 - Recursive proof verification inside the zkApp can be brittle in practice (e.g. "permutation not constructed correctly").

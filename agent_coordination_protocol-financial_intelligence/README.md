@@ -1,6 +1,6 @@
 # Agent Coordination Protocol - Financial Intelligence Demo
 
-This repo is a local-first demo of the **Agent Coordination Protocol (ACP)** on Zeko testnet.
+This repo is a local-first demo of the **Agent Coordination Protocol (ACP)** on Zeko Ethereum Sepolia.
 
 ## Network Profile
 
@@ -65,7 +65,7 @@ Specs live in `specs/acp/`.
 
 Credits mode is deposit-once, spend-many:
 
-- user deposits MINA into protocol escrow path
+- user deposits sETH into protocol escrow path
 - spends are tracked against credits balance
 - request-time spends do not require direct wallet payment each call
 

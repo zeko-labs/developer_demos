@@ -23,7 +23,7 @@ if [ ! -f .env ]; then
     echo "Created .env from .env.example"
   else
     cat > .env <<'ENVEOF'
-ZEKO_GRAPHQL=https://testnet.zeko.io
+ZEKO_GRAPHQL=https://sepolia.zeko.io/graphql
 ZEKO_NETWORK_ID=testnet
 TX_FEE=100000000
 

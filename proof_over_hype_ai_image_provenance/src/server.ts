@@ -441,7 +441,7 @@ async function fetchOnChainState() {
   if (!zkappPublicKey) {
     throw new Error('ZKAPP_PUBLIC_KEY env var not set');
   }
-  const networkId = process.env.ZEKO_NETWORK_ID ?? 'zeko';
+  const networkId = process.env.ZEKO_NETWORK_ID ?? 'testnet';
   const network = Mina.Network({
     networkId: networkId as any,
     mina: process.env.ZEKO_GRAPHQL,
@@ -509,7 +509,7 @@ async function submitProofToZeko(payload: {
   }
 
   await ensureContractCompiled();
-  const networkId = process.env.ZEKO_NETWORK_ID ?? 'zeko';
+  const networkId = process.env.ZEKO_NETWORK_ID ?? 'testnet';
   const network = Mina.Network({
     networkId: networkId as any,
     mina: process.env.ZEKO_GRAPHQL,
@@ -553,7 +553,7 @@ async function submitProofToZeko(payload: {
   const merkleIndex =
     typeof payload.merkleIndex === 'number' ? payload.merkleIndex : Number(payload.merkleIndex ?? 0);
 
-  const txFee = Number(process.env.TX_FEE ?? '100000000'); // 0.1 MINA in nanomina
+  const txFee = Number(process.env.TX_FEE ?? '100000000'); // 0.1 sETH in sETH base units
   const submitterPk = submitter.toPublicKey();
 
   const attemptSend = async (overrideNonce?: number) => {
@@ -649,7 +649,7 @@ async function buildUnsignedTx(
   }
 
   await ensureContractCompiled();
-  const networkId = process.env.ZEKO_NETWORK_ID ?? 'zeko';
+  const networkId = process.env.ZEKO_NETWORK_ID ?? 'testnet';
   const network = Mina.Network({
     networkId: networkId as any,
     mina: process.env.ZEKO_GRAPHQL,
@@ -724,7 +724,7 @@ async function buildUnsignedTx(
   await tx.sign([zkappKey]);
   const txJson = tx.toJSON() as any;
   // keep tx JSON opaque to avoid noisy logs
-  const netId = process.env.ZEKO_NETWORK_ID ?? 'zeko';
+  const netId = process.env.ZEKO_NETWORK_ID ?? 'testnet';
   return { tx: txJson, fee, networkId: netId };
 }
 
@@ -824,7 +824,7 @@ app.post('/analyze', async (req, res) => {
       merkleAppend.root
     );
 
-    const proofJson = (proof as AiVerdictProof).toJSON();
+    const proofJson = (proof as unknown as AiVerdictProof).toJSON();
     const proofStore = await loadProofStore();
     proofStore.proofs[imageHash.toString()] = {
       imageHash: imageHash.toString(),
@@ -1190,7 +1190,7 @@ app.post('/nonce', async (req, res) => {
     if (!process.env.ZEKO_GRAPHQL) {
       return res.status(400).json({ error: 'ZEKO_GRAPHQL env var not set' });
     }
-    const networkId = process.env.ZEKO_NETWORK_ID ?? 'zeko';
+    const networkId = process.env.ZEKO_NETWORK_ID ?? 'testnet';
     const network = Mina.Network({
       networkId: networkId as any,
       mina: process.env.ZEKO_GRAPHQL,
@@ -1252,7 +1252,7 @@ app.get('/zkapp-info', async (_req, res) => {
     if (!process.env.ZEKO_GRAPHQL) {
       return res.status(400).json({ error: 'ZEKO_GRAPHQL env var not set' });
     }
-    const networkId = process.env.ZEKO_NETWORK_ID ?? 'zeko';
+    const networkId = process.env.ZEKO_NETWORK_ID ?? 'testnet';
     const network = Mina.Network({
       networkId: networkId as any,
       mina: process.env.ZEKO_GRAPHQL,

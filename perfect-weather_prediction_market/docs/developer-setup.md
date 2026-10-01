@@ -174,7 +174,7 @@ Recommended split settings:
 Recommended Render env vars:
 
 ```bash
-ZEKO_GRAPHQL=https://testnet.zeko.io
+ZEKO_GRAPHQL=https://sepolia.zeko.io/graphql
 ZEKO_NETWORK_ID=testnet
 TX_FEE=1200000000
 

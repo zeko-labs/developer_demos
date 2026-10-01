@@ -84,4 +84,4 @@ These are the package entrypoints intended to stay stable for builders:
 - `zeko-ai-builder-kit/compat`
 - `zeko-ai-builder-kit/crypto`
 
-The current settlement backend uses the Zeko testnet path. The package boundary is meant to stay stable when receipts later move from direct Zeko testnet settlement to Zeko proofs settling onward to Ethereum.
+The current settlement backend uses the Zeko Ethereum Sepolia path. The package boundary is meant to stay stable when receipts later move from direct Zeko Ethereum Sepolia settlement to Zeko proofs settling onward to Ethereum.

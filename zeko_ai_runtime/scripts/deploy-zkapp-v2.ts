@@ -372,10 +372,10 @@ async function readAttesterPublicKeys(): Promise<PublicKey[]> {
 
 async function main() {
   const networkId = process.env.ZEKO_NETWORK_ID || 'testnet';
-  const graphql = normalizeGraphqlUrl(process.env.ZEKO_GRAPHQL || null, 'https://testnet.zeko.io/graphql');
+  const graphql = normalizeGraphqlUrl(process.env.ZEKO_GRAPHQL || null, 'https://sepolia.zeko.io/graphql');
   const archive = normalizeGraphqlUrl(
     process.env.ZEKO_ARCHIVE_GRAPHQL || null,
-    'https://archive.testnet.zeko.io/graphql'
+    'https://sepolia.zeko.io/graphql'
   );
   const explorer = process.env.ZEKO_EXPLORER || 'https://zekoscan.io/testnet';
   const txFee = UInt64.from(process.env.TX_FEE || '100000000');
@@ -412,7 +412,7 @@ async function main() {
 
   const deployerAccount = await fetchAccount({ publicKey: deployerPublicKey });
   if (deployerAccount.error) {
-    throw new Error('Deployer account not found on Zeko testnet. Fund it before deploying.');
+    throw new Error('Deployer account not found on Zeko Ethereum Sepolia. Fund it before deploying.');
   }
 
   const deployerBalance = deployerAccount.account.balance.toBigInt();

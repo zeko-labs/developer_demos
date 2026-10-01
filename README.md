@@ -1,6 +1,6 @@
 # Zeko Developer Demos
 
-A monorepo of end-to-end demos for building zero-knowledge applications on Zeko and Mina.
+A monorepo of end-to-end demos for building zero-knowledge applications on Zeko Ethereum Sepolia.
 
 This repository is meant to be practical. Each demo is a working reference for a different product or protocol pattern: private markets, agent payments, order books, provenance, and privacy-preserving consumer apps.
 
@@ -100,8 +100,8 @@ Before running most demos, have these ready:
 - Node.js 20+
 - `pnpm`
 - Git
-- An Auro wallet for Mina / Zeko flows
-- Access to Zeko testnet endpoints if the selected demo requires them
+- An Auro wallet for Zeko Sepolia flows
+- Access to Zeko Ethereum Sepolia endpoints if the selected demo requires them
 
 Optional, depending on the demo:
 - Docker / Docker Compose
@@ -110,9 +110,9 @@ Optional, depending on the demo:
 
 Not every demo needs the same setup. The demo-specific README is the source of truth.
 
-## Zeko testnet and mainnet profiles
+## Zeko Ethereum Sepolia and mainnet profiles
 
-These demos default to local or Zeko testnet settings unless a demo says otherwise. That preserves existing hosted demos and avoids accidentally moving real value through reference code.
+These demos default to local or Zeko Ethereum Sepolia settings unless a demo says otherwise. That preserves existing hosted demos and avoids accidentally moving real value through reference code.
 
 For mainnet, create an explicit mainnet environment profile for the demo you are running. At minimum, review the demo's `ZEKO_NETWORK_ID`, GraphQL/archive endpoint variables, explorer URL, deployer key, sponsor/relayer key, zkApp address, and fee settings. Do not reuse testnet deployment artifacts or faucet flows on mainnet.
 

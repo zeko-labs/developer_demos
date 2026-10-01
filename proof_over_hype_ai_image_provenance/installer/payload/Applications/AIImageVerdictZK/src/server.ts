@@ -135,7 +135,7 @@ async function submitProofToZeko(payload: {
   }
 
   await ensureContractCompiled();
-  const networkId = process.env.ZEKO_NETWORK_ID ?? 'zeko';
+  const networkId = process.env.ZEKO_NETWORK_ID ?? 'testnet';
   const network = Mina.Network({
     networkId: networkId as any,
     mina: process.env.ZEKO_GRAPHQL,
@@ -228,7 +228,7 @@ async function buildUnsignedTx(
   }
 
   await ensureContractCompiled();
-  const networkId = process.env.ZEKO_NETWORK_ID ?? 'zeko';
+  const networkId = process.env.ZEKO_NETWORK_ID ?? 'testnet';
   const network = Mina.Network({
     networkId: networkId as any,
     mina: process.env.ZEKO_GRAPHQL,
@@ -286,7 +286,7 @@ async function buildUnsignedTx(
   } else {
     console.log('[tx] tx JSON nonce:', txJson?.feePayer?.body?.nonce);
   }
-  const netId = process.env.ZEKO_NETWORK_ID ?? 'zeko';
+  const netId = process.env.ZEKO_NETWORK_ID ?? 'testnet';
   return { tx: txJson, fee, networkId: netId };
 }
 
@@ -421,7 +421,7 @@ app.post('/nonce', async (req, res) => {
     if (!process.env.ZEKO_GRAPHQL) {
       return res.status(400).json({ error: 'ZEKO_GRAPHQL env var not set' });
     }
-    const networkId = process.env.ZEKO_NETWORK_ID ?? 'zeko';
+    const networkId = process.env.ZEKO_NETWORK_ID ?? 'testnet';
     const network = Mina.Network({
       networkId: networkId as any,
       mina: process.env.ZEKO_GRAPHQL,

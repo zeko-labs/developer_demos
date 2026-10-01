@@ -5,7 +5,7 @@ description: Use this skill when connecting a browser client to Auro on Zeko, re
 
 # Zeko Wallet Connect
 
-Use this skill for browser-to-wallet flows on Zeko testnet.
+Use this skill for browser-to-wallet flows on Zeko Ethereum Sepolia.
 
 ## Focus
 

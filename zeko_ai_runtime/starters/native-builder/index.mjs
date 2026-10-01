@@ -57,7 +57,7 @@ async function main() {
         await client.enqueueCreditsSpendFast({
           ownerPublicKey,
           requestId: `native-builder-fast-${suffix}`,
-          amountMina: Number(pickEnv('ZEKO_AI_CREDITS_SPEND_MINA', 'OPENGRADIENT_CREDITS_SPEND_MINA') || 0.01),
+          amountSEth: Number(pickEnv('ZEKO_AI_CREDITS_SPEND_SETH', 'ZEKO_AI_CREDITS_SPEND_MINA', 'OPENGRADIENT_CREDITS_SPEND_MINA') || 0.01),
           enqueue: true,
           processNow: false,
           waitForSettlement: false,

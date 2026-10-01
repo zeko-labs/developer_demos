@@ -1,6 +1,6 @@
 # Agent Skills Pack: Proof Over Hype
 
-This folder contains reusable agent skills extracted from the Zeko testnet implementation and debugging cycle for:
+This folder contains reusable agent skills extracted from the Zeko Ethereum Sepolia implementation and debugging cycle for:
 
 - Auro wallet transaction signing
 - o1js zkApp submission flows

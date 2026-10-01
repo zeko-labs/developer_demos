@@ -48,7 +48,7 @@ For `credits-spend`:
 
 ```bash
 export ZEKO_AI_OWNER_PUBLIC_KEY=B62...
-export ZEKO_AI_CREDITS_SPEND_MINA=0.01
+export ZEKO_AI_CREDITS_SPEND_SETH=0.01
 ```
 
 For `credits-item`:

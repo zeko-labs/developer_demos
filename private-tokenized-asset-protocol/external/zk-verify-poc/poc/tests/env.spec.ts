@@ -5,12 +5,12 @@ import { loadRuntimeEnv } from "../lib/env.js";
 describe("env loading", () => {
   it("Given all required env vars When loaded Then config is returned", () => {
     const previous = { ...process.env };
-    process.env.ZEKO_GRAPHQL_URL = "https://testnet.zeko.io/graphql";
+    process.env.ZEKO_GRAPHQL_URL = "https://sepolia.zeko.io/graphql";
     process.env.FEE_PAYER_PRIVATE_KEY = "private";
     process.env.FEE_PAYER_PUBLIC_KEY = "public";
 
     const config = loadRuntimeEnv({ loadDotenv: false });
-    expect(config.zekoGraphqlUrl).toBe("https://testnet.zeko.io/graphql");
+    expect(config.zekoGraphqlUrl).toBe("https://sepolia.zeko.io/graphql");
 
     process.env = previous;
   });

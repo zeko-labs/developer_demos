@@ -18,7 +18,7 @@ What it includes:
 
 - fast off-chain inference with configurable receipt settlement modes
 - Zeko-shaped request and output settlement payloads
-- real Zeko testnet request/output transaction builders and optional sponsor submission
+- real Zeko Ethereum Sepolia request/output transaction builders and optional sponsor submission
 - Zeko-native agent registry and usage-credits primitives for builders
 - sealed private-input lane with redacted prompt persistence
 - threshold attestations instead of a single settlement signer
@@ -133,8 +133,8 @@ Copy `.env.example` to `.env` if you want to override defaults.
 
 Important defaults:
 
-- Zeko testnet GraphQL: `https://testnet.zeko.io/graphql`
-- Zeko archive: `https://archive.testnet.zeko.io/graphql`
+- Zeko Ethereum Sepolia GraphQL: `https://sepolia.zeko.io/graphql`
+- Zeko archive: `https://sepolia.zeko.io/graphql`
 - local port: `5180`
 - tx fee: `100000000`
 
@@ -248,7 +248,7 @@ Useful transaction endpoints:
 
 Deployment:
 
-- `npm run zkapp:deploy` deploys the default threshold-verifying `AgentRequestContractV2` to Zeko testnet
+- `npm run zkapp:deploy` deploys the default threshold-verifying `AgentRequestContractV2` to Zeko Ethereum Sepolia
 - `npm run zkapp:deploy:v1` deploys the legacy `AgentRequestContract` compatibility lane
 - `npm run zkapp:deploy:v2` deploys the threshold-verifying `AgentRequestContractV2` explicitly
 - if `ZKAPP_PRIVATE_KEY` is omitted, the script generates or reuses a local key at `data/deployments/agent-request.zkapp-private-key.txt`
@@ -283,7 +283,7 @@ Sponsor mode:
 - `npm run smoke:credits` verifies the live `v2` credits-update path by settling credits and nullifier roots on-chain
 - `npm run smoke:credits:spend` verifies the live `v2` credits-spend path, including the payout branch
 - `npm run smoke:credits:operator` verifies the async `v2` operator lane by enqueueing a spend intent, sponsor-submitting it server-side, and waiting for settlement
-- `npm run smoke:credits:deposit-monitor` verifies the wallet-funded deposit flow by broadcasting a real `depositMina > 0` tx, monitoring the new credits root, and auto-confirming the ledger
+- `npm run smoke:credits:deposit-monitor` verifies the wallet-funded deposit flow by broadcasting a real `amountSEth > 0` tx, monitoring the new credits root, and auto-confirming the ledger
 - the local node now self-registers in `data/opengradient/operator-registry.json` with lane capability metadata so builders can discover which fee payer is active for each settlement lane
 - the primary coordinator now exposes `/api/operators/routing` and keeps the canonical app state locally while delegating only the actual registry or credits sponsor submission to the active lane owner
 - `data/opengradient/operator-membership.json` now acts as the signed admission and failover policy when present, so operators cannot self-register new lanes outside the approved membership set
@@ -320,10 +320,10 @@ Credits mode:
 - `POST /api/credits/spend-intent` also accepts `enqueue`, `processNow`, `waitForSettlement`, and `idempotencyKey` so builders can hand the spend to the server-side operator lane instead of synchronously managing settlement themselves
 - `POST /api/credits/spend-intent/fast` is the lean builder path: debit the ledger immediately, queue a checkpoint batch, and let the operator settle the root update in the background
 - `POST /api/credits-tx` builds the unsigned Zeko tx for the default `v2` credits lane
-- `POST /api/credits-submit` sponsor-submits default `v2` credits updates or spends when `depositMina` is `0`
+- `POST /api/credits-submit` sponsor-submits default `v2` credits updates or spends when the wallet-funded deposit amount is `0`
 - `GET /api/credits/operator/queue` and `POST /api/credits/operator/process` expose the async server-side settlement lane for `v2` zero-deposit credits updates and spends
 - `POST /api/credits/operator/enqueue` is the generic queue entrypoint for builder-managed `v2` credits payloads
-- deposit intents are intentionally not sponsor-queued because `depositMina > 0` must still be funded by the wallet owner
+- deposit intents are intentionally not sponsor-queued because `amountSEth > 0` must still be funded by the wallet owner
 - `payloadV1` and explicit `/api/credits/v1/*` routes preserve the legacy single-signer credits lane
 - the operator lane now defaults to background processing every few seconds when sponsor capability is present, and the deposit monitor defaults to background polling for root confirmation
 
@@ -408,7 +408,7 @@ const creditsSpend = await client.enqueueCreditsSpendAndWait(
   {
     ownerPublicKey: process.env.ZEKO_AI_OWNER_PUBLIC_KEY!,
     requestId: `builder-credits-${Date.now()}`,
-    amountMina: 0.01,
+    amountSEth: 0.01,
     enqueue: true,
     processNow: true,
     waitForSettlement: false,

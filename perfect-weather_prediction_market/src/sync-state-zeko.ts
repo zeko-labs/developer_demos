@@ -179,7 +179,7 @@ async function main(): Promise<void> {
   const args = process.argv.slice(2);
   const stateFile = parseOptionalArgValue(args, 'state-file') || DEFAULT_STATE_FILE;
   const allowRootMismatch = parseFlag(args, 'allow-root-mismatch');
-  const graphql = process.env.ZEKO_GRAPHQL || 'https://testnet.zeko.io';
+  const graphql = process.env.ZEKO_GRAPHQL || 'https://sepolia.zeko.io/graphql';
   const archiveGraphql = process.env.ZEKO_ARCHIVE_GRAPHQL || graphql;
   const networkId = process.env.ZEKO_NETWORK_ID || 'testnet';
   const zkappAddress = PrivateKey.fromBase58(readEnv('ZKAPP_PRIVATE_KEY')).toPublicKey();

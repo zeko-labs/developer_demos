@@ -3,7 +3,7 @@ import { AccountUpdate, Mina, PrivateKey, PublicKey, fetchAccount } from 'o1js';
 import { AiVerdictProgram } from './aiVerdict.js';
 import { AiVerdictContract } from './zekoContract.js';
 
-const graphql = process.env.ZEKO_GRAPHQL || 'https://testnet.zeko.io';
+const graphql = process.env.ZEKO_GRAPHQL || 'https://sepolia.zeko.io/graphql';
 const deployerKey = process.env.DEPLOYER_PRIVATE_KEY;
 const zkappKeyEnv = process.env.ZKAPP_PRIVATE_KEY;
 
@@ -11,7 +11,7 @@ if (!deployerKey || !zkappKeyEnv) {
   throw new Error('Missing DEPLOYER_PRIVATE_KEY or ZKAPP_PRIVATE_KEY');
 }
 
-const networkId = process.env.ZEKO_NETWORK_ID ?? 'zeko';
+const networkId = process.env.ZEKO_NETWORK_ID ?? 'testnet';
 const networkLabel = `Zeko ${networkId}`;
 const network = Mina.Network({
   networkId: networkId as any,

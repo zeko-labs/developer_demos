@@ -22,7 +22,7 @@ async function main() {
     method: 'POST',
     body: {
       ownerPublicKey,
-      amountMina: Number(process.env.OPENGRADIENT_CREDITS_FAST_DEPOSIT_MINA || 0.11)
+      amountSEth: Number(process.env.ZEKO_AI_CREDITS_FAST_DEPOSIT_SETH || process.env.OPENGRADIENT_CREDITS_FAST_DEPOSIT_MINA || 0.11)
     }
   });
 

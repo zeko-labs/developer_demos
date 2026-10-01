@@ -89,7 +89,7 @@ async function main(): Promise<void> {
   const args = process.argv.slice(2);
   const stateFile = parseOptionalArgValue(args, 'state-file') || DEFAULT_STATE_FILE;
   const dailyMarketsFile = parseOptionalArgValue(args, 'daily-markets-file') || './data/demo-daily-threshold-markets.json';
-  const graphql = process.env.ZEKO_GRAPHQL || 'https://testnet.zeko.io';
+  const graphql = process.env.ZEKO_GRAPHQL || 'https://sepolia.zeko.io/graphql';
   const archiveGraphql = process.env.ZEKO_ARCHIVE_GRAPHQL || graphql;
   const networkId = process.env.ZEKO_NETWORK_ID || 'testnet';
   const txFee = process.env.TX_FEE || '200000000';

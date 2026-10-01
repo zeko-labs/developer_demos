@@ -146,10 +146,10 @@ function resolveZkappPublicKey(): string | null {
 }
 
 export function getZekoRuntimeConfig(): ZekoRuntimeConfig {
-  const graphql = normalizeGraphqlUrl(process.env.ZEKO_GRAPHQL || null, 'https://testnet.zeko.io/graphql');
+  const graphql = normalizeGraphqlUrl(process.env.ZEKO_GRAPHQL || null, 'https://sepolia.zeko.io/graphql');
   const archive = normalizeGraphqlUrl(
     process.env.ZEKO_ARCHIVE_GRAPHQL || null,
-    'https://archive.testnet.zeko.io/graphql'
+    'https://sepolia.zeko.io/graphql'
   );
   const hasStoredZkappPrivateKey = Boolean(readStoredZkappPrivateKey());
   return {
@@ -622,7 +622,7 @@ export async function getZekoPreflight() {
     config,
     issues,
     notes: [
-      'Runtime settlement and unsigned tx build use current Zeko testnet defaults and require the zkApp public key; deploy/rekey flows require the zkApp private key.',
+      'Runtime settlement and unsigned tx build use current Zeko Ethereum Sepolia defaults and require the zkApp public key; deploy/rekey flows require the zkApp private key.',
       'Sponsored submit supports lane-specific keys via OPENGRADIENT_{REQUEST,OUTPUT,REGISTRY,CREDITS}_SPONSOR_PRIVATE_KEY, with SPONSOR_PRIVATE_KEY as shared fallback.',
       'This runtime uses the existing single-signer-compatible request/output payloads.'
     ]

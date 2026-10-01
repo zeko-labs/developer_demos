@@ -381,8 +381,8 @@ async function main() {
 
   const networkId = resolveNetworkId(process.env.ZEKO_NETWORK_ID);
   const networkIdText = networkIdLabel(networkId);
-  const graphql = normalizeGraphqlUrl(process.env.ZEKO_GRAPHQL, 'https://testnet.zeko.io/graphql');
-  const archive = normalizeGraphqlUrl(process.env.ZEKO_ARCHIVE_GRAPHQL, 'https://archive.testnet.zeko.io/graphql');
+  const graphql = normalizeGraphqlUrl(process.env.ZEKO_GRAPHQL, 'https://sepolia.zeko.io/graphql');
+  const archive = normalizeGraphqlUrl(process.env.ZEKO_ARCHIVE_GRAPHQL, 'https://sepolia.zeko.io/graphql');
   const explorer = process.env.ZEKO_EXPLORER || 'https://zekoscan.io/testnet';
   const txFee = UInt64.from(process.env.TX_FEE || '100000000');
   const prefundAmount = UInt64.from(process.env.ZKAPP_PREFUND_AMOUNT || '1000000000');
@@ -448,7 +448,7 @@ async function main() {
 
   const deployerAccount = await fetchAccount({ publicKey: deployerPublicKey });
   if (deployerAccount.error) {
-    throw new Error('Deployer account not found on Zeko testnet. Fund it before syncing intent state.');
+    throw new Error('Deployer account not found on Zeko Ethereum Sepolia. Fund it before syncing intent state.');
   }
 
   const existingRecord = await readJsonIfPresent(recordPath);

@@ -52,7 +52,7 @@ That is why the next three pieces are necessary.
 
 Aggregate market totals are not enough to derive a safe user payout on-chain.
 
-Even if the app knows off-chain that a user bet `5 tMINA` on `over` for `2026-03-12`, the contract does not have a trustless way to verify that claim later.
+Even if the app knows off-chain that a user bet `5 sETH` on `over` for `2026-03-12`, the contract does not have a trustless way to verify that claim later.
 
 ### Required Upgrade
 

@@ -903,10 +903,10 @@ function sleep(ms: number): Promise<void> {
 }
 
 function getNetworkConfig() {
-  const graphql = process.env.ZEKO_GRAPHQL || 'https://testnet.zeko.io';
+  const graphql = process.env.ZEKO_GRAPHQL || 'https://sepolia.zeko.io/graphql';
   const archiveGraphql = process.env.ZEKO_ARCHIVE_GRAPHQL || graphql;
   const requestedNetworkId = process.env.ZEKO_NETWORK_ID || 'testnet';
-  const isZekoTestnet = /testnet\.zeko\.io/i.test(graphql);
+  const isZekoTestnet = /(?:testnet|sepolia).zeko.io/i.test(graphql);
   const networkId = isZekoTestnet && requestedNetworkId === 'zeko' ? 'testnet' : requestedNetworkId;
   return { graphql, archiveGraphql, networkId };
 }
