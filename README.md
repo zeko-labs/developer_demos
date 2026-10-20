@@ -171,6 +171,17 @@ If you want to explore:
 - Demos are reference examples for developers, and are not audited. Each team is responsible for their own deployment and audit of any code from this repo that is used in production.
 - Mainnet deployments should use fresh keys, fresh zkApp deployments, production custody practices, and a final team review/audit.
 
+## License
+
+All original Zeko-authored code, documentation, schemas, examples, tests,
+scripts, and deployment materials in this repository and its demo subfolders
+are licensed under the Apache License, Version 2.0. Each maintained demo keeps
+an Apache-2.0 `LICENSE` file, and package manifests that declare a project
+license use `Apache-2.0`.
+
+Third-party and upstream-derived components retain the license notices that
+accompany those components.
+
 ## Troubleshooting
 
 Start with the local docs for the specific demo you are running.
